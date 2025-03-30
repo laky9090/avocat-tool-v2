@@ -1,0 +1,6 @@
+node_modules/
+fichiers_clients/
+*.exe
+*.app
+*.zip
+.DS_Store
