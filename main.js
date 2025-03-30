@@ -8,6 +8,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 800,
+    icon: path.join(__dirname, 'icon.ico'), // Icône personnalisée
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

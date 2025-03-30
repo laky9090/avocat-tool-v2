@@ -4,60 +4,101 @@
   <meta charset="UTF-8">
   <title>Avocat Tool</title>
   <style>
+    /* Styles globaux */
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f5f5f5;
       margin: 0;
       padding: 0;
     }
+    /* Header avec bannière en arrière-plan */
     header {
-      background-color: #2C3E50;
+      position: relative;
+      background: url("banniere.jpg") no-repeat center center;
+      background-size: cover;
       color: white;
-      padding: 15px;
+      min-height: 200px;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 20px;
     }
     header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 2rem;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
     }
+    /* Container principal */
     .container {
       padding: 20px;
       max-width: 1000px;
       margin: auto;
     }
-    input, select, textarea, button {
-      font-size: 16px;
-      padding: 8px;
-      margin-top: 5px;
-      margin-bottom: 15px;
+    /* Style pour le formulaire */
+    .form-container {
+      max-width: 600px;
+      margin: 0 auto 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .form-container label,
+    .form-container input,
+    .form-container textarea,
+    .form-container select,
+    .form-container button {
+      display: block;
       width: 100%;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    .form-container input,
+    .form-container select,
+    .form-container textarea {
+      padding: 8px;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    button {
+    .form-container button {
       background-color: #3498db;
       color: white;
       border: none;
+      padding: 10px;
+      border-radius: 8px;
       cursor: pointer;
       width: auto;
     }
-    button:hover {
+    .form-container button:hover {
       background-color: #2980b9;
+    }
+    /* Liste des clients en affichage grille */
+    #listeClients {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      list-style: none;
+      padding: 0;
     }
     .client-item {
       background-color: white;
       padding: 15px;
       border-radius: 10px;
-      margin-bottom: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      border-left: 6px solid transparent;
     }
-    .en-retard { border-left-color: red; background: #ffe5e5; }
-    .imminente { border-left-color: orange; background: #fff3e0; }
     .client-buttons button {
       margin-right: 10px;
+      margin-bottom: 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
+    .client-buttons button:hover {
+      opacity: 0.8;
+    }
+    /* Calendrier */
     #calendrier {
       margin-top: 20px;
       background: white;
@@ -73,10 +114,17 @@
       padding: 5px;
       text-align: left;
       border: 1px solid #ddd;
-      vertical-align: top;
     }
     th {
       background-color: #ecf0f1;
+    }
+    /* Fiche détaillée */
+    #fiche-detaillee {
+      background: #fff;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
   </style>
 </head>
@@ -85,120 +133,129 @@
     <h1>Avocat Tool</h1>
   </header>
   <div class="container">
-    <h2>Ajouter ou modifier un client</h2>
-    <input type="hidden" id="indexModif">
-    <label>Nom du client :</label>
-    <input type="text" id="nom">
-    <label>Type de dossier :</label>
-    <input type="text" id="type">
-    <label>Date d’audience :</label>
-    <input type="date" id="dateAudience">
-    <label>Date de dernier contact :</label>
-    <input type="date" id="dateContact">
-    <label>Date d’échéance juridique :</label>
-    <input type="date" id="dateEcheance">
-    <label>Commentaire :</label>
-    <textarea id="commentaire"></textarea>
-    <button onclick="ajouterOuModifierClient()">Enregistrer</button>
+    <!-- Formulaire d'ajout/modification -->
+    <div class="form-container">
+      <h2>Ajouter ou modifier un client</h2>
+      <input type="hidden" id="indexModif">
+      <label>Nom du client :</label>
+      <input type="text" id="nom">
+      <label>Type de dossier :</label>
+      <input type="text" id="type">
+      <label>Date d’audience :</label>
+      <input type="date" id="dateAudience">
+      <label>Date de dernier contact :</label>
+      <input type="date" id="dateContact">
+      <label>Date d’échéance juridique :</label>
+      <input type="date" id="dateEcheance">
+      <label>Commentaire :</label>
+      <textarea id="commentaire"></textarea>
+      <button onclick="ajouterOuModifierClient()">Enregistrer</button>
+    </div>
 
-    <h2>Liste des clients</h2>
-    <input type="text" id="recherche" placeholder="Rechercher..." oninput="filtrerClients()">
-    <select id="tri" onchange="appliquerTri()">
+    <!-- Section des contrôles de la liste -->
+    <div class="form-container">
+      <h2>Liste des clients</h2>
+      <input type="text" id="recherche" placeholder="Rechercher...">
+      <select id="tri">
         <option value="">Trier par...</option>
         <option value="nom">Nom</option>
         <option value="type">Type</option>
         <option value="dateAudience">Date d’audience</option>
         <option value="dateEcheance">Date d’échéance</option>
         <option value="dateContact">Date de dernier contact</option>
-    </select>
-    <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
-    <button id="btnCalendrier" onclick="afficherCalendrier()">Voir le calendrier</button>
-
-
+      </select>
+      <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
+      <button id="btnCalendrier" onclick="afficherCalendrier()">Voir le calendrier</button>
+    </div>
+    
+    <!-- Liste des clients -->
+    <ul id="listeClients"></ul>
+    <!-- Calendrier -->
     <div id="calendrier" style="display:none;"></div>
-    <ul id="listeClients" style="list-style:none;padding-left:0;"></ul>
+    <!-- Fiche détaillée -->
     <div id="fiche-detaillee" style="display:none;"></div>
   </div>
+
   <script>
     const PDFDocument = require('pdfkit');
     const fs = require('fs');
     const path = require('path');
     const { dialog, shell } = require('@electron/remote');
     const cheminFichier = path.join(__dirname, 'clients.json');
-  
+
     function formatDateFr(dateStr) {
       if (!dateStr) return "–";
       const [yyyy, mm, dd] = dateStr.split("-");
       return `${dd}-${mm}-${yyyy}`;
     }
-  
-    function ajouterOuModifierClient() {
-      const nom = document.getElementById('nom').value;
-      const type = document.getElementById('type').value;
-      const dateAudience = document.getElementById('dateAudience').value;
-      const dateContact = document.getElementById('dateContact').value;
-      const dateEcheance = document.getElementById('dateEcheance').value;
-      const commentaire = document.getElementById('commentaire').value;
-      const indexModif = document.getElementById('indexModif').value;
-  
-      if (!nom || !type) {
-        alert("Merci de remplir les champs obligatoires.");
-        return;
-      }
-  
-      let clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-      const client = { nom, type, dateAudience, dateContact, dateEcheance, commentaire };
-  
-      if (indexModif === "") {
-        clients.push(client);
-      } else {
-        
-        // Conserver les pièces jointes si le nom change
-        const ancienNom = clients[indexModif].nom;
-        const ancienDossier = path.join(__dirname, 'fichiers_clients', ancienNom.replace(/\s+/g, '_'));
-        const nouveauDossier = path.join(__dirname, 'fichiers_clients', nom.replace(/\s+/g, '_'));
 
-        // Si le nom a changé, on copie les fichiers joints vers le nouveau dossier
-        if (ancienNom !== nom && fs.existsSync(ancienDossier)) {
-        if (!fs.existsSync(nouveauDossier)) fs.mkdirSync(nouveauDossier, { recursive: true });
-        fs.readdirSync(ancienDossier).forEach(fichier => {
-            const src = path.join(ancienDossier, fichier);
-            const dest = path.join(nouveauDossier, fichier);
-            fs.copyFileSync(src, dest);
-        });
-        // Optionnel : supprimer l'ancien dossier
-        // fs.rmdirSync(ancienDossier, { recursive: true });
+    function ajouterOuModifierClient() {
+      try {
+        const nom = document.getElementById('nom').value;
+        const type = document.getElementById('type').value;
+        const dateAudience = document.getElementById('dateAudience').value;
+        const dateContact = document.getElementById('dateContact').value;
+        const dateEcheance = document.getElementById('dateEcheance').value;
+        const commentaire = document.getElementById('commentaire').value;
+        const indexModif = document.getElementById('indexModif').value;
+
+        if (!nom || !type) {
+          alert("Merci de remplir les champs obligatoires.");
+          return;
         }
 
-        clients[indexModif] = client;
+        let clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        const client = { nom, type, dateAudience, dateContact, dateEcheance, commentaire };
 
-        document.getElementById('indexModif').value = "";
+        if (indexModif === "") {
+          clients.push(client);
+        } else {
+          // Gestion des fichiers joints en cas de changement de nom
+          const ancienNom = clients[indexModif].nom;
+          const ancienDossier = path.join(__dirname, 'fichiers_clients', ancienNom.replace(/\s+/g, '_'));
+          const nouveauDossier = path.join(__dirname, 'fichiers_clients', nom.replace(/\s+/g, '_'));
+          if (ancienNom !== nom && fs.existsSync(ancienDossier)) {
+            if (!fs.existsSync(nouveauDossier)) fs.mkdirSync(nouveauDossier, { recursive: true });
+            fs.readdirSync(ancienDossier).forEach(fichier => {
+              const src = path.join(ancienDossier, fichier);
+              const dest = path.join(nouveauDossier, fichier);
+              fs.copyFileSync(src, dest);
+            });
+          }
+          clients[indexModif] = client;
+          document.getElementById('indexModif').value = "";
+        }
+
+        fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+        chargerClients();
+        document.getElementById('nom').value = '';
+        document.getElementById('type').value = '';
+        document.getElementById('dateAudience').value = '';
+        document.getElementById('dateContact').value = '';
+        document.getElementById('dateEcheance').value = '';
+        document.getElementById('commentaire').value = '';
+      } catch (error) {
+        console.error("Erreur dans ajouterOuModifierClient:", error);
+        alert("Une erreur est survenue lors de l'enregistrement du client.");
       }
-  
-      fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
-      chargerClients();
-  
-      document.getElementById('nom').value = '';
-      document.getElementById('type').value = '';
-      document.getElementById('dateAudience').value = '';
-      document.getElementById('dateContact').value = '';
-      document.getElementById('dateEcheance').value = '';
-      document.getElementById('commentaire').value = '';
     }
-  
+
     function chargerClients() {
-      const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-      afficherClients(data);
+      try {
+        const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        afficherClients(data);
+      } catch (error) {
+        console.error("Erreur dans chargerClients:", error);
+        alert("Impossible de charger les clients.");
+      }
     }
-  
+
     function afficherClients(clients) {
       const liste = document.getElementById('listeClients');
       liste.innerHTML = '';
-  
       clients.forEach((client, index) => {
         const li = document.createElement('li');
         li.className = 'client-item';
-  
         const info = document.createElement('div');
         info.innerHTML = `
           <p><strong>${client.nom}</strong> (${client.type})</p>
@@ -207,40 +264,29 @@
           <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
           <p>${client.commentaire || ''}</p>
         `;
-  
         const buttons = document.createElement('div');
         buttons.className = 'client-buttons';
-  
         const btnVoir = document.createElement('button');
         btnVoir.textContent = 'Voir la fiche';
         btnVoir.onclick = () => afficherFicheClient(client);
-  
-
         const btnModifier = document.createElement('button');
         btnModifier.textContent = 'Modifier';
         btnModifier.onclick = () => {
-            document.getElementById('nom').value = client.nom;
-            document.getElementById('type').value = client.type;
-            document.getElementById('dateAudience').value = client.dateAudience;
-            document.getElementById('dateContact').value = client.dateContact;
-            document.getElementById('dateEcheance').value = client.dateEcheance;
-            document.getElementById('commentaire').value = client.commentaire;
-            document.getElementById('indexModif').value = index;
-            window.scrollTo({ top: 0, behavior: 'smooth' }); // remonte en haut pour modifier
+          document.getElementById('nom').value = client.nom;
+          document.getElementById('type').value = client.type;
+          document.getElementById('dateAudience').value = client.dateAudience;
+          document.getElementById('dateContact').value = client.dateContact;
+          document.getElementById('dateEcheance').value = client.dateEcheance;
+          document.getElementById('commentaire').value = client.commentaire;
+          document.getElementById('indexModif').value = index;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         };
-
-
-
         const btnExporter = document.createElement('button');
         btnExporter.textContent = 'Exporter en PDF';
         btnExporter.onclick = () => exporterFichePDF(client);
-
-
-
         const btnJoindre = document.createElement('button');
         btnJoindre.textContent = 'Joindre un fichier';
         btnJoindre.onclick = () => joindreFichier(client);
-  
         const btnSuppr = document.createElement('button');
         btnSuppr.textContent = 'Supprimer';
         btnSuppr.onclick = () => {
@@ -254,15 +300,13 @@
         buttons.appendChild(btnJoindre);
         buttons.appendChild(btnExporter);
         buttons.appendChild(btnSuppr);
-
-  
         li.appendChild(info);
         afficherFichiersJoints(client, li);
         li.appendChild(buttons);
         liste.appendChild(li);
       });
     }
-  
+
     function afficherFicheClient(client) {
       const fiche = document.getElementById('fiche-detaillee');
       fiche.innerHTML = `
@@ -277,258 +321,266 @@
       `;
       fiche.style.display = 'block';
     }
-  
+
     function filtrerClients() {
-      const filtre = document.getElementById('recherche').value.toLowerCase();
-      const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-      const resultat = data.filter(client =>
-        `${client.nom} ${client.type} ${client.commentaire}`.toLowerCase().includes(filtre)
-      );
-      afficherClients(resultat);
+      try {
+        const filtre = document.getElementById('recherche').value.toLowerCase();
+        const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        const resultat = data.filter(client =>
+          `${client.nom} ${client.type} ${client.commentaire}`.toLowerCase().includes(filtre)
+        );
+        afficherClients(resultat);
+      } catch (error) {
+        console.error("Erreur dans filtrerClients:", error);
+      }
     }
-  
+
     function appliquerTri() {
-    const critere = document.getElementById('tri').value;
-    const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-
-    const triés = data.slice().sort((a, b) => {
-        if (!a[critere]) return 1;
-        if (!b[critere]) return -1;
-
-        // Si c'est une date, on compare comme des dates
-        if (critere.startsWith('date')) {
-        return new Date(a[critere]) - new Date(b[critere]);
-        } else {
-        return a[critere].localeCompare(b[critere]);
-        }
-    });
-
-    afficherClients(triés);
+      try {
+        const critere = document.getElementById('tri').value;
+        const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        const tries = data.slice().sort((a, b) => {
+          if (!a[critere]) return 1;
+          if (!b[critere]) return -1;
+          if (critere.startsWith('date')) {
+            return new Date(a[critere]) - new Date(b[critere]);
+          } else {
+            return a[critere].localeCompare(b[critere]);
+          }
+        });
+        afficherClients(tries);
+      } catch (error) {
+        console.error("Erreur dans appliquerTri:", error);
+      }
     }
 
-  
     function imprimerTousLesClients() {
-      const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-      let contenu = `<html><head><title>Dossiers</title></head><body><h1>Liste des clients</h1>`;
-      clients.forEach(c => {
-        contenu += `<p><strong>${c.nom}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Échéance : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
-      });
-      contenu += `<script>window.onload = () => window.print();<\/script></body></html>`;
-      const fenetre = window.open('', '_blank');
-      fenetre.document.write(contenu);
-      fenetre.document.close();
+      try {
+        const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        let contenu = `<html><head><title>Dossiers</title></head><body><h1>Liste des clients</h1>`;
+        clients.forEach(c => {
+          contenu += `<p><strong>${c.nom}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Échéance : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
+        });
+        contenu += `<script>window.onload = () => window.print();<\/script></body></html>`;
+        const fenetre = window.open('', '_blank');
+        fenetre.document.write(contenu);
+        fenetre.document.close();
+      } catch (error) {
+        console.error("Erreur dans imprimerTousLesClients:", error);
+      }
     }
-  
+
+    function joindreFichier(client) {
+      try {
+        const dossierClient = path.join(__dirname, 'fichiers_clients', client.nom.replace(/\s+/g, '_'));
+        if (!fs.existsSync(dossierClient)) {
+          fs.mkdirSync(dossierClient, { recursive: true });
+        }
+        dialog.showOpenDialog({
+          title: "Choisir un fichier à joindre",
+          properties: ['openFile']
+        }).then(result => {
+          if (!result.canceled && result.filePaths.length > 0) {
+            const fichierSource = result.filePaths[0];
+            const nomFichier = path.basename(fichierSource);
+            const cheminDestination = path.join(dossierClient, nomFichier);
+            fs.copyFileSync(fichierSource, cheminDestination);
+            alert("Fichier joint avec succès !");
+            chargerClients();
+          }
+        }).catch(err => {
+          console.error("Erreur lors de la sélection de fichier :", err);
+        });
+      } catch (error) {
+        console.error("Erreur dans joindreFichier:", error);
+      }
+    }
+
+    function afficherFichiersJoints(client, container) {
+      try {
+        const dossierClient = path.join(__dirname, 'fichiers_clients', client.nom.replace(/\s+/g, '_'));
+        if (fs.existsSync(dossierClient)) {
+          const fichiers = fs.readdirSync(dossierClient);
+          if (fichiers.length > 0) {
+            const blocFichiers = document.createElement('div');
+            blocFichiers.innerHTML = `<strong>Fichiers joints :</strong>`;
+            fichiers.forEach(nomFichier => {
+              const ligne = document.createElement('div');
+              ligne.style.margin = '6px 0';
+              ligne.style.display = 'flex';
+              ligne.style.alignItems = 'center';
+              ligne.style.gap = '10px';
+              const lien = document.createElement('a');
+              lien.href = '#';
+              lien.textContent = nomFichier;
+              lien.onclick = () => {
+                const chemin = path.join(dossierClient, nomFichier);
+                shell.openPath(chemin);
+              };
+              const boutonSuppr = document.createElement('button');
+              boutonSuppr.textContent = "🗑️";
+              boutonSuppr.style.padding = "2px 8px";
+              boutonSuppr.style.background = "#e74c3c";
+              boutonSuppr.style.border = "none";
+              boutonSuppr.style.borderRadius = "5px";
+              boutonSuppr.style.color = "white";
+              boutonSuppr.style.cursor = "pointer";
+              boutonSuppr.onclick = () => {
+                const chemin = path.join(dossierClient, nomFichier);
+                if (fs.existsSync(chemin)) {
+                  fs.unlinkSync(chemin);
+                  chargerClients();
+                }
+              };
+              ligne.appendChild(lien);
+              ligne.appendChild(boutonSuppr);
+              blocFichiers.appendChild(ligne);
+            });
+            container.appendChild(blocFichiers);
+          }
+        }
+      } catch (error) {
+        console.error("Erreur dans afficherFichiersJoints:", error);
+      }
+    }
+
+    function afficherCalendrier() {
+      try {
+        const container = document.getElementById('calendrier');
+        const btn = document.getElementById('btnCalendrier');
+        if (container.style.display === 'block') {
+          container.style.display = 'none';
+          btn.textContent = 'Voir le calendrier';
+          return;
+        }
+        container.innerHTML = '';
+        container.style.display = 'block';
+        btn.textContent = 'Cacher le calendrier';
+        const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+        const aujourdhui = new Date();
+        const annee = aujourdhui.getFullYear();
+        const moisIndex = aujourdhui.getMonth();
+        const premierJour = new Date(annee, moisIndex, 1).getDay();
+        const nbJours = new Date(annee, moisIndex + 1, 0).getDate();
+        const titre = document.createElement('h2');
+        titre.textContent = `${mois[moisIndex]} ${annee}`;
+        container.appendChild(titre);
+        const table = document.createElement('table');
+        const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        jours.forEach(j => {
+          const th = document.createElement('th');
+          th.textContent = j;
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        let row = document.createElement('tr');
+        let jourSemaine = (premierJour + 6) % 7;
+        for (let i = 0; i < jourSemaine; i++) {
+          row.appendChild(document.createElement('td'));
+        }
+        const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        for (let jour = 1; jour <= nbJours; jour++) {
+          const td = document.createElement('td');
+          td.innerHTML = `<strong>${jour}</strong><br>`;
+          const dateStr = new Date(annee, moisIndex, jour).toISOString().split('T')[0];
+          data.forEach(client => {
+            if (client.dateAudience === dateStr || client.dateEcheance === dateStr) {
+              const evt = document.createElement('div');
+              evt.textContent = `${client.nom} (${client.dateAudience === dateStr ? 'Audience' : 'Éch'})`;
+              evt.style.fontSize = '12px';
+              evt.style.background = client.dateAudience === dateStr ? '#3498db' : '#e67e22';
+              evt.style.color = 'white';
+              evt.style.padding = '2px 4px';
+              evt.style.marginTop = '4px';
+              evt.style.borderRadius = '4px';
+              td.appendChild(evt);
+            }
+          });
+          row.appendChild(td);
+          jourSemaine++;
+          if (jourSemaine === 7) {
+            tbody.appendChild(row);
+            row = document.createElement('tr');
+            jourSemaine = 0;
+          }
+        }
+        if (jourSemaine !== 0) {
+          while (jourSemaine++ < 7) row.appendChild(document.createElement('td'));
+          tbody.appendChild(row);
+        }
+        table.appendChild(tbody);
+        container.appendChild(table);
+      } catch (error) {
+        console.error("Erreur dans afficherCalendrier:", error);
+      }
+    }
+
+    // --- Fonction mise à jour pour exporter la fiche PDF ---
+    // La structure de la fiche exportée est désormais similaire à celle des fichiers
+    // de Jean Christophe ou Candice.
+    function exporterFichePDF(client) {
+      try {
+        const { nom, type, dateAudience, dateEcheance, dateContact, commentaire } = client;
+        // Création d'un document PDF avec une marge définie
+        const doc = new PDFDocument({ margin: 50 });
+        const nomFichier = `${nom.replace(/\s+/g, '_')}_fiche.pdf`;
+        const cheminFichierPdf = path.join(__dirname, nomFichier);
+        const stream = fs.createWriteStream(cheminFichierPdf);
+        doc.pipe(stream);
+
+        // En-tête de la fiche
+        doc.fontSize(20).text(`Fiche Client`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(18).text(nom, { align: 'center', underline: true });
+        doc.moveDown(1);
+
+        // Section des informations du dossier
+        doc.fontSize(12);
+        doc.text(`Type de dossier : ${type}`);
+        doc.text(`Date d'audience : ${formatDateFr(dateAudience)}`);
+        doc.text(`Date de dernier contact : ${formatDateFr(dateContact)}`);
+        doc.text(`Date d’échéance juridique : ${formatDateFr(dateEcheance)}`);
+        doc.moveDown();
+
+        // Section Commentaire
+        doc.fontSize(14).text("Commentaire :", { underline: true });
+        doc.moveDown(0.5);
+        doc.fontSize(12).text(commentaire || "–", { indent: 20 });
+        doc.moveDown();
+
+        // Section Pièces jointes (si présentes)
+        const dossierClient = path.join(__dirname, 'fichiers_clients', nom.replace(/\s+/g, '_'));
+        if (fs.existsSync(dossierClient)) {
+          const fichiers = fs.readdirSync(dossierClient);
+          if (fichiers.length > 0) {
+            doc.fontSize(14).text('Pièces jointes :', { underline: true });
+            doc.moveDown(0.5);
+            fichiers.forEach(fichier => {
+              doc.fontSize(12).text(`• ${fichier}`, { indent: 20 });
+            });
+          }
+        }
+
+        doc.end();
+        stream.on('finish', () => {
+          shell.openPath(cheminFichierPdf);
+        });
+      } catch (error) {
+        console.error("Erreur dans exporterFichePDF:", error);
+      }
+    }
+    // --- Fin de la fonction exporterFichePDF mise à jour ---
+
+    // Écouteurs pour filtrer et trier
+    document.getElementById('recherche').addEventListener('input', filtrerClients);
+    document.getElementById('tri').addEventListener('change', appliquerTri);
+
+    // Chargement initial des clients
     chargerClients();
   </script>
-  <script>
-    function joindreFichier(client) {
-      const dossierClient = path.join(__dirname, 'fichiers_clients', client.nom.replace(/\\s+/g, '_'));
-  
-      if (!fs.existsSync(dossierClient)) {
-        fs.mkdirSync(dossierClient, { recursive: true });
-      }
-  
-      dialog.showOpenDialog({
-        title: "Choisir un fichier à joindre",
-        properties: ['openFile'],
-      }).then(result => {
-        if (!result.canceled && result.filePaths.length > 0) {
-          const fichierSource = result.filePaths[0];
-          const nomFichier = path.basename(fichierSource);
-          const cheminDestination = path.join(dossierClient, nomFichier);
-  
-          fs.copyFileSync(fichierSource, cheminDestination);
-          alert("Fichier joint avec succès !");
-          chargerClients(); // Refresh
-        }
-      }).catch(err => {
-        console.error("Erreur lors de la sélection de fichier :", err);
-      });
-    }
-  
-    function afficherFichiersJoints(client, container) {
-      const dossierClient = path.join(__dirname, 'fichiers_clients', client.nom.replace(/\\s+/g, '_'));
-  
-      if (fs.existsSync(dossierClient)) {
-        const fichiers = fs.readdirSync(dossierClient);
-        if (fichiers.length > 0) {
-          const blocFichiers = document.createElement('div');
-          blocFichiers.innerHTML = `<strong>Fichiers joints :</strong>`;
-  
-          fichiers.forEach(nomFichier => {
-            const ligne = document.createElement('div');
-            ligne.style.margin = '6px 0';
-            ligne.style.display = 'flex';
-            ligne.style.alignItems = 'center';
-            ligne.style.gap = '10px';
-  
-            const lien = document.createElement('a');
-            lien.href = '#';
-            lien.textContent = nomFichier;
-            lien.onclick = () => {
-              const chemin = path.join(dossierClient, nomFichier);
-              shell.openPath(chemin);
-            };
-  
-            const boutonSuppr = document.createElement('button');
-            boutonSuppr.textContent = "🗑️";
-            boutonSuppr.style.padding = "2px 8px";
-            boutonSuppr.style.background = "#e74c3c";
-            boutonSuppr.style.border = "none";
-            boutonSuppr.style.borderRadius = "5px";
-            boutonSuppr.style.color = "white";
-            boutonSuppr.style.cursor = "pointer";
-            boutonSuppr.onclick = () => {
-              const chemin = path.join(dossierClient, nomFichier);
-              if (fs.existsSync(chemin)) {
-                fs.unlinkSync(chemin);
-                chargerClients();
-              }
-            };
-  
-            ligne.appendChild(lien);
-            ligne.appendChild(boutonSuppr);
-            blocFichiers.appendChild(ligne);
-          });
-  
-          container.appendChild(blocFichiers);
-        }
-      }
-    }
-  
-    
-    function afficherCalendrier() {
-    const container = document.getElementById('calendrier');
-    const btn = document.getElementById('btnCalendrier');
-
-    if (container.style.display === 'block') {
-        container.style.display = 'none';
-        btn.textContent = 'Voir le calendrier';
-        return;
-    }
-
-    container.innerHTML = '';
-    container.style.display = 'block';
-    btn.textContent = 'Cacher le calendrier';
-
-    const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-    const aujourdhui = new Date();
-    const annee = aujourdhui.getFullYear();
-    const moisIndex = aujourdhui.getMonth();
-
-    const premierJour = new Date(annee, moisIndex, 1).getDay();
-    const nbJours = new Date(annee, moisIndex + 1, 0).getDate();
-
-    const titre = document.createElement('h2');
-    titre.textContent = `${mois[moisIndex]} ${annee}`;
-    container.appendChild(titre);
-
-    const table = document.createElement('table');
-    const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    jours.forEach(j => {
-        const th = document.createElement('th');
-        th.textContent = j;
-        headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    let row = document.createElement('tr');
-    let jourSemaine = (premierJour + 6) % 7;
-
-    for (let i = 0; i < jourSemaine; i++) {
-        row.appendChild(document.createElement('td'));
-    }
-
-    const data = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-
-    for (let jour = 1; jour <= nbJours; jour++) {
-        const td = document.createElement('td');
-        td.innerHTML = `<strong>${jour}</strong><br>`;
-        const dateStr = new Date(annee, moisIndex, jour).toISOString().split('T')[0];
-
-        data.forEach(client => {
-        if (client.dateAudience === dateStr || client.dateEcheance === dateStr) {
-            const evt = document.createElement('div');
-            evt.textContent = `${client.nom} (${client.dateAudience === dateStr ? 'Audience' : 'Éch'})`;
-            evt.style.fontSize = '12px';
-            evt.style.background = client.dateAudience === dateStr ? '#3498db' : '#e67e22';
-            evt.style.color = 'white';
-            evt.style.padding = '2px 4px';
-            evt.style.marginTop = '4px';
-            evt.style.borderRadius = '4px';
-            td.appendChild(evt);
-        }
-        });
-
-        row.appendChild(td);
-        jourSemaine++;
-        if (jourSemaine === 7) {
-        tbody.appendChild(row);
-        row = document.createElement('tr');
-        jourSemaine = 0;
-        }
-    }
-
-    if (jourSemaine !== 0) {
-        while (jourSemaine++ < 7) row.appendChild(document.createElement('td'));
-        tbody.appendChild(row);
-    }
-
-    table.appendChild(tbody);
-    container.appendChild(table);
-    }
-
-
-    function exporterFichePDF(client) {
-    const { nom, type, dateAudience, dateEcheance, dateContact, commentaire } = client;
-    const doc = new PDFDocument();
-
-    const nomFichier = `${nom.replace(/\s+/g, '_')}_fiche.pdf`;
-    const cheminFichier = path.join(__dirname, nomFichier);
-    const stream = fs.createWriteStream(cheminFichier);
-    doc.pipe(stream);
-
-    doc.fontSize(18).text(`Fiche client : ${nom}`, { underline: true });
-    doc.moveDown();
-    doc.fontSize(12);
-    doc.text(`Type de dossier : ${type}`);
-    doc.text(`Date d'audience : ${formatDateFr(dateAudience)}`);
-    doc.text(`Date de dernier contact : ${formatDateFr(dateContact)}`);
-    doc.text(`Date d’échéance juridique : ${formatDateFr(dateEcheance)}`);
-    doc.text(`Commentaire :`);
-    doc.moveDown(0.5);
-    doc.text(commentaire || "–", { indent: 20 });
-    doc.moveDown();
-
-    const dossierClient = path.join(__dirname, 'fichiers_clients', nom.replace(/\s+/g, '_'));
-    if (fs.existsSync(dossierClient)) {
-        const fichiers = fs.readdirSync(dossierClient);
-        if (fichiers.length > 0) {
-        doc.fontSize(14).text('Pièces jointes :');
-        fichiers.forEach(fichier => {
-            doc.fontSize(11).text(`• ${fichier}`);
-        });
-        }
-    }
-
-    doc.end();
-
-    stream.on('finish', () => {
-        shell.openPath(cheminFichier);
-    });
-    }
-
-
-
-
-  chargerClients(); // <== important !
-  </script>
-  </body>
-  </html>
-  
+</body>
+</html>

@@ -1,6 +1,17 @@
+# Node
 node_modules/
 fichiers_clients/
-*.exe
-*.app
-*.zip
+*.log
+
+# Electron builds
+/dist/
+/out/
+/*.exe
+/*.app
+/*.dmg
+/*.zip
+*.asar
+
+# macOS / Windows / Linux
 .DS_Store
+Thumbs.db
