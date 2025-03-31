@@ -1,0 +1,161 @@
+/* Styles globaux */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Header avec bannière en arrière-plan */
+  header {
+    position: relative;
+    background: url("banniere.jpg") no-repeat center center;
+    background-size: cover;
+    color: white;
+    min-height: 200px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 2rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  }
+  
+  /* Container principal */
+  .container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: auto;
+  }
+  
+  /* Style pour le formulaire */
+  .form-container {
+    max-width: 600px;
+    margin: 0 auto 20px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .form-container h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+  .form-container label,
+  .form-container input,
+  .form-container textarea,
+  .form-container select,
+  .form-container button {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 16px;
+  }
+  .form-container input,
+  .form-container select,
+  .form-container textarea {
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+  .form-container button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: auto;
+  }
+  .form-container button:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Liste des clients en affichage grille */
+  #listeClients {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    list-style: none;
+    padding: 0;
+  }
+  .client-item {
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .client-buttons button {
+    margin-right: 10px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    font-size: 14px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .client-buttons button:hover {
+    opacity: 0.8;
+  }
+  
+  /* Calendrier */
+  #calendrier {
+    margin-top: 20px;
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 5px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+  th {
+    background-color: #ecf0f1;
+  }
+  
+  /* Fiche détaillée */
+  #fiche-detaillee {
+    background: #fff;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .button-group button {
+    padding: 10px 15px;
+    font-size: 16px;
+  }
+  
+  #annulerBtn {
+    display: inline-block;
+    padding: 10px 15px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #3498db;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #annulerBtn:hover {
+    background-color: #2980b9;
+  }
+  
+  button:disabled {
+    background-color: #ccc; /* gris clair */
+    color: #666;
+    padding: 10px 15px;
+    border: 1px solid #aaa;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+  

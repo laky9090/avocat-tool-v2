@@ -8,7 +8,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 800,
-    icon: path.join(__dirname, 'icon.ico'), // Icône personnalisée
+    icon: path.join(__dirname, 'icon.ico'),
+    autoHideMenuBar: false,  // Assurez-vous que la barre de menu reste visible
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -17,8 +18,10 @@ function createWindow() {
   });
 
   win.loadFile('index.html');
+  win.maximize();  // Maximiser la fenêtre à l'ouverture
   remoteMain.enable(win.webContents);
 }
+
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {

@@ -3,8 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { dialog, shell } = require('@electron/remote');
 const cheminFichier = path.join(__dirname, 'clients.json');
+let originalClientData = null;
 
-// Fonction pour formater une date au format français
+
+// Formater une date au format français
 function formatDateFr(dateStr) {
   if (!dateStr) return "–";
   const [yyyy, mm, dd] = dateStr.split("-");
@@ -14,28 +16,62 @@ function formatDateFr(dateStr) {
 // Fonction pour ajouter ou modifier un client
 function ajouterOuModifierClient() {
   try {
+    // Récupération des informations du client
     const nom = document.getElementById('nom').value;
+    const adresse = document.getElementById('adresse').value;
+    const telephone = document.getElementById('telephone').value;
+    const email = document.getElementById('email').value;
+    const profession = document.getElementById('profession').value;
+    const aideJuridictionnelle = document.getElementById('aideJuridictionnelle').value;
+    const tribunal = document.getElementById('tribunal').value;
+
+
+    
     const type = document.getElementById('type').value;
     const dateAudience = document.getElementById('dateAudience').value;
     const dateContact = document.getElementById('dateContact').value;
+    // Utilisation du même champ (dateEcheance) pour "Date d'entrée du dossier"
     const dateEcheance = document.getElementById('dateEcheance').value;
     const commentaire = document.getElementById('commentaire').value;
+
+    const montantTotal = parseFloat(document.getElementById('montantTotal').value) || 0;
+    console.log("Montant total récupéré :", montantTotal);
+    const montantPaye = parseFloat(document.getElementById('montantPaye').value) || 0;
+    
+    // const montantFacture = document.getElementById('montantFacture').value;
+    const resteAFacturer = montantTotal - montantPaye;
+
+    
+
+
+    // Récupération des informations de l'adverse
+    const nomAdverse = document.getElementById('nomAdverse').value;
+    const adresseAdverse = document.getElementById('adresseAdverse').value;
+    const telephoneAdverse = document.getElementById('telephoneAdverse').value;
+    const emailAdverse = document.getElementById('emailAdverse').value;
+    const professionAdverse = document.getElementById('professionAdverse').value;
+    
     const indexModif = document.getElementById('indexModif').value;
 
     if (!nom || !type) {
-      alert("Merci de remplir les champs obligatoires.");
+      alert("Merci de remplir les champs obligatoires (Nom du client et Type de dossier).");
       return;
     }
 
     let clients = fs.existsSync(cheminFichier)
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
-    const client = { nom, type, dateAudience, dateContact, dateEcheance, commentaire };
+    
+    const client = { 
+      nom, adresse, telephone, email, profession, tribunal,
+      type, dateAudience, dateContact, dateEcheance, commentaire,
+      nomAdverse, adresseAdverse, telephoneAdverse, emailAdverse, professionAdverse, aideJuridictionnelle, montantTotal, montantPaye, resteAFacturer
+    };
 
     if (indexModif === "") {
       clients.push(client);
     } else {
-      // Gestion des fichiers joints en cas de changement de nom
+      // Si le nom change, gérer le déplacement des fichiers joints
       const ancienNom = clients[indexModif].nom;
       const ancienDossier = path.join(__dirname, 'fichiers_clients', ancienNom.replace(/\s+/g, '_'));
       const nouveauDossier = path.join(__dirname, 'fichiers_clients', nom.replace(/\s+/g, '_'));
@@ -53,19 +89,37 @@ function ajouterOuModifierClient() {
 
     fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
     chargerClients();
+
+    // Réinitialisation des champs du formulaire
     document.getElementById('nom').value = '';
+    document.getElementById('adresse').value = '';
+    document.getElementById('telephone').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('profession').value = '';
     document.getElementById('type').value = '';
     document.getElementById('dateAudience').value = '';
     document.getElementById('dateContact').value = '';
     document.getElementById('dateEcheance').value = '';
     document.getElementById('commentaire').value = '';
+    document.getElementById('tribunal').value = '';
+
+    document.getElementById('montantTotal').value = '';
+    document.getElementById('montantPaye').value = '';   
+    document.getElementById('resteAFacturer').value = '';
+
+    
+    document.getElementById('nomAdverse').value = '';
+    document.getElementById('adresseAdverse').value = '';
+    document.getElementById('telephoneAdverse').value = '';
+    document.getElementById('emailAdverse').value = '';
+    document.getElementById('professionAdverse').value = '';
   } catch (error) {
     console.error("Erreur dans ajouterOuModifierClient:", error);
     alert("Une erreur est survenue lors de l'enregistrement du client.");
   }
 }
 
-// Fonction pour charger et afficher la liste des clients
+// Charger et afficher la liste des clients
 function chargerClients() {
   try {
     const data = fs.existsSync(cheminFichier)
@@ -78,7 +132,7 @@ function chargerClients() {
   }
 }
 
-// Affiche les clients dans la liste
+// Afficher les clients dans la liste
 function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
   liste.innerHTML = '';
@@ -88,10 +142,27 @@ function afficherClients(clients) {
     const info = document.createElement('div');
     info.innerHTML = `
       <p><strong>${client.nom}</strong> (${client.type})</p>
+      <p><strong>Client</strong></p>
+      <p>Adresse : ${client.adresse || ''}</p>
+      <p>Téléphone : ${client.telephone || ''}</p>
+      <p>Email : ${client.email || ''}</p>
+      <p>Profession : ${client.profession || ''}</p>
       <p>Date audience : ${formatDateFr(client.dateAudience)}</p>
-      <p>Échéance juridique : ${formatDateFr(client.dateEcheance)}</p>
+      <!-- Modification ici -->
+      <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
       <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
-      <p>${client.commentaire || ''}</p>
+      <p>Aide juridictionnelle : ${client.aideJuridictionnelle || 'non'}</p>
+      <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
+      <p>Montant facturé (HT) : ${client.montantPaye || '0'} €</p>
+      <p>Reste à facturer (HT) : ${client.resteAFacturer || '0'} €</p>
+      <p>Commentaire : ${client.commentaire || ''}</p>
+      <p>Tribunal compétent : ${client.tribunal || ''}</p>
+      <p><em>Adverse</em></p>
+      <p>Nom : ${client.nomAdverse || ''}</p>
+      <p>Adresse : ${client.adresseAdverse || ''}</p>
+      <p>Téléphone : ${client.telephoneAdverse || ''}</p>
+      <p>Email : ${client.emailAdverse || ''}</p>
+      <p>Profession : ${client.professionAdverse || ''}</p>
     `;
     const buttons = document.createElement('div');
     buttons.className = 'client-buttons';
@@ -102,14 +173,65 @@ function afficherClients(clients) {
     btnModifier.textContent = 'Modifier';
     btnModifier.onclick = () => {
       document.getElementById('nom').value = client.nom;
+      document.getElementById('adresse').value = client.adresse;
+      document.getElementById('telephone').value = client.telephone;
+      document.getElementById('email').value = client.email;
+      document.getElementById('profession').value = client.profession;
+      if(document.getElementById('tribunal')) {
+        document.getElementById('tribunal').value = client.tribunal;
+      }
       document.getElementById('type').value = client.type;
       document.getElementById('dateAudience').value = client.dateAudience;
       document.getElementById('dateContact').value = client.dateContact;
       document.getElementById('dateEcheance').value = client.dateEcheance;
       document.getElementById('commentaire').value = client.commentaire;
+      
+      document.getElementById('nomAdverse').value = client.nomAdverse;
+      document.getElementById('adresseAdverse').value = client.adresseAdverse;
+      document.getElementById('telephoneAdverse').value = client.telephoneAdverse;
+      document.getElementById('emailAdverse').value = client.emailAdverse;
+      document.getElementById('professionAdverse').value = client.professionAdverse;
+      
+      document.getElementById('aideJuridictionnelle').value = client.aideJuridictionnelle;
+      document.getElementById('montantTotal').value = client.montantTotal;
+      document.getElementById('montantPaye').value = client.montantPaye;
+      
       document.getElementById('indexModif').value = index;
+      
+      // Stockage des valeurs originales pour la modification
+      originalClientData = {
+        nom: client.nom,
+        adresse: client.adresse,
+        telephone: client.telephone,
+        email: client.email,
+        profession: client.profession,
+        tribunal: client.tribunal,
+        type: client.type,
+        dateAudience: client.dateAudience,
+        dateContact: client.dateContact,
+        dateEcheance: client.dateEcheance,
+        commentaire: client.commentaire,
+        nomAdverse: client.nomAdverse,
+        adresseAdverse: client.adresseAdverse,
+        telephoneAdverse: client.telephoneAdverse,
+        emailAdverse: client.emailAdverse,
+        professionAdverse: client.professionAdverse,
+        aideJuridictionnelle: client.aideJuridictionnelle,
+        montantTotal: client.montantTotal,
+        montantPaye: client.montantPaye
+      };
+    
+      // Affiche le bouton Annuler
+      document.getElementById('annulerBtn').style.display = 'inline-block';
+      // Vérifie l'état du formulaire dès le chargement
+      checkFormChanges();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    
+
+
+
+
     const btnExporter = document.createElement('button');
     btnExporter.textContent = 'Exporter en PDF';
     btnExporter.onclick = () => exporterFichePDF(client);
@@ -136,23 +258,123 @@ function afficherClients(clients) {
   });
 }
 
-// Affiche la fiche détaillée d'un client
+
+
+function checkFormChanges() {
+  if (!originalClientData) return; // Si aucune modification en cours, on ne fait rien
+  
+  const currentData = {
+    nom: document.getElementById('nom').value,
+    adresse: document.getElementById('adresse').value,
+    telephone: document.getElementById('telephone').value,
+    email: document.getElementById('email').value,
+    profession: document.getElementById('profession').value,
+    tribunal: document.getElementById('tribunal') ? document.getElementById('tribunal').value : '',
+    type: document.getElementById('type').value,
+    dateAudience: document.getElementById('dateAudience').value,
+    dateContact: document.getElementById('dateContact').value,
+    dateEcheance: document.getElementById('dateEcheance').value,
+    commentaire: document.getElementById('commentaire').value,
+    nomAdverse: document.getElementById('nomAdverse').value,
+    adresseAdverse: document.getElementById('adresseAdverse').value,
+    telephoneAdverse: document.getElementById('telephoneAdverse').value,
+    emailAdverse: document.getElementById('emailAdverse').value,
+    professionAdverse: document.getElementById('professionAdverse').value,
+    aideJuridictionnelle: document.getElementById('aideJuridictionnelle').value,
+    montantTotal: document.getElementById('montantTotal').value,
+    montantPaye: document.getElementById('montantPaye').value
+  };
+  
+  let modified = false;
+  for (let key in originalClientData) {
+    if (originalClientData[key] != currentData[key]) {
+      modified = true;
+      break;
+    }
+  }
+  
+  document.getElementById('enregistrerBtn').disabled = !modified;
+}
+
+
+
+function annulerModification() {
+  // Réinitialiser tous les champs du formulaire à vide
+  document.getElementById('nom').value = '';
+  document.getElementById('adresse').value = '';
+  document.getElementById('telephone').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('profession').value = '';
+  if (document.getElementById('tribunal')) document.getElementById('tribunal').value = '';
+  document.getElementById('type').value = '';
+  document.getElementById('dateAudience').value = '';
+  document.getElementById('dateContact').value = '';
+  document.getElementById('dateEcheance').value = '';
+  document.getElementById('commentaire').value = '';
+  
+  document.getElementById('nomAdverse').value = '';
+  document.getElementById('adresseAdverse').value = '';
+  document.getElementById('telephoneAdverse').value = '';
+  document.getElementById('emailAdverse').value = '';
+  document.getElementById('professionAdverse').value = '';
+  
+  document.getElementById('aideJuridictionnelle').value = 'non';
+  document.getElementById('montantTotal').value = '';
+  document.getElementById('montantPaye').value = '';
+  
+  // Effacer l'indice de modification et les données originales
+  document.getElementById('indexModif').value = '';
+  originalClientData = null;
+  
+  // Désactiver le bouton Enregistrer et masquer le bouton Annuler
+  document.getElementById('enregistrerBtn').disabled = true;
+  document.getElementById('annulerBtn').style.display = 'none';
+}
+
+
+
+
+
+
+
+
+// Afficher la fiche détaillée d'un client
 function afficherFicheClient(client) {
   const fiche = document.getElementById('fiche-detaillee');
   fiche.innerHTML = `
     <h3>Fiche détaillée</h3>
-    <p><strong>Nom :</strong> ${client.nom}</p>
-    <p><strong>Type :</strong> ${client.type}</p>
-    <p><strong>Date audience :</strong> ${formatDateFr(client.dateAudience)}</p>
-    <p><strong>Échéance juridique :</strong> ${formatDateFr(client.dateEcheance)}</p>
-    <p><strong>Dernier contact :</strong> ${formatDateFr(client.dateContact)}</p>
-    <p><strong>Commentaire :</strong> ${client.commentaire || '–'}</p>
+    <p><strong>Client</strong></p>
+    <p>Nom : ${client.nom}</p>
+    <p>Adresse : ${client.adresse || ''}</p>
+    <p>Téléphone : ${client.telephone || ''}</p>
+    <p>Email : ${client.email || ''}</p>
+    <p>Profession : ${client.profession || ''}</p>
+    <p>Tribunal compétent : ${client.tribunal || '–'}</p>
+    <p>Type de dossier : ${client.type}</p>
+    <p>Date d'audience : ${formatDateFr(client.dateAudience)}</p>
+    <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
+    <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
+    <p>Commentaire : ${client.commentaire || '–'}</p>
+    <hr>
+    <p><strong>Facturation</strong></p>
+    <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
+    <p>Montant payé (HT) : ${client.montantPaye || '0'} €</p>
+    <p>Reste à facturer (HT) : ${client.resteAFacturer || '0'} €</p>
+    <hr>
+    <p><strong>Adverse</strong></p>
+    <p>Nom : ${client.nomAdverse || ''}</p>
+    <p>Adresse : ${client.adresseAdverse || ''}</p>
+    <p>Téléphone : ${client.telephoneAdverse || ''}</p>
+    <p>Email : ${client.emailAdverse || ''}</p>
+    <p>Profession : ${client.professionAdverse || ''}</p>
+    <p>Aide juridictionnelle : ${client.aideJuridictionnelle || 'non'}</p>
     <button onclick="document.getElementById('fiche-detaillee').style.display='none'">Fermer</button>
   `;
   fiche.style.display = 'block';
 }
 
-// Filtrer la liste des clients en fonction de la recherche
+
+// Filtrer les clients en fonction de la recherche
 function filtrerClients() {
   try {
     const filtre = document.getElementById('recherche').value.toLowerCase();
@@ -160,7 +382,7 @@ function filtrerClients() {
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
     const resultat = data.filter(client =>
-      `${client.nom} ${client.type} ${client.commentaire}`.toLowerCase().includes(filtre)
+      `${client.nom} ${client.type} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
     );
     afficherClients(resultat);
   } catch (error) {
@@ -198,7 +420,7 @@ function imprimerTousLesClients() {
       : [];
     let contenu = `<html><head><title>Dossiers</title></head><body><h1>Liste des clients</h1>`;
     clients.forEach(c => {
-      contenu += `<p><strong>${c.nom}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Échéance : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
+      contenu += `<p><strong>${c.nom}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Date d'entrée du dossier : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
     });
     contenu += `<script>window.onload = () => window.print();<\/script></body></html>`;
     const fenetre = window.open('', '_blank');
@@ -285,7 +507,7 @@ function afficherFichiersJoints(client, container) {
   }
 }
 
-// Afficher le calendrier des audiences et échéances
+// Afficher le calendrier des audiences et dates d'entrée du dossier
 function afficherCalendrier() {
   try {
     const container = document.getElementById('calendrier');
@@ -334,7 +556,7 @@ function afficherCalendrier() {
       data.forEach(client => {
         if (client.dateAudience === dateStr || client.dateEcheance === dateStr) {
           const evt = document.createElement('div');
-          evt.textContent = `${client.nom} (${client.dateAudience === dateStr ? 'Audience' : 'Éch'})`;
+          evt.textContent = `${client.nom} (${client.dateAudience === dateStr ? 'Audience' : 'Entrée'})`;
           evt.style.fontSize = '12px';
           evt.style.background = client.dateAudience === dateStr ? '#3498db' : '#e67e22';
           evt.style.color = 'white';
@@ -363,11 +585,13 @@ function afficherCalendrier() {
   }
 }
 
-// Fonction pour exporter la fiche client en PDF
-// La structure de la fiche est similaire à celle des fichiers de Jean-Christophe ou Candice.
+// Exporter la fiche client en PDF en incluant toutes les informations
 function exporterFichePDF(client) {
   try {
-    const { nom, type, dateAudience, dateEcheance, dateContact, commentaire } = client;
+    const { nom, adresse, telephone, email, profession,
+            type, dateAudience, dateContact, dateEcheance, commentaire,
+            nomAdverse, adresseAdverse, telephoneAdverse, emailAdverse, professionAdverse } = client;
+    
     const doc = new PDFDocument({ margin: 50 });
     const nomFichier = `${nom.replace(/\s+/g, '_')}_fiche.pdf`;
     const cheminFichierPdf = path.join(__dirname, nomFichier);
@@ -385,8 +609,37 @@ function exporterFichePDF(client) {
     doc.text(`Type de dossier : ${type}`);
     doc.text(`Date d'audience : ${formatDateFr(dateAudience)}`);
     doc.text(`Date de dernier contact : ${formatDateFr(dateContact)}`);
-    doc.text(`Date d’échéance juridique : ${formatDateFr(dateEcheance)}`);
+    // Modification ici
+    doc.text(`Date d'entrée du dossier : ${formatDateFr(dateEcheance)}`);
     doc.moveDown();
+
+    // Informations du client
+    doc.fontSize(14).text("Informations du client", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Adresse : ${adresse || '–'}`);
+    doc.text(`Téléphone : ${telephone || '–'}`);
+    doc.text(`Email : ${email || '–'}`);
+    doc.text(`Profession : ${profession || '–'}`);
+    doc.moveDown();
+
+    // Informations de l'adverse
+    doc.fontSize(14).text("Informations de l'adverse", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Nom : ${nomAdverse || '–'}`);
+    doc.text(`Adresse : ${adresseAdverse || '–'}`);
+    doc.text(`Téléphone : ${telephoneAdverse || '–'}`);
+    doc.text(`Email : ${emailAdverse || '–'}`);
+    doc.text(`Profession : ${professionAdverse || '–'}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text("Facturation :", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Montant total (HT) : ${client.montantTotal || '0'} €`, { indent: 20 });
+    doc.text(`Montant payé (HT) : ${client.montantPaye || '0'} €`, { indent: 20 });
+    doc.text(`Reste à facturer (HT) : ${client.resteAFacturer || '0'} €`, { indent: 20 });
+    doc.moveDown();
+    
+    
 
     // Commentaire
     doc.fontSize(14).text("Commentaire :", { underline: true });
@@ -416,9 +669,16 @@ function exporterFichePDF(client) {
   }
 }
 
-// Ajout d'écouteurs d'événements pour filtrer et trier
+// Écouteurs pour filtrer et trier
 document.getElementById('recherche').addEventListener('input', filtrerClients);
 document.getElementById('tri').addEventListener('change', appliquerTri);
 
 // Chargement initial des clients
 chargerClients();
+
+window.addEventListener('load', () => {
+  const inputs = document.querySelectorAll('#formClient input, #formClient textarea, #formClient select');
+  inputs.forEach(input => {
+    input.addEventListener('input', checkFormChanges);
+  });
+});

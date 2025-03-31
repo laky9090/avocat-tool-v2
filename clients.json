@@ -1,19 +1,47 @@
 [
   {
     "nom": "Lakhdar DAMAR",
+    "adresse": "undefined",
+    "telephone": "undefined",
+    "email": "undefined",
+    "profession": "undefined",
+    "tribunal": "",
     "type": "Divorce",
     "dateAudience": "2025-04-06",
     "dateContact": "2025-02-02",
     "dateEcheance": "2025-09-05",
-    "commentaire": "tout va bien"
+    "commentaire": "tout va bien",
+    "nomAdverse": "Jean",
+    "adresseAdverse": "2 avenue de la grande armée, Paris",
+    "telephoneAdverse": "undefined",
+    "emailAdverse": "undefined",
+    "professionAdverse": "undefined",
+    "aideJuridictionnelle": "non",
+    "montantTotal": 2000,
+    "montantPaye": 500,
+    "resteAFacturer": 1500
   },
   {
     "nom": "Candice",
+    "adresse": "undefined",
+    "telephone": "undefined",
+    "email": "undefined",
+    "profession": "undefined",
+    "tribunal": "",
     "type": "Violences conjugales",
     "dateAudience": "2025-03-31",
     "dateContact": "",
     "dateEcheance": "",
-    "commentaire": "Grave"
+    "commentaire": "Grave",
+    "nomAdverse": "undefined",
+    "adresseAdverse": "undefined",
+    "telephoneAdverse": "undefined",
+    "emailAdverse": "undefined",
+    "professionAdverse": "undefined",
+    "aideJuridictionnelle": "non",
+    "montantTotal": 0,
+    "montantPaye": 0,
+    "resteAFacturer": 0
   },
   {
     "nom": "Jean-Christophe",
@@ -30,5 +58,27 @@
     "dateContact": "2025-03-31",
     "dateEcheance": "",
     "commentaire": "Rien à signaler"
+  },
+  {
+    "nom": "fsdfssdf",
+    "adresse": "dsfsdf",
+    "telephone": "3513135453",
+    "email": "Rien",
+    "profession": "Rien",
+    "tribunal": "",
+    "type": "Rien",
+    "dateAudience": "",
+    "dateContact": "",
+    "dateEcheance": "",
+    "commentaire": "",
+    "nomAdverse": "sdfs",
+    "adresseAdverse": "sdfsdf",
+    "telephoneAdverse": "sdf",
+    "emailAdverse": "sdf",
+    "professionAdverse": "fsdf",
+    "aideJuridictionnelle": "non",
+    "montantTotal": 10000,
+    "montantPaye": 1000,
+    "resteAFacturer": 9000
   }
 ]
