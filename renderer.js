@@ -493,13 +493,33 @@ function generateMonthlyCalendar(container) {
     const yearStr = d.getFullYear();
     const dateStr = `${dayStr}-${monthStr}-${yearStr}`;
     
-    // Si un client a une date correspondante, colorer la cellule
-    if (clients.some(c => 
-      formatClientDate(c.dateAudience) === dateStr ||
-      formatClientDate(c.dateEcheance) === dateStr ||
+    // Récupérer tous les clients dont l'une des dates correspond à cette cellule
+    const matches = clients.filter(c => 
+      formatClientDate(c.dateAudience) === dateStr || 
+      formatClientDate(c.dateEcheance) === dateStr || 
       formatClientDate(c.dateContact) === dateStr
-    )) {
-    td.style.backgroundColor = '#c8e6c9';
+    );
+    
+    // Si des correspondances existent, colorer la cellule et définir le tooltip
+    if (matches.length > 0) {
+      td.style.backgroundColor = '#c8e6c9';
+      
+      // Construire le texte de l'info-bulle pour chaque correspondance
+      const tooltipText = matches.map(c => {
+        let infos = [];
+        if (formatClientDate(c.dateAudience) === dateStr) {
+          infos.push(`Audience: ${c.nom}`);
+        }
+        if (formatClientDate(c.dateEcheance) === dateStr) {
+          infos.push(`Entrée dossier: ${c.nom}`);
+        }
+        if (formatClientDate(c.dateContact) === dateStr) {
+          infos.push(`Contact: ${c.nom}`);
+        }
+        return infos.join(' | ');
+      }).join('\n');
+      
+      td.title = tooltipText;
     }
     
     td.innerHTML = `<strong>${jour}</strong>`;
@@ -512,6 +532,7 @@ function generateMonthlyCalendar(container) {
       adjustedDay = 0;
     }
   }
+  
   
   if (adjustedDay !== 0) {
     for (let i = adjustedDay; i < 7; i++) {
