@@ -143,41 +143,74 @@ function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
   liste.innerHTML = '';
   clients.forEach((client, index) => {
-    // Filtrer selon la vue sélectionnée
+    // Filtrage selon la vue active/archivée
     if (currentView === 'active' && client.archived) return;
     if (currentView === 'archived' && !client.archived) return;
 
     const li = document.createElement('li');
     li.className = 'client-item';
+    
+    // Contenu synthétique (résumé)
     const info = document.createElement('div');
     info.innerHTML = `
       <p><strong>${client.nom}</strong> (${client.type})</p>
-      <p>Adresse : ${client.adresse || ''}</p>
-      <p>Téléphone : ${client.telephone || ''}</p>
       <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
+      ${client.archived ? '<p style="color:red;">[Archivé]</p>' : ''}
     `;
     
-    // Ajoutez un bouton de bascule pour archiver/désarchiver
-    const toggleBtn = document.createElement('button');
-    if (client.archived) {
-      toggleBtn.textContent = 'Désarchiver';
-    } else {
-      toggleBtn.textContent = 'Archiver';
-    }
-    toggleBtn.onclick = () => toggleArchive(index);
+    // Créez le conteneur détaillé, caché par défaut
+    const detailDiv = document.createElement('div');
+    detailDiv.className = 'client-detail';
+    detailDiv.style.display = 'none';
+    detailDiv.innerHTML = `
+      <p>Adresse : ${client.adresse || ''}</p>
+      <p>Téléphone : ${client.telephone || ''}</p>
+      <p>Email : ${client.email || ''}</p>
+      <p>Profession : ${client.profession || ''}</p>
+      <p>Tribunal compétent : ${client.tribunal || '–'}</p>
+      <p>Date d'audience : ${formatDateFr(client.dateAudience)}</p>
+      <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
+      <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
+      <p>Commentaire : ${client.commentaire || '–'}</p>
+      <hr>
+      <p><strong>Adverse</strong></p>
+      <p>Nom : ${client.nomAdverse || ''}</p>
+      <p>Adresse : ${client.adresseAdverse || ''}</p>
+      <p>Téléphone : ${client.telephoneAdverse || ''}</p>
+      <p>Email : ${client.emailAdverse || ''}</p>
+      <p>Profession : ${client.professionAdverse || ''}</p>
+      <p>Aide juridictionnelle : ${client.aideJuridictionnelle || 'non'}</p>
+      <p>Montant payé (HT) : ${client.montantPaye || '0'} €</p>
+      <p>Reste à facturer (HT) : ${client.resteAFacturer || '0'} €</p>
+    `;
     
-    // Les boutons existants (Voir, Modifier, etc.)
+    // Créez le conteneur des boutons
     const buttons = document.createElement('div');
     buttons.className = 'client-buttons';
+    
+    // Bouton pour basculer l'affichage détaillé
+    const btnToggleDetail = document.createElement('button');
+    btnToggleDetail.textContent = 'Voir la fiche';
+    btnToggleDetail.onclick = () => {
+      if (detailDiv.style.display === 'none') {
+        detailDiv.style.display = 'block';
+        btnToggleDetail.textContent = 'Cacher la fiche';
+      } else {
+        detailDiv.style.display = 'none';
+        btnToggleDetail.textContent = 'Voir la fiche';
+      }
+    };
+    buttons.appendChild(btnToggleDetail);
+    
+    // Autres boutons
     const btnVoir = document.createElement('button');
     btnVoir.textContent = 'Voir la fiche';
     btnVoir.onclick = () => afficherFicheClient(client);
+    
     const btnModifier = document.createElement('button');
     btnModifier.textContent = 'Modifier';
     btnModifier.onclick = () => {
-      // Remplissage du formulaire pour modification...
-      // (Le code existant de remplissage et stockage d'originalClientData)
-      // Par exemple :
+      // Remplissage du formulaire pour modification
       document.getElementById('nom').value = client.nom;
       document.getElementById('adresse').value = client.adresse;
       document.getElementById('telephone').value = client.telephone;
@@ -203,21 +236,22 @@ function afficherClients(clients) {
       document.getElementById('montantPaye').value = client.montantPaye;
       
       document.getElementById('indexModif').value = index;
-      
-      // Stockage des données originales pour comparaison
+      // Stocker les données originales pour vérifier les modifications
       originalClientData = { /* ... */ };
       
-      // Affiche le bouton Annuler (code existant)
       document.getElementById('annulerBtn').style.display = 'inline-block';
       checkFormChanges();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    
     const btnExporter = document.createElement('button');
     btnExporter.textContent = 'Exporter en PDF';
     btnExporter.onclick = () => exporterFichePDF(client);
+    
     const btnJoindre = document.createElement('button');
     btnJoindre.textContent = 'Joindre un fichier';
     btnJoindre.onclick = () => joindreFichier(client);
+    
     const btnSuppr = document.createElement('button');
     btnSuppr.textContent = 'Supprimer';
     btnSuppr.onclick = () => {
@@ -225,21 +259,27 @@ function afficherClients(clients) {
       fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
       chargerClients();
     };
-
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = client.archived ? 'Désarchiver' : 'Archiver';
+    toggleBtn.onclick = () => toggleArchive(index);
+    
+    // Ajoutez les autres boutons dans le conteneur
     buttons.appendChild(btnVoir);
     buttons.appendChild(btnModifier);
     buttons.appendChild(btnJoindre);
     buttons.appendChild(btnExporter);
     buttons.appendChild(btnSuppr);
-    // Ajoutez le bouton de bascule (toggle) à la fin
     buttons.appendChild(toggleBtn);
     
+    // Ajoutez les éléments dans le li dans l'ordre souhaité
     li.appendChild(info);
-    afficherFichiersJoints(client, li);
+    li.appendChild(detailDiv);
     li.appendChild(buttons);
     liste.appendChild(li);
   });
 }
+
 
 
 
