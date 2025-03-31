@@ -371,6 +371,11 @@ function generateCalendar(viewMode) {
 }
 
 
+function formatClientDate(dateStr) {
+  if (!dateStr) return "";
+  const [yyyy, mm, dd] = dateStr.split("-");
+  return `${dd}-${mm}-${yyyy}`;
+}
 
 
 
@@ -480,13 +485,21 @@ function generateMonthlyCalendar(container) {
     td.style.border = "1px solid #ddd";
     td.style.padding = "5px";
     
-    // Créez un objet Date pour ce jour et formatez-le
+    // Créez un objet Date pour ce jour
     const d = new Date(annee, moisIndex, jour);
-    const dateStr = d.toISOString().split('T')[0];
+    // Format manuel en "JJ-MM-AAAA"
+    const dayStr = ('0' + d.getDate()).slice(-2);
+    const monthStr = ('0' + (d.getMonth() + 1)).slice(-2);
+    const yearStr = d.getFullYear();
+    const dateStr = `${dayStr}-${monthStr}-${yearStr}`;
     
     // Si un client a une date correspondante, colorer la cellule
-    if (clients.some(c => c.dateAudience === dateStr || c.dateEcheance === dateStr || c.dateContact === dateStr)) {
-      td.style.backgroundColor = '#c8e6c9';
+    if (clients.some(c => 
+      formatClientDate(c.dateAudience) === dateStr ||
+      formatClientDate(c.dateEcheance) === dateStr ||
+      formatClientDate(c.dateContact) === dateStr
+    )) {
+    td.style.backgroundColor = '#c8e6c9';
     }
     
     td.innerHTML = `<strong>${jour}</strong>`;
@@ -499,6 +512,7 @@ function generateMonthlyCalendar(container) {
       adjustedDay = 0;
     }
   }
+  
   if (adjustedDay !== 0) {
     for (let i = adjustedDay; i < 7; i++) {
       row += '<td style="border:1px solid #ddd; padding:5px;"></td>';
