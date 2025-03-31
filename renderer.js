@@ -317,78 +317,134 @@ function toggleCalendar() {
     // Afficher le calendrier
     calendarDiv.style.display = 'block';
     btnToggleCalendar.textContent = 'Cacher le calendrier';
-    
-    // Générer (ou mettre à jour) le contenu du calendrier
     calendarDiv.innerHTML = ''; // Réinitialiser le contenu
-    const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-    const aujourdhui = new Date();
-    const annee = aujourdhui.getFullYear();
-    const moisIndex = aujourdhui.getMonth();
-    const premierJour = new Date(annee, moisIndex, 1).getDay();
-    const nbJours = new Date(annee, moisIndex + 1, 0).getDate();
-    
-    const titre = document.createElement('h2');
-    titre.textContent = `${mois[moisIndex]} ${annee}`;
-    calendarDiv.appendChild(titre);
-    
-    const table = document.createElement('table');
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-    
-    // Entête des jours
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(j => {
-      const th = document.createElement('th');
-      th.textContent = j;
-      th.style.border = "1px solid #ddd";
-      th.style.padding = "5px";
-      headRow.appendChild(th);
+
+    // Créer et ajouter un sélecteur de vue pour le calendrier
+    const viewSelect = document.createElement('select');
+    viewSelect.id = 'calendarViewSelect';
+    ['week', 'month', 'year'].forEach(mode => {
+      const option = document.createElement('option');
+      option.value = mode;
+      option.textContent = mode === 'week' ? 'Semaine' : mode === 'month' ? 'Mois' : 'Année';
+      if (mode === 'month') { // Sélectionner "Mois" par défaut
+        option.selected = true;
+      }
+      viewSelect.appendChild(option);
     });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-    
-    // Corps du calendrier
-    const tbody = document.createElement('tbody');
-    let row = document.createElement('tr');
-    // Ajuster le premier jour (on suppose que la semaine commence le lundi)
-    let jourSemaine = (premierJour + 6) % 7;
-    for (let i = 0; i < jourSemaine; i++) {
-      const td = document.createElement('td');
-      td.style.border = "1px solid #ddd";
-      td.style.padding = "5px";
-      row.appendChild(td);
-    }
-    for (let jour = 1; jour <= nbJours; jour++) {
-      const td = document.createElement('td');
-      td.style.border = "1px solid #ddd";
-      td.style.padding = "5px";
-      td.innerHTML = `<strong>${jour}</strong>`;
-      row.appendChild(td);
-      jourSemaine++;
-      if (jourSemaine === 7) {
-        tbody.appendChild(row);
-        row = document.createElement('tr');
-        jourSemaine = 0;
-      }
-    }
-    if (jourSemaine !== 0) {
-      for (let i = jourSemaine; i < 7; i++) {
-        const td = document.createElement('td');
-        td.style.border = "1px solid #ddd";
-        td.style.padding = "5px";
-        row.appendChild(td);
-      }
-      tbody.appendChild(row);
-    }
-    table.appendChild(tbody);
-    calendarDiv.appendChild(table);
-    
+    viewSelect.addEventListener('change', function() {
+      generateCalendar(viewSelect.value);
+    });
+    calendarDiv.appendChild(viewSelect);
+
+    // Générer par défaut la vue mensuelle
+    generateCalendar('month');
   } else {
     // Cacher le calendrier
     calendarDiv.style.display = 'none';
     btnToggleCalendar.textContent = 'Voir le calendrier';
   }
+}
+
+
+function generateCalendar(viewMode) {
+  const calendarDiv = document.getElementById('calendrier');
+  // Conserver le sélecteur (premier enfant)
+  while (calendarDiv.childNodes.length > 1) {
+    calendarDiv.removeChild(calendarDiv.lastChild);
+  }
+  
+  if (viewMode === 'week') {
+    generateWeeklyCalendar(calendarDiv);
+  } else if (viewMode === 'month') {
+    generateMonthlyCalendar(calendarDiv);
+  } else if (viewMode === 'year') {
+    generateYearlyCalendar(calendarDiv);
+  }
+}
+
+
+
+
+function generateWeeklyCalendar(container) {
+  const today = new Date();
+  // Calculez le lundi de la semaine en cours (supposons que la semaine commence le lundi)
+  const dayOfWeek = today.getDay();
+  const diff = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  
+  let html = `<h2>Semaine du ${formatDateFr(monday.toISOString().split('T')[0])}</h2>`;
+  html += '<table style="width:100%; border-collapse:collapse;"><tr>';
+  ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(day => {
+    html += `<th style="border:1px solid #ddd; padding:5px;">${day}</th>`;
+  });
+  html += '</tr><tr>';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    html += `<td style="border:1px solid #ddd; padding:5px;">${d.getDate()}</td>`;
+  }
+  html += '</tr></table>';
+  container.insertAdjacentHTML('beforeend', html);
+}
+
+function generateMonthlyCalendar(container) {
+  const today = new Date();
+  const annee = today.getFullYear();
+  const moisIndex = today.getMonth();
+  const premierJour = new Date(annee, moisIndex, 1).getDay();
+  const nbJours = new Date(annee, moisIndex + 1, 0).getDate();
+  const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  
+  let html = `<h2>${mois[moisIndex]} ${annee}</h2>`;
+  html += '<table style="width:100%; border-collapse:collapse;">';
+  html += '<thead><tr>';
+  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(j => {
+    html += `<th style="border:1px solid #ddd; padding:5px;">${j}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  
+  let adjustedDay = (premierJour + 6) % 7;
+  let row = '<tr>';
+  for (let i = 0; i < adjustedDay; i++) {
+    row += '<td style="border:1px solid #ddd; padding:5px;"></td>';
+  }
+  for (let jour = 1; jour <= nbJours; jour++) {
+    row += `<td style="border:1px solid #ddd; padding:5px;">${jour}</td>`;
+    adjustedDay++;
+    if (adjustedDay === 7) {
+      row += '</tr>';
+      html += row;
+      row = '<tr>';
+      adjustedDay = 0;
+    }
+  }
+  if (adjustedDay !== 0) {
+    for (let i = adjustedDay; i < 7; i++) {
+      row += '<td style="border:1px solid #ddd; padding:5px;"></td>';
+    }
+    row += '</tr>';
+    html += row;
+  }
+  html += '</tbody></table>';
+  container.insertAdjacentHTML('beforeend', html);
+}
+
+function generateYearlyCalendar(container) {
+  const today = new Date();
+  const annee = today.getFullYear();
+  const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  let html = `<h2>Année ${annee}</h2>`;
+  html += '<div style="display:flex; flex-wrap:wrap;">';
+  for (let m = 0; m < 12; m++) {
+    html += `<div style="flex:1 0 30%; margin:5px; border:1px solid #ddd; padding:5px;">`;
+    html += `<h3>${mois[m]}</h3>`;
+    const nbJours = new Date(annee, m + 1, 0).getDate();
+    html += `<p>${nbJours} jours</p>`;
+    html += `</div>`;
+  }
+  html += '</div>';
+  container.insertAdjacentHTML('beforeend', html);
 }
 
 
