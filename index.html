@@ -10,115 +10,105 @@
     <h1>Avocat Tool</h1>
   </header>
 
-  <div id="statsSection" style="padding: 10px; background: #ecf0f1; text-align: center; margin-bottom: 20px;">
+  <div id="statsSection" style="padding: 10px; background: #ecf0f1; text-align: center;">
     <!-- Les statistiques seront insérées ici par le script -->
   </div>
 
+  <!-- Conteneur principal en flex pour utiliser tout l'espace de l'écran -->
+  <div id="mainContent">
+    <!-- Panneau gauche : Formulaire et calendrier -->
+    <div id="leftPanel">
+      <!-- Formulaire d'ajout/modification -->
+      <div class="form-container" id="formClient">
+        <h2>Ajouter ou modifier un client</h2>
+        <input type="hidden" id="indexModif">
+        
+        <h3>Informations du client</h3>
+        <label>Nom du client :</label>
+        <input type="text" id="nom">
+        <label>Adresse du client :</label>
+        <input type="text" id="adresse">
+        <label>Téléphone du client :</label>
+        <input type="text" id="telephone">
+        <label>Email du client :</label>
+        <input type="email" id="email">
+        <label>Profession du client :</label>
+        <input type="text" id="profession">
 
-  <div class="container">
-    <!-- Formulaire d'ajout/modification -->
-    <div class="form-container" id="formClient">
-      <h2>Ajouter ou modifier un client</h2>
-      <input type="hidden" id="indexModif">
-      
-      <h3>Informations du client</h3>
-      <label>Nom du client :</label>
-      <input type="text" id="nom">
-      <label>Adresse du client :</label>
-      <input type="text" id="adresse">
-      <label>Téléphone du client :</label>
-      <input type="text" id="telephone">
-      <label>Email du client :</label>
-      <input type="email" id="email">
-      <label>Profession du client :</label>
-      <input type="text" id="profession">
+        <label>Type de dossier :</label>
+        <input type="text" id="type">
+        <label>Date d’audience :</label>
+        <input type="date" id="dateAudience">
+        <label>Date de dernier contact :</label>
+        <input type="date" id="dateContact">
+        <label>Date d'entrée du dossier :</label>
+        <input type="date" id="dateEcheance">
 
-      <label>Type de dossier :</label>
-      <input type="text" id="type">
-      <label>Date d’audience :</label>
-      <input type="date" id="dateAudience">
-      <label>Date de dernier contact :</label>
-      <input type="date" id="dateContact">
-      <!-- Modification ici -->
-      <label>Date d'entrée du dossier :</label>
-      <input type="date" id="dateEcheance">
+        <label>Aide juridictionnelle :</label>
+        <select id="aideJuridictionnelle">
+          <option value="non" selected>Non</option>
+          <option value="oui">Oui</option>
+        </select>
+        <label>Tribunal compétent :</label>
+        <input type="text" id="tribunal">
 
-      <label>Aide juridictionnelle :</label>
-      <select id="aideJuridictionnelle">
-        <option value="non" selected>Non</option>
-        <option value="oui">Oui</option>
-      </select>
-      <label>Tribunal compétent :</label>
-      <input type="text" id="tribunal">
+        <label>Commentaire :</label>
+        <textarea id="commentaire"></textarea>
+        
+        <label>Montant total (HT) :</label>
+        <input type="number" id="montantTotal" step="0.01">
+        <label>Montant payé (HT) :</label>
+        <input type="number" id="montantPaye" step="0.01">
 
-      
-      <label>Commentaire :</label>
-      <textarea id="commentaire"></textarea>
-      
-      <label>Montant total (HT) :</label>
-      <input type="number" id="montantTotal" step="0.01">
-      
-      <label>Montant payé (HT) :</label>
-      <input type="number" id="montantPaye" step="0.01">
-    
+        <h3>Informations de l'adverse</h3>
+        <label>Nom de l'adverse :</label>
+        <input type="text" id="nomAdverse">
+        <label>Adresse de l'adverse :</label>
+        <input type="text" id="adresseAdverse">
+        <label>Téléphone de l'adverse :</label>
+        <input type="text" id="telephoneAdverse">
+        <label>Email de l'adverse :</label>
+        <input type="email" id="emailAdverse">
+        <label>Profession de l'adverse :</label>
+        <input type="text" id="professionAdverse">
+        
+        <div class="button-group">
+          <button id="enregistrerBtn" onclick="ajouterOuModifierClient()" disabled>Enregistrer</button>
+          <button id="annulerBtn" onclick="annulerModification()" style="display:none;">Annuler</button>
+        </div>
+      </div>
 
-      <h3>Informations de l'adverse</h3>
-      <label>Nom de l'adverse :</label>
-      <input type="text" id="nomAdverse">
-      <label>Adresse de l'adverse :</label>
-      <input type="text" id="adresseAdverse">
-      <label>Téléphone de l'adverse :</label>
-      <input type="text" id="telephoneAdverse">
-      <label>Email de l'adverse :</label>
-      <input type="email" id="emailAdverse">
-      <label>Profession de l'adverse :</label>
-      <input type="text" id="professionAdverse">
-      
-      <div class="button-group">
-        <button id="enregistrerBtn" onclick="ajouterOuModifierClient()" disabled>Enregistrer</button>
-        <button id="annulerBtn" onclick="annulerModification()" style="display:none;">Annuler</button>
+      <!-- Calendrier -->
+      <div id="calendarWrapper">
+        <div style="text-align:center; margin-bottom:20px;">
+          <button id="btnCalendrier" onclick="toggleCalendar()">Voir le calendrier</button>
+        </div>
+        <div id="calendrier" style="display:none;"></div>
       </div>
     </div>
-
-
     <div id="viewSelector" style="text-align:center; margin-bottom:20px;">
         <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
         <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
     </div>
-    
       
-      <!-- Section pour le calendrier -->
-      <div style="text-align:center; margin-bottom:20px;">
-        <button id="btnCalendrier" onclick="toggleCalendar()">Voir le calendrier</button>
+    <!-- Panneau droit : Liste des clients et fiche détaillée -->
+    <div id="rightPanel">
+      <div class="form-container">
+        <h2>Liste des clients</h2>
+        <input type="text" id="recherche" placeholder="Rechercher...">
+        <select id="tri">
+          <option value="">Trier par...</option>
+          <option value="nom">Nom</option>
+          <option value="type">Type</option>
+          <option value="dateAudience">Date d’audience</option>
+          <option value="dateEcheance">Date d'entrée du dossier</option>
+          <option value="dateContact">Date de dernier contact</option>
+        </select>
+        <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
       </div>
-      <div id="calendrier" style="display:none;"></div>
-        
-
-
-
-
-
-
-    <!-- Section des contrôles de la liste -->
-    <div class="form-container">
-      <h2>Liste des clients</h2>
-      <input type="text" id="recherche" placeholder="Rechercher...">
-      <select id="tri">
-        <option value="">Trier par...</option>
-        <option value="nom">Nom</option>
-        <option value="type">Type</option>
-        <option value="dateAudience">Date d’audience</option>
-        <!-- Modification ici -->
-        <option value="dateEcheance">Date d'entrée du dossier</option>
-        <option value="dateContact">Date de dernier contact</option>
-      </select>
-      <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
+      <ul id="listeClients"></ul>
+      <div id="fiche-detaillee" style="display:none;"></div>
     </div>
-    
-    <!-- Liste des clients -->
-    <ul id="listeClients"></ul>
-    <!-- Fiche détaillée -->
-    <div id="fiche-detaillee" style="display:none;"></div>
   </div>
   
   <script src="renderer.js"></script>
