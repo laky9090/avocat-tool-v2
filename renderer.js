@@ -309,6 +309,91 @@ function switchView(view) {
 
 
 
+
+function toggleCalendar() {
+  const calendarDiv = document.getElementById('calendrier');
+  const btnToggleCalendar = document.getElementById('btnCalendrier');
+  if (calendarDiv.style.display === 'none' || calendarDiv.style.display === '') {
+    // Afficher le calendrier
+    calendarDiv.style.display = 'block';
+    btnToggleCalendar.textContent = 'Cacher le calendrier';
+    
+    // Générer (ou mettre à jour) le contenu du calendrier
+    calendarDiv.innerHTML = ''; // Réinitialiser le contenu
+    const mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+    const aujourdhui = new Date();
+    const annee = aujourdhui.getFullYear();
+    const moisIndex = aujourdhui.getMonth();
+    const premierJour = new Date(annee, moisIndex, 1).getDay();
+    const nbJours = new Date(annee, moisIndex + 1, 0).getDate();
+    
+    const titre = document.createElement('h2');
+    titre.textContent = `${mois[moisIndex]} ${annee}`;
+    calendarDiv.appendChild(titre);
+    
+    const table = document.createElement('table');
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+    
+    // Entête des jours
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].forEach(j => {
+      const th = document.createElement('th');
+      th.textContent = j;
+      th.style.border = "1px solid #ddd";
+      th.style.padding = "5px";
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    
+    // Corps du calendrier
+    const tbody = document.createElement('tbody');
+    let row = document.createElement('tr');
+    // Ajuster le premier jour (on suppose que la semaine commence le lundi)
+    let jourSemaine = (premierJour + 6) % 7;
+    for (let i = 0; i < jourSemaine; i++) {
+      const td = document.createElement('td');
+      td.style.border = "1px solid #ddd";
+      td.style.padding = "5px";
+      row.appendChild(td);
+    }
+    for (let jour = 1; jour <= nbJours; jour++) {
+      const td = document.createElement('td');
+      td.style.border = "1px solid #ddd";
+      td.style.padding = "5px";
+      td.innerHTML = `<strong>${jour}</strong>`;
+      row.appendChild(td);
+      jourSemaine++;
+      if (jourSemaine === 7) {
+        tbody.appendChild(row);
+        row = document.createElement('tr');
+        jourSemaine = 0;
+      }
+    }
+    if (jourSemaine !== 0) {
+      for (let i = jourSemaine; i < 7; i++) {
+        const td = document.createElement('td');
+        td.style.border = "1px solid #ddd";
+        td.style.padding = "5px";
+        row.appendChild(td);
+      }
+      tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+    calendarDiv.appendChild(table);
+    
+  } else {
+    // Cacher le calendrier
+    calendarDiv.style.display = 'none';
+    btnToggleCalendar.textContent = 'Voir le calendrier';
+  }
+}
+
+
+
+
 function updateStats() {
   // Récupère tous les clients
   const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];

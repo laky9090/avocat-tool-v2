@@ -85,7 +85,18 @@
         <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
         <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
     </div>
+    
       
+      <!-- Section pour le calendrier -->
+      <div style="text-align:center; margin-bottom:20px;">
+        <button id="btnCalendrier" onclick="toggleCalendar()">Voir le calendrier</button>
+      </div>
+      <div id="calendrier" style="display:none;"></div>
+        
+
+
+
+
 
 
     <!-- Section des contrôles de la liste -->
@@ -102,13 +113,10 @@
         <option value="dateContact">Date de dernier contact</option>
       </select>
       <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
-      <button id="btnCalendrier" onclick="afficherCalendrier()">Voir le calendrier</button>
     </div>
     
     <!-- Liste des clients -->
     <ul id="listeClients"></ul>
-    <!-- Calendrier -->
-    <div id="calendrier" style="display:none;"></div>
     <!-- Fiche détaillée -->
     <div id="fiche-detaillee" style="display:none;"></div>
   </div>
