@@ -4,6 +4,8 @@ const path = require('path');
 const { dialog, shell } = require('@electron/remote');
 const cheminFichier = path.join(__dirname, 'clients.json');
 let originalClientData = null;
+let currentView = 'active';
+
 
 
 // Formater une date au format français
@@ -137,33 +139,30 @@ function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
   liste.innerHTML = '';
   clients.forEach((client, index) => {
+    // Filtrer selon la vue sélectionnée
+    if (currentView === 'active' && client.archived) return;
+    if (currentView === 'archived' && !client.archived) return;
+
     const li = document.createElement('li');
     li.className = 'client-item';
     const info = document.createElement('div');
     info.innerHTML = `
       <p><strong>${client.nom}</strong> (${client.type})</p>
-      <p><strong>Client</strong></p>
       <p>Adresse : ${client.adresse || ''}</p>
       <p>Téléphone : ${client.telephone || ''}</p>
-      <p>Email : ${client.email || ''}</p>
-      <p>Profession : ${client.profession || ''}</p>
-      <p>Date audience : ${formatDateFr(client.dateAudience)}</p>
-      <!-- Modification ici -->
-      <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
-      <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
-      <p>Aide juridictionnelle : ${client.aideJuridictionnelle || 'non'}</p>
       <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
-      <p>Montant facturé (HT) : ${client.montantPaye || '0'} €</p>
-      <p>Reste à facturer (HT) : ${client.resteAFacturer || '0'} €</p>
-      <p>Commentaire : ${client.commentaire || ''}</p>
-      <p>Tribunal compétent : ${client.tribunal || ''}</p>
-      <p><em>Adverse</em></p>
-      <p>Nom : ${client.nomAdverse || ''}</p>
-      <p>Adresse : ${client.adresseAdverse || ''}</p>
-      <p>Téléphone : ${client.telephoneAdverse || ''}</p>
-      <p>Email : ${client.emailAdverse || ''}</p>
-      <p>Profession : ${client.professionAdverse || ''}</p>
     `;
+    
+    // Ajoutez un bouton de bascule pour archiver/désarchiver
+    const toggleBtn = document.createElement('button');
+    if (client.archived) {
+      toggleBtn.textContent = 'Désarchiver';
+    } else {
+      toggleBtn.textContent = 'Archiver';
+    }
+    toggleBtn.onclick = () => toggleArchive(index);
+    
+    // Les boutons existants (Voir, Modifier, etc.)
     const buttons = document.createElement('div');
     buttons.className = 'client-buttons';
     const btnVoir = document.createElement('button');
@@ -172,6 +171,9 @@ function afficherClients(clients) {
     const btnModifier = document.createElement('button');
     btnModifier.textContent = 'Modifier';
     btnModifier.onclick = () => {
+      // Remplissage du formulaire pour modification...
+      // (Le code existant de remplissage et stockage d'originalClientData)
+      // Par exemple :
       document.getElementById('nom').value = client.nom;
       document.getElementById('adresse').value = client.adresse;
       document.getElementById('telephone').value = client.telephone;
@@ -198,40 +200,14 @@ function afficherClients(clients) {
       
       document.getElementById('indexModif').value = index;
       
-      // Stockage des valeurs originales pour la modification
-      originalClientData = {
-        nom: client.nom,
-        adresse: client.adresse,
-        telephone: client.telephone,
-        email: client.email,
-        profession: client.profession,
-        tribunal: client.tribunal,
-        type: client.type,
-        dateAudience: client.dateAudience,
-        dateContact: client.dateContact,
-        dateEcheance: client.dateEcheance,
-        commentaire: client.commentaire,
-        nomAdverse: client.nomAdverse,
-        adresseAdverse: client.adresseAdverse,
-        telephoneAdverse: client.telephoneAdverse,
-        emailAdverse: client.emailAdverse,
-        professionAdverse: client.professionAdverse,
-        aideJuridictionnelle: client.aideJuridictionnelle,
-        montantTotal: client.montantTotal,
-        montantPaye: client.montantPaye
-      };
-    
-      // Affiche le bouton Annuler
+      // Stockage des données originales pour comparaison
+      originalClientData = { /* ... */ };
+      
+      // Affiche le bouton Annuler (code existant)
       document.getElementById('annulerBtn').style.display = 'inline-block';
-      // Vérifie l'état du formulaire dès le chargement
       checkFormChanges();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    
-
-
-
-
     const btnExporter = document.createElement('button');
     btnExporter.textContent = 'Exporter en PDF';
     btnExporter.onclick = () => exporterFichePDF(client);
@@ -251,11 +227,40 @@ function afficherClients(clients) {
     buttons.appendChild(btnJoindre);
     buttons.appendChild(btnExporter);
     buttons.appendChild(btnSuppr);
+    // Ajoutez le bouton de bascule (toggle) à la fin
+    buttons.appendChild(toggleBtn);
+    
     li.appendChild(info);
     afficherFichiersJoints(client, li);
     li.appendChild(buttons);
     liste.appendChild(li);
   });
+}
+
+
+
+function toggleArchive(index) {
+  let clients = fs.existsSync(cheminFichier)
+    ? JSON.parse(fs.readFileSync(cheminFichier))
+    : [];
+  // Basculer la propriété "archived" (si inexistante, on la considère comme false)
+  clients[index].archived = !clients[index].archived;
+  fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+  chargerClients();
+}
+
+
+function switchView(view) {
+  currentView = view;
+  // (Optionnel) Vous pouvez mettre à jour l'apparence des boutons ici
+  if(view === 'active') {
+    document.getElementById('btnActive').classList.add('active');
+    document.getElementById('btnArchived').classList.remove('active');
+  } else {
+    document.getElementById('btnActive').classList.remove('active');
+    document.getElementById('btnArchived').classList.add('active');
+  }
+  chargerClients();
 }
 
 

@@ -57,7 +57,8 @@
     "dateAudience": "2027-01-02",
     "dateContact": "2025-03-31",
     "dateEcheance": "",
-    "commentaire": "Rien à signaler"
+    "commentaire": "Rien à signaler",
+    "archived": true
   },
   {
     "nom": "fsdfssdf",
@@ -79,6 +80,7 @@
     "aideJuridictionnelle": "non",
     "montantTotal": 10000,
     "montantPaye": 1000,
-    "resteAFacturer": 9000
+    "resteAFacturer": 9000,
+    "archived": true
   }
 ]
