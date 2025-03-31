@@ -128,11 +128,15 @@ function chargerClients() {
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
     afficherClients(data);
+    
+    // Mettre à jour les statistiques après avoir affiché les clients
+    updateStats();
   } catch (error) {
     console.error("Erreur dans chargerClients:", error);
     alert("Impossible de charger les clients.");
   }
 }
+
 
 // Afficher les clients dans la liste
 function afficherClients(clients) {
@@ -262,6 +266,46 @@ function switchView(view) {
   }
   chargerClients();
 }
+
+
+
+function updateStats() {
+  // Récupère tous les clients
+  const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+  
+  // Initialisation des compteurs
+  let openCount = 0;
+  let archivedCount = 0;
+  let sumMontantTotal = 0;
+  let sumMontantPaye = 0;
+  let sumReste = 0;
+  
+  clients.forEach(client => {
+    // On considère que si la propriété archived est true, c'est un dossier archivé
+    if (client.archived) {
+      archivedCount++;
+    } else {
+      openCount++;
+    }
+    
+    // S'assurer de convertir les valeurs en nombres
+    sumMontantTotal += parseFloat(client.montantTotal) || 0;
+    sumMontantPaye += parseFloat(client.montantPaye) || 0;
+    sumReste += parseFloat(client.resteAFacturer) || 0;
+  });
+  
+  // Création du contenu HTML pour la section de statistiques
+  const statsHtml = `
+    <p>Total dossiers ouverts : ${openCount}</p>
+    <p>Total dossiers archivés : ${archivedCount}</p>
+    <p>Montant total (HT) : ${sumMontantTotal.toFixed(2)} €</p>
+    <p>Montant payé (HT) : ${sumMontantPaye.toFixed(2)} €</p>
+    <p>Reste à facturer (HT) : ${sumReste.toFixed(2)} €</p>
+  `;
+  
+  document.getElementById('statsSection').innerHTML = statsHtml;
+}
+
 
 
 
