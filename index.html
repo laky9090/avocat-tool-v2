@@ -55,7 +55,21 @@
         <input type="text" id="profession">
 
         <label>Type de dossier :</label>
-        <input type="text" id="type">
+        <select id="type">
+          <option value="">-- Sélectionner --</option>
+          <option value="Divorce">Divorce</option>
+          <option value="Divorce bref délai">Divorce bref délai</option>
+          <option value="Requête en fixation des modalités relatives à l'autorité parentale">Requête en fixation des modalités relatives à l'autorité parentale</option>
+          <option value="Requête en modification des modalités relatives à l'autorité parentale">Requête en modification des modalités relatives à l'autorité parentale</option>
+          <option value="Requête bref délai">Requête bref délai</option>
+          <option value="Ordonnance de protection">Ordonnance de protection</option>
+          <option value="Requête en délégation d'autorité parentale">Requête en délégation d'autorité parentale</option>
+          <option value="Appel - Divorce">Appel - Divorce</option>
+          <option value="Appel - Divorce bref délai">Appel - Divorce bref délai</option>
+          <option value="Appel - Ordonnance de protection">Appel - Ordonnance de protection</option>
+          <option value="Appel - Bref délai">Appel - Bref délai</option>
+        </select>
+        
         <label>Date d’audience :</label>
         <input type="date" id="dateAudience">
         <label>Date de dernier contact :</label>
@@ -69,7 +83,18 @@
           <option value="oui">Oui</option>
         </select>
         <label>Tribunal compétent :</label>
-        <input type="text" id="tribunal">
+        <select id="tribunal">
+          <option value="">-- Sélectionner --</option>
+          <option value="Tribunal judiciaire de Paris">Tribunal judiciaire de Paris</option>
+          <option value="Tribunal judiciaire de Créteil">Tribunal judiciaire de Créteil</option>
+          <option value="Tribunal judiciaire d'Evry">Tribunal judiciaire d'Evry</option>
+          <option value="Tribunal judiciaire de Pontoise">Tribunal judiciaire de Pontoise</option>
+          <option value="Tribunal judiciaire de Bobigny">Tribunal judiciaire de Bobigny</option>
+          <option value="Tribunal judiciaire de Nanterre">Tribunal judiciaire de Nanterre</option>
+          <option value="Tribunal judiciaire de Versailles">Tribunal judiciaire de Versailles</option>
+          <option value="Tribunal judiciaire d'Auxerres">Tribunal judiciaire d'Auxerres</option>
+        </select>
+        
 
         <label>Commentaire :</label>
         <textarea id="commentaire"></textarea>
