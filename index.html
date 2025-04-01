@@ -10,13 +10,26 @@
     <h1>Avocat Tool</h1>
   </header>
 
-  <div id="statsSection" style="padding: 10px; background: #ecf0f1; text-align: center;">
-    <!-- Les statistiques seront insérées ici par le script -->
+  <!-- Section Statistiques : inclut les statistiques et le sélecteur de vue -->
+  <div id="statsSection">
+    <h2>Statistiques</h2>
+    <!-- Conteneur pour les statistiques mises à jour par le script -->
+    <div id="statsContent">
+      <p>Total dossiers : <span id="totalDossiers"></span></p>
+      <p>Dossiers archivés : <span id="dossiersArchives"></span></p>
+      <p>Montant total : <span id="montantTotalGlobal"></span></p>
+    </div>
+    <!-- Conteneur des boutons de vue -->
+    <div id="viewSelector">
+      <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
+      <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
+      <button onclick="toggleCalendar()" id="btnCalendrier" style="display:inline-block;">Voir le calendrier</button>
+    </div>
   </div>
 
   <!-- Conteneur principal en flex pour utiliser tout l'espace de l'écran -->
   <div id="mainContent">
-    <!-- Panneau gauche : Formulaire et calendrier -->
+    <!-- Panneau gauche : Formulaire et Calendrier -->
     <div id="leftPanel">
       <!-- Formulaire d'ajout/modification -->
       <div class="form-container" id="formClient">
@@ -80,17 +93,11 @@
 
       <!-- Calendrier -->
       <div id="calendarWrapper">
-        <div style="text-align:center; margin-bottom:20px;">
-          <button id="btnCalendrier" onclick="toggleCalendar()">Voir le calendrier</button>
-        </div>
+        <!-- Le calendrier sera affiché ici par toggleCalendar -->
         <div id="calendrier" style="display:none;"></div>
       </div>
     </div>
-    <div id="viewSelector" style="text-align:center; margin-bottom:20px;">
-        <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
-        <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
-    </div>
-      
+
     <!-- Panneau droit : Liste des clients et fiche détaillée -->
     <div id="rightPanel">
       <div class="form-container">

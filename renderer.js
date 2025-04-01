@@ -298,16 +298,18 @@ function toggleArchive(index) {
 
 function switchView(view) {
   currentView = view;
-  // (Optionnel) Vous pouvez mettre à jour l'apparence des boutons ici
-  if(view === 'active') {
+  // Mettre à jour les classes
+  document.getElementById('btnActive').classList.remove('active');
+  document.getElementById('btnArchived').classList.remove('active');
+  if (view === 'active') {
     document.getElementById('btnActive').classList.add('active');
-    document.getElementById('btnArchived').classList.remove('active');
   } else {
-    document.getElementById('btnActive').classList.remove('active');
     document.getElementById('btnArchived').classList.add('active');
   }
+  // Recharger la liste des clients
   chargerClients();
 }
+
 
 
 
@@ -630,7 +632,7 @@ function updateStats() {
     <p>Reste à facturer (HT) : ${sumReste.toFixed(2)} €</p>
   `;
   
-  document.getElementById('statsSection').innerHTML = statsHtml;
+  document.getElementById('statsContent').innerHTML = statsHtml;
 }
 
 

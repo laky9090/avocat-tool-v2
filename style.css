@@ -1,216 +1,253 @@
-/* Réinitialiser marges et hauteur */
+/* Réinitialisation et configuration de base */
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-  }
-  
-  /* Utiliser Flexbox pour le body afin de disposer verticalement les sections */
-  body {
     font-family: 'Segoe UI', sans-serif;
-    background: #f5f5f5;
-    display: flex;
-    flex-direction: column;
+    background: #f0f2f5;
   }
   
-  /* Header : garde vos styles existants */
+  /* Header */
   header {
     position: relative;
-    background: url("banniere.jpg") no-repeat center center;
-    background-size: cover;
+    background: linear-gradient(135deg, #3498db, #2980b9);
     color: white;
     min-height: 200px;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     padding: 20px;
-    flex: 0 0 auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   }
   header h1 {
     margin: 0;
-    font-size: 2rem;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    font-size: 2.5rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
   }
   
-  /* Section Statistiques : occupe le haut, sans trop de hauteur */
+  /* Section Statistiques */
   #statsSection {
-    flex: 0 0 auto;
-    padding: 10px;
-    background: #ecf0f1;
-    text-align: center;
-  }
-  
-  /* Conteneur principal qui occupe le reste de l'écran */
-  #mainContent {
-    flex: 1 1 auto;
     display: flex;
-    overflow: hidden; /* Pour éviter un scroll global */
-    max-width: 100%;
-  }
-  
-  /* Panneau gauche (ex. formulaire, calendrier) */
-  #leftPanel {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto; /* Défilement interne */
-    border-right: 1px solid #ddd;
-  }
-  
-  /* Panneau droit (liste des clients, fiche détaillée) */
-  #rightPanel {
-    flex: 2;
-    padding: 10px;
-    overflow-y: auto;
-  }
-  
-  /* Vous pouvez conserver vos styles existants pour le formulaire, la liste, le calendrier, etc. */
-  
-  /* Exemple pour vos éléments déjà définis */
-  .form-container {
-    max-width: 600px;
-    margin: 0 auto 20px;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
     background: #fff;
-    padding: 20px;
+    margin: 10px auto;
+    max-width: 1000px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
-  
-  /* Liste des clients en affichage grille */
-  #listeClients {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
-    list-style: none;
-    padding: 0;
+  #statsSection h2, 
+  #statsSection p {
+    margin: 5px 0;
+  }
+  #statsContent {
+    text-align: center;
   }
   
-  /* Calendrier */
-  #calendrier {
-    margin-top: 20px;
-    margin-bottom: 20px;
-    background: white;
-    padding: 10px;
-    border-radius: 10px;
+  /* Conteneur des boutons de vue dans statsSection */
+  #viewSelector {
+    display: inline-flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  #viewSelector button {
+    background-color: #2ecc71;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+  }
+  #viewSelector button:hover {
+    background-color: #27ae60;
+  }
+  /* Style spécifique pour le bouton "Voir le calendrier" */
+  #viewSelector button#btnCalendrier {
+    background-color: #e67e22;
+  }
+  #viewSelector button#btnCalendrier:hover {
+    background-color: #d35400;
+  }
+  #viewSelector button.active {
+    background-color: #27ae60;
+    outline: 2px solid #1e8c4d;
+  }
+  
+  /* Conteneur principal en flex */
+  #mainContent {
+    display: flex;
+    overflow: hidden;
+    max-width: 1000px;
+    margin: 10px auto;
+    flex: 1;
+  }
+  
+  /* Panneau gauche : formulaire et calendrier */
+  #leftPanel {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    border-radius: 8px 0 0 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
   
-  /* Conservez vos autres styles existants pour boutons, tables, etc. */
-
-
-  
-  /* Container principal */
-  .container {
-    padding: 20px;
-    max-width: 1000px;
-    margin: auto;
+  /* Panneau droit : liste des clients et fiche détaillée */
+  #rightPanel {
+    flex: 2;
+    padding: 15px;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
   
-
+  /* Formulaire */
+  .form-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .form-container h2,
   .form-container h3 {
-    margin-top: 20px;
+    color: #2980b9;
     margin-bottom: 10px;
   }
-  .form-container label,
-  .form-container input,
-  .form-container textarea,
-  .form-container select,
-  .form-container button {
+  .form-container label {
+    font-weight: bold;
+    margin-bottom: 5px;
     display: block;
-    width: 100%;
-    margin-bottom: 15px;
-    font-size: 16px;
+    color: #555;
   }
   .form-container input,
   .form-container select,
   .form-container textarea {
-    padding: 8px;
-    border-radius: 8px;
+    width: 100%;
+    padding: 10px;
     border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 1rem;
   }
   .form-container button {
     background-color: #3498db;
-    color: white;
+    color: #fff;
     border: none;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 10px 20px;
+    border-radius: 5px;
     cursor: pointer;
-    width: auto;
+    font-size: 1rem;
   }
   .form-container button:hover {
     background-color: #2980b9;
   }
   
-  .client-item {
-    background-color: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  /* Bouton groupe */
+  .button-group {
+    text-align: center;
   }
-  .client-buttons button {
-    margin-right: 10px;
-    margin-bottom: 5px;
-    padding: 5px 10px;
-    font-size: 14px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  .client-buttons button:hover {
-    opacity: 0.8;
+  .button-group button {
+    margin: 5px;
   }
   
-  table {
+  /* Liste des clients en affichage grille */
+  #listeClients {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    list-style: none;
+    padding: 0;
+  }
+  .client-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .client-item:hover {
+    transform: translateY(-3px);
+  }
+  .client-buttons {
+    margin-top: 10px;
+    text-align: center;
+  }
+  .client-buttons button {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .client-buttons button:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Calendrier */
+  #calendrier {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  #calendrier h2 {
+    text-align: center;
+    color: #2980b9;
+  }
+  #calendrier table {
     width: 100%;
     border-collapse: collapse;
   }
-  th, td {
-    padding: 5px;
-    text-align: left;
+  #calendrier th,
+  #calendrier td {
     border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
   }
-  th {
-    background-color: #ecf0f1;
+  #calendrier th {
+    background: #ecf0f1;
   }
   
   /* Fiche détaillée */
   #fiche-detaillee {
     background: #fff;
-    padding: 15px;
-    margin-top: 20px;
+    padding: 20px;
     border-radius: 8px;
+    margin-top: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   }
   
-  .button-group button {
-    padding: 10px 15px;
-    font-size: 16px;
+  /* Sélecteur de vue pour le calendrier */
+  #calendarViewSelect {
+    margin-bottom: 10px;
+    padding: 8px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
   }
   
-  #annulerBtn {
-    display: inline-block;
-    padding: 10px 15px;
-    font-size: 16px;
-    color: #fff;
+  /* Bouton de navigation du calendrier dans #calendarContent */
+  #calendarContent button {
     background-color: #3498db;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  #annulerBtn:hover {
-    background-color: #2980b9;
-  }
-  
-  button:disabled {
-    background-color: #ccc; /* gris clair */
-    color: #666;
-    padding: 10px 15px;
-    border: 1px solid #aaa;
-    cursor: not-allowed;
-    opacity: 0.8;
-  }
-  
-  #viewSelector button.active {
-    background-color: #2980b9;
     color: #fff;
+    border: none;
+    padding: 8px 12px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  #calendarContent button:hover {
+    background-color: #2980b9;
   }
   
