@@ -189,9 +189,12 @@ function afficherClients(clients) {
     // Créez le conteneur des boutons
     const buttons = document.createElement('div');
     buttons.className = 'client-buttons';
-    
+
     // Bouton pour basculer l'affichage détaillé
     const btnToggleDetail = document.createElement('button');
+    const btnVoir = null; // évite l’erreur plus bas si le code s’attend à cette variable
+
+
     btnToggleDetail.textContent = 'Voir la fiche';
     btnToggleDetail.onclick = () => {
       if (detailDiv.style.display === 'none') {
@@ -204,10 +207,6 @@ function afficherClients(clients) {
     };
     buttons.appendChild(btnToggleDetail);
     
-    // Autres boutons
-    const btnVoir = document.createElement('button');
-    btnVoir.textContent = 'Voir la fiche';
-    btnVoir.onclick = () => afficherFicheClient(client);
     
     const btnModifier = document.createElement('button');
     btnModifier.textContent = 'Modifier';
@@ -267,7 +266,6 @@ function afficherClients(clients) {
     toggleBtn.onclick = () => toggleArchive(index);
     
     // Ajoutez les autres boutons dans le conteneur
-    buttons.appendChild(btnVoir);
     buttons.appendChild(btnModifier);
     buttons.appendChild(btnJoindre);
     buttons.appendChild(btnExporter);
@@ -315,32 +313,44 @@ function switchView(view) {
 
 
 function toggleCalendar() {
-  const calendarDiv = document.getElementById('calendrier');
+  // Utilise le conteneur du calendrier qui est dans la section des statistiques
+  const calendarArea = document.getElementById('calendarArea');
   const btnToggleCalendar = document.getElementById('btnCalendrier');
-  if (calendarDiv.style.display === 'none' || calendarDiv.style.display === '') {
-    calendarDiv.style.display = 'block';
+  
+  if (calendarArea.style.display === 'none' || calendarArea.style.display === '') {
+    // Afficher le calendrier
+    calendarArea.style.display = 'block';
     btnToggleCalendar.textContent = 'Cacher le calendrier';
-    calendarDiv.innerHTML = ''; // Réinitialiser le contenu
+    
+    // Dans le conteneur calendarArea, on suppose qu'il contient un sous-conteneur #calendrier
+    const calendarDiv = document.getElementById('calendrier');
+    calendarDiv.innerHTML = ''; // Réinitialiser le contenu du calendrier
 
     // Créer le sélecteur de vue
     const viewSelect = document.createElement('select');
     viewSelect.id = 'calendarViewSelect';
+    
     const optionWeek = document.createElement('option');
     optionWeek.value = 'week';
     optionWeek.textContent = 'Semaine';
+    
     const optionMonth = document.createElement('option');
     optionMonth.value = 'month';
     optionMonth.textContent = 'Mois';
     optionMonth.selected = true;  // Par défaut, "Mois"
+    
     const optionYear = document.createElement('option');
     optionYear.value = 'year';
     optionYear.textContent = 'Année';
+    
     viewSelect.appendChild(optionWeek);
     viewSelect.appendChild(optionMonth);
     viewSelect.appendChild(optionYear);
+    
     viewSelect.addEventListener('change', function() {
       generateCalendar(viewSelect.value);
     });
+    
     calendarDiv.appendChild(viewSelect);
 
     // Créer un conteneur pour le contenu du calendrier
@@ -351,10 +361,12 @@ function toggleCalendar() {
     // Générer par défaut la vue "Mois"
     generateCalendar('month');
   } else {
-    calendarDiv.style.display = 'none';
+    // Cacher le calendrier
+    calendarArea.style.display = 'none';
     btnToggleCalendar.textContent = 'Voir le calendrier';
   }
 }
+
 
 
 

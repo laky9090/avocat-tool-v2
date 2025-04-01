@@ -25,6 +25,12 @@
       <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
       <button onclick="toggleCalendar()" id="btnCalendrier" style="display:inline-block;">Voir le calendrier</button>
     </div>
+    <!-- Conteneur du calendrier en haut, sous les statistiques -->
+    <div id="calendarArea" style="display: none;">
+        <div id="calendrier"></div>
+    </div>
+  
+
   </div>
 
   <!-- Conteneur principal en flex pour utiliser tout l'espace de l'écran -->
@@ -91,11 +97,6 @@
         </div>
       </div>
 
-      <!-- Calendrier -->
-      <div id="calendarWrapper">
-        <!-- Le calendrier sera affiché ici par toggleCalendar -->
-        <div id="calendrier" style="display:none;"></div>
-      </div>
     </div>
 
     <!-- Panneau droit : Liste des clients et fiche détaillée -->
