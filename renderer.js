@@ -78,11 +78,10 @@ function showError(field, message) {
 
 // Amélioration de la validation du formulaire
 function validateForm() {
-    // Supprime tous les messages d'erreur existants
     document.querySelectorAll('.erreur-message').forEach(el => el.remove());
     
     const errors = new Map();
-    const required = ['nom', 'type', 'tribunal'];
+    const required = ['nom', 'type', 'tribunal']; // Ajoutez 'prenom' ici si vous voulez le rendre obligatoire
     
     required.forEach(field => {
         const value = document.getElementById(field).value.trim();
@@ -127,6 +126,7 @@ function ajouterOuModifierClient() {
         // Récupération des champs
         const formData = {
             nom: document.getElementById('nom').value.trim(),
+            prenom: document.getElementById('prenom').value.trim(), // Nouveau champ
             adresse: document.getElementById('adresse').value.trim(),
             telephone: document.getElementById('telephone').value.trim(),
             email: document.getElementById('email').value.trim(),
@@ -139,6 +139,7 @@ function ajouterOuModifierClient() {
             commentaire: document.getElementById('commentaire').value.trim(),
             aideJuridictionnelle: document.getElementById('aideJuridictionnelle').value,
             nomAdverse: document.getElementById('nomAdverse').value.trim(),
+            prenomAdverse: document.getElementById('prenomAdverse').value.trim(), // Nouveau champ
             adresseAdverse: document.getElementById('adresseAdverse').value.trim(),
             telephoneAdverse: document.getElementById('telephoneAdverse').value.trim(),
             emailAdverse: document.getElementById('emailAdverse').value.trim(),
@@ -297,7 +298,7 @@ function afficherClients(clients) {
     // Contenu synthétique (résumé)
     const info = document.createElement('div');
     info.innerHTML = `
-      <p><strong>${client.nom}</strong> (${client.type})</p>
+      <p><strong>${client.nom} ${client.prenom || ''}</strong> (${client.type})</p>
       <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
       ${client.archived ? '<p style="color:red;">[Archivé]</p>' : ''}
     `;
@@ -307,6 +308,7 @@ function afficherClients(clients) {
     detailDiv.className = 'client-detail';
     detailDiv.style.display = 'none';
     detailDiv.innerHTML = `
+      <p>Nom complet : ${client.nom} ${client.prenom || ''}</p>
       <p>Adresse : ${client.adresse || ''}</p>
       <p>Téléphone : ${client.telephone || ''}</p>
       <p>Email : ${client.email || ''}</p>
@@ -318,7 +320,7 @@ function afficherClients(clients) {
       <p>Commentaire : ${client.commentaire || '–'}</p>
       <hr>
       <p><strong>Adverse</strong></p>
-      <p>Nom : ${client.nomAdverse || ''}</p>
+      <p>Nom complet : ${client.nomAdverse} ${client.prenomAdverse || ''}</p>
       <p>Adresse : ${client.adresseAdverse || ''}</p>
       <p>Téléphone : ${client.telephoneAdverse || ''}</p>
       <p>Email : ${client.emailAdverse || ''}</p>
@@ -360,6 +362,7 @@ function afficherClients(clients) {
         
         // Remplissage du formulaire pour modification
         document.getElementById('nom').value = client.nom;
+        document.getElementById('prenom').value = client.prenom; // Nouveau champ
         document.getElementById('adresse').value = client.adresse;
         document.getElementById('telephone').value = client.telephone;
         document.getElementById('email').value = client.email;
@@ -374,6 +377,7 @@ function afficherClients(clients) {
         document.getElementById('commentaire').value = client.commentaire;
         
         document.getElementById('nomAdverse').value = client.nomAdverse;
+        document.getElementById('prenomAdverse').value = client.prenomAdverse || '';
         document.getElementById('adresseAdverse').value = client.adresseAdverse;
         document.getElementById('telephoneAdverse').value = client.telephoneAdverse;
         document.getElementById('emailAdverse').value = client.emailAdverse;
@@ -726,6 +730,7 @@ function checkFormChanges() {
     // Pour une modification, on compare avec les données originales
     const currentData = {
         nom: document.getElementById('nom').value,
+        prenom: document.getElementById('prenom').value, // Nouveau champ
         adresse: document.getElementById('adresse').value,
         telephone: document.getElementById('telephone').value,
         email: document.getElementById('email').value,
@@ -737,6 +742,7 @@ function checkFormChanges() {
         dateEcheance: document.getElementById('dateEcheance').value,
         commentaire: document.getElementById('commentaire').value,
         nomAdverse: document.getElementById('nomAdverse').value,
+        prenomAdverse: document.getElementById('prenomAdverse').value,
         adresseAdverse: document.getElementById('adresseAdverse').value,
         telephoneAdverse: document.getElementById('telephoneAdverse').value,
         emailAdverse: document.getElementById('emailAdverse').value,
@@ -762,6 +768,7 @@ function checkFormChanges() {
 function annulerModification() {
     // Réinitialiser tous les champs du formulaire à vide
     document.getElementById('nom').value = '';
+    document.getElementById('prenom').value = ''; // Nouveau champ
     document.getElementById('adresse').value = '';
     document.getElementById('telephone').value = '';
     document.getElementById('email').value = '';
@@ -774,6 +781,7 @@ function annulerModification() {
     document.getElementById('commentaire').value = '';
     
     document.getElementById('nomAdverse').value = '';
+    document.getElementById('prenomAdverse').value = '';
     document.getElementById('adresseAdverse').value = '';
     document.getElementById('telephoneAdverse').value = '';
     document.getElementById('emailAdverse').value = '';
@@ -810,7 +818,7 @@ function afficherFicheClient(client) {
   fiche.innerHTML = `
     <h3>Fiche détaillée</h3>
     <p><strong>Client</strong></p>
-    <p>Nom : ${client.nom}</p>
+    <p>Nom complet : ${client.nom} ${client.prenom || ''}</p>
     <p>Adresse : ${client.adresse || ''}</p>
     <p>Téléphone : ${client.telephone || ''}</p>
     <p>Email : ${client.email || ''}</p>
@@ -828,7 +836,7 @@ function afficherFicheClient(client) {
     <p>Reste à facturer (HT) : ${client.resteAFacturer || '0'} €</p>
     <hr>
     <p><strong>Adverse</strong></p>
-    <p>Nom : ${client.nomAdverse || ''}</p>
+    <p>Nom complet : ${client.nomAdverse} ${client.prenomAdverse || ''}</p>
     <p>Adresse : ${client.adresseAdverse || ''}</p>
     <p>Téléphone : ${client.telephoneAdverse || ''}</p>
     <p>Email : ${client.emailAdverse || ''}</p>
@@ -848,7 +856,7 @@ function filtrerClients() {
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
     const resultat = data.filter(client =>
-      `${client.nom} ${client.type} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
+      `${client.nom} ${client.prenom || ''} ${client.type} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.prenomAdverse || ''} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
     );
     afficherClients(resultat);
   } catch (error) {
@@ -886,7 +894,7 @@ function imprimerTousLesClients() {
       : [];
     let contenu = `<html><head><title>Dossiers</title></head><body><h1>Liste des clients</h1>`;
     clients.forEach(c => {
-      contenu += `<p><strong>${c.nom}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Date d'entrée du dossier : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
+      contenu += `<p><strong>${c.nom} ${c.prenom || ''}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Date d'entrée du dossier : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
     });
     contenu += `<script>window.onload = () => window.print();<\/script></body></html>`;
     const fenetre = window.open('', '_blank');
@@ -1029,7 +1037,7 @@ function afficherCalendrier() {
       data.forEach(client => {
         if (client.dateAudience === dateStr || client.dateEcheance === dateStr) {
           const evt = document.createElement('div');
-          evt.textContent = `${client.nom} (${client.dateAudience === dateStr ? 'Audience' : 'Entrée'})`;
+          evt.textContent = `${client.nom} ${client.prenom || ''} (${client.dateAudience === dateStr ? 'Audience' : 'Entrée'})`;
           evt.style.fontSize = '12px';
           evt.style.background = client.dateAudience === dateStr ? '#3498db' : '#e67e22';
           evt.style.color = 'white';
@@ -1061,9 +1069,9 @@ function afficherCalendrier() {
 // Exporter la fiche client en PDF en incluant toutes les informations
 function exporterFichePDF(client) {
   try {
-    const { nom, adresse, telephone, email, profession,
+    const { nom, prenom, adresse, telephone, email, profession,
             type, dateAudience, dateContact, dateEcheance, commentaire,
-            nomAdverse, adresseAdverse, telephoneAdverse, emailAdverse, professionAdverse } = client;
+            nomAdverse, prenomAdverse, adresseAdverse, telephoneAdverse, emailAdverse, professionAdverse } = client;
     
     const doc = new PDFDocument({ margin: 50 });
     const nomFichier = `${nom.replace(/\s+/g, '_')}_fiche.pdf`;
@@ -1074,7 +1082,7 @@ function exporterFichePDF(client) {
     // En-tête de la fiche
     doc.fontSize(20).text(`Fiche Client`, { align: 'center' });
     doc.moveDown();
-    doc.fontSize(18).text(nom, { align: 'center', underline: true });
+    doc.fontSize(18).text(`${nom} ${prenom || ''}`, { align: 'center', underline: true });
     doc.moveDown(1);
 
     // Informations du dossier
@@ -1098,7 +1106,7 @@ function exporterFichePDF(client) {
     // Informations de l'adverse
     doc.fontSize(14).text("Informations de l'adverse", { underline: true });
     doc.moveDown(0.5);
-    doc.fontSize(12).text(`Nom : ${nomAdverse || '–'}`);
+    doc.fontSize(12).text(`Nom complet : ${nomAdverse} ${prenomAdverse || ''}`);
     doc.text(`Adresse : ${adresseAdverse || '–'}`);
     doc.text(`Téléphone : ${telephoneAdverse || '–'}`);
     doc.text(`Email : ${emailAdverse || '–'}`);
@@ -1160,7 +1168,8 @@ function afficherRappels() {
           rappels.push({
             date,
             type,
-            nom: client.nom
+            nom: client.nom,
+            prenom: client.prenom || '' // Nouveau champ
           });
         }
       }
@@ -1188,7 +1197,7 @@ function afficherRappels() {
       dateContact: "Contact",
       dateEcheance: "Entrée dossier"
     };
-    li.textContent = `${rappel.nom} – ${typeTexte[rappel.type]} le ${formatDateFr(rappel.date.toISOString().split('T')[0])}`;
+    li.textContent = `${rappel.nom} ${rappel.prenom} – ${typeTexte[rappel.type]} le ${formatDateFr(rappel.date.toISOString().split('T')[0])}`;
     ul.appendChild(li);
   });
 }
