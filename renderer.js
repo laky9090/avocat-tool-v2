@@ -681,40 +681,57 @@ function generateYearlyCalendar(container) {
 
 
 function updateStats() {
-  // Récupère tous les clients
-  const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-  
-  // Initialisation des compteurs
-  let openCount = 0;
-  let archivedCount = 0;
-  let sumMontantTotal = 0;
-  let sumMontantPaye = 0;
-  let sumReste = 0;
-  
-  clients.forEach(client => {
-    // On considère que si la propriété archived est true, c'est un dossier archivé
-    if (client.archived) {
-      archivedCount++;
-    } else {
-      openCount++;
-    }
+    const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
     
-    // S'assurer de convertir les valeurs en nombres
-    sumMontantTotal += parseFloat(client.montantTotal) || 0;
-    sumMontantPaye += parseFloat(client.montantPaye) || 0;
-    sumReste += parseFloat(client.resteAFacturer) || 0;
-  });
-  
-  // Création du contenu HTML pour la section de statistiques
-  const statsHtml = `
-    <p>Total dossiers ouverts : ${openCount}</p>
-    <p>Total dossiers archivés : ${archivedCount}</p>
-    <p>Montant total (HT) : ${sumMontantTotal.toFixed(2)} €</p>
-    <p>Montant payé (HT) : ${sumMontantPaye.toFixed(2)} €</p>
-    <p>Reste à facturer (HT) : ${sumReste.toFixed(2)} €</p>
-  `;
-  
-  document.getElementById('statsContent').innerHTML = statsHtml;
+    let openCount = 0;
+    let archivedCount = 0;
+    let sumMontantTotal = 0;
+    let sumMontantPaye = 0;
+    let sumReste = 0;
+    
+    clients.forEach(client => {
+        if (client.archived) {
+            archivedCount++;
+        } else {
+            openCount++;
+        }
+        
+        sumMontantTotal += parseFloat(client.montantTotal) || 0;
+        sumMontantPaye += parseFloat(client.montantPaye) || 0;
+        sumReste += parseFloat(client.resteAFacturer) || 0;
+    });
+    
+    const statsHtml = `
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-value">${openCount}</div>
+                <div class="stat-label">Dossiers en cours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-value">${archivedCount}</div>
+                <div class="stat-label">Dossiers archivés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value">${sumMontantTotal.toFixed(2)} €</div>
+                <div class="stat-label">Montant total HT</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value">${sumMontantPaye.toFixed(2)} €</div>
+                <div class="stat-label">Montant payé HT</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-value">${sumReste.toFixed(2)} €</div>
+                <div class="stat-label">Reste à facturer HT</div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('statsContent').innerHTML = statsHtml;
 }
 
 
@@ -1157,49 +1174,59 @@ function exporterFichePDF(client) {
 
 
 function afficherRappels() {
-  const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
-  const rappels = [];
+    const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+    const rappels = [];
 
-  clients.forEach(client => {
-    ['dateAudience', 'dateContact', 'dateEcheance'].forEach(type => {
-      if (client[type]) {
-        const date = new Date(client[type]);
-        if (!isNaN(date)) {
-          rappels.push({
-            date,
-            type,
-            nom: client.nom,
-            prenom: client.prenom || '' // Nouveau champ
-          });
-        }
-      }
+    clients.forEach(client => {
+        ['dateAudience', 'dateContact', 'dateEcheance'].forEach(type => {
+            if (client[type]) {
+                const date = new Date(client[type]);
+                if (!isNaN(date)) {
+                    rappels.push({
+                        date,
+                        type,
+                        nom: client.nom,
+                        prenom: client.prenom || '',
+                        color: getClientColor(client.nom)
+                    });
+                }
+            }
+        });
     });
-  });
 
-  const aujourdHui = new Date();
-  const rappelsAVenir = rappels
-    .filter(r => r.date >= aujourdHui)
-    .sort((a, b) => a.date - b.date)
-    .slice(0, 10);
+    const aujourdHui = new Date();
+    const rappelsAVenir = rappels
+        .filter(r => r.date >= aujourdHui)
+        .sort((a, b) => a.date - b.date)
+        .slice(0, 10);
 
-  const ul = document.getElementById('listeRappels');
-  ul.innerHTML = '';
-
-  if (rappelsAVenir.length === 0) {
-    ul.innerHTML = '<li>Aucun rappel à venir.</li>';
-    return;
-  }
-
-  rappelsAVenir.forEach(rappel => {
-    const li = document.createElement('li');
-    const typeTexte = {
-      dateAudience: "Audience",
-      dateContact: "Contact",
-      dateEcheance: "Entrée dossier"
-    };
-    li.textContent = `${rappel.nom} ${rappel.prenom} – ${typeTexte[rappel.type]} le ${formatDateFr(rappel.date.toISOString().split('T')[0])}`;
-    ul.appendChild(li);
-  });
+    const container = document.getElementById('listeRappels');
+    container.innerHTML = `
+        <div class="rappels-container">
+            <div class="rappels-header">
+                <span class="rappel-icon">🔔</span>
+                <h3>Prochains événements</h3>
+            </div>
+            ${rappelsAVenir.length === 0 ? 
+                '<div class="no-rappels">Aucun rappel à venir</div>' :
+                `<div class="rappels-list">
+                    ${rappelsAVenir.map(rappel => `
+                        <div class="rappel-item" style="border-left: 4px solid ${rappel.color}">
+                            <div class="rappel-date">${formatDateFr(rappel.date.toISOString().split('T')[0])}</div>
+                            <div class="rappel-details">
+                                <div class="rappel-client">${rappel.nom} ${rappel.prenom}</div>
+                                <div class="rappel-type">${
+                                    rappel.type === 'dateAudience' ? '⚖️ Audience' :
+                                    rappel.type === 'dateContact' ? '📞 Contact' :
+                                    '📥 Entrée dossier'
+                                }</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`
+            }
+        </div>
+    `;
 }
 
 // Modifiez l'écouteur DOMContentLoaded
