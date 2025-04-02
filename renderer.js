@@ -280,6 +280,49 @@ function chargerClients() {
 }
 
 
+// Fonction pour créer et afficher la boîte de dialogue de confirmation
+function showDeleteConfirmation(client, index) {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog-content';
+    
+    dialog.innerHTML = `
+        <h3 class="dialog-title">Confirmer la suppression</h3>
+        <p class="dialog-message">Êtes-vous sûr de vouloir supprimer le dossier de <strong>${client.nom} ${client.prenom || ''}</strong> ?</p>
+        <div class="dialog-buttons">
+            <button class="cancel-delete">Annuler</button>
+            <button class="confirm-delete">Supprimer</button>
+        </div>
+    `;
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Gestion des boutons
+    dialog.querySelector('.cancel-delete').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+    
+    dialog.querySelector('.confirm-delete').onclick = () => {
+        // Récupérer les clients actuels
+        let clients = fs.existsSync(cheminFichier)
+            ? JSON.parse(fs.readFileSync(cheminFichier))
+            : [];
+            
+        // Supprimer le client
+        clients.splice(index, 1);
+        
+        // Sauvegarder dans le fichier
+        fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+        
+        // Recharger la liste et fermer la boîte de dialogue
+        chargerClients();
+        document.body.removeChild(overlay);
+    };
+}
+
 // Afficher les clients dans la liste
 function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
@@ -409,11 +452,7 @@ function afficherClients(clients) {
     
     const btnSuppr = document.createElement('button');
     btnSuppr.textContent = 'Supprimer';
-    btnSuppr.onclick = () => {
-      clients.splice(index, 1);
-      fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
-      chargerClients();
-    };
+    btnSuppr.onclick = () => showDeleteConfirmation(client, index);
     
     const toggleBtn = document.createElement('button');
     toggleBtn.textContent = client.archived ? 'Désarchiver' : 'Archiver';
