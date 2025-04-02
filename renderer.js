@@ -549,9 +549,9 @@ function formatClientDate(dateStr) {
 }
 
 function generateMonthlyCalendar(container) {
-  // Récupérer les clients au début de la fonction
+  // Récupérer les clients non archivés uniquement
   const clients = fs.existsSync(cheminFichier) 
-    ? JSON.parse(fs.readFileSync(cheminFichier))
+    ? JSON.parse(fs.readFileSync(cheminFichier)).filter(client => !client.archived)
     : [];
 
   const annee = currentCalendarDate.getFullYear();
@@ -1217,20 +1217,23 @@ function afficherRappels() {
     const rappels = [];
 
     clients.forEach(client => {
-        ['dateAudience', 'dateContact', 'dateEcheance'].forEach(type => {
-            if (client[type]) {
-                const date = new Date(client[type]);
-                if (!isNaN(date)) {
-                    rappels.push({
-                        date,
-                        type,
-                        nom: client.nom,
-                        prenom: client.prenom || '',
-                        color: getClientColor(client.nom)
-                    });
+        // Ne traiter que les clients non archivés
+        if (!client.archived) {
+            ['dateAudience', 'dateContact', 'dateEcheance'].forEach(type => {
+                if (client[type]) {
+                    const date = new Date(client[type]);
+                    if (!isNaN(date)) {
+                        rappels.push({
+                            date,
+                            type,
+                            nom: client.nom,
+                            prenom: client.prenom || '',
+                            color: getClientColor(client.nom)
+                        });
+                    }
                 }
-            }
-        });
+            });
+        }
     });
 
     const aujourdHui = new Date();
