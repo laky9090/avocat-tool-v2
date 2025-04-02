@@ -10,38 +10,45 @@
     <h1>Avocat Tool</h1>
   </header>
 
-  <!-- Section Statistiques : inclut les statistiques et le sélecteur de vue -->
+  <!-- Section Statistiques + boutons + calendrier + rappels -->
   <div id="statsSection">
     <h2>Statistiques</h2>
-    <!-- Conteneur pour les statistiques mises à jour par le script -->
+
+    <!-- Contenu mis à jour par le script -->
     <div id="statsContent">
       <p>Total dossiers : <span id="totalDossiers"></span></p>
       <p>Dossiers archivés : <span id="dossiersArchives"></span></p>
       <p>Montant total : <span id="montantTotalGlobal"></span></p>
     </div>
-    <!-- Conteneur des boutons de vue -->
+
+    <!-- Boutons de vue -->
     <div id="viewSelector">
       <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
       <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
-      <button onclick="toggleCalendar()" id="btnCalendrier" style="display:inline-block;">Voir le calendrier</button>
+      <button onclick="toggleCalendar()" id="btnCalendrier">Voir le calendrier</button>
     </div>
-    <!-- Conteneur du calendrier en haut, sous les statistiques -->
-    <div id="calendarArea" style="display: none;">
-        <div id="calendrier"></div>
-    </div>
-  
 
+    <!-- Calendrier -->
+    <div id="calendarArea" style="display: none;">
+      <div id="calendrier"></div>
+    </div>
+
+    <!-- Rappels des échéances -->
+    <div id="rappelsSection" style="margin-top: 20px;">
+      <h2 style="color: #2980b9;">Rappels à venir</h2>
+      <ul id="listeRappels" style="padding-left: 20px;"></ul>
+    </div>
   </div>
 
-  <!-- Conteneur principal en flex pour utiliser tout l'espace de l'écran -->
-  <div id="mainContent">
-    <!-- Panneau gauche : Formulaire et Calendrier -->
-    <div id="leftPanel">
-      <!-- Formulaire d'ajout/modification -->
+  <!-- Conteneur principal -->
+  <div id="mainContent" style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
+
+    <!-- Colonne gauche : formulaire -->
+    <div id="leftPanel" style="flex: 1; min-width: 300px;">
       <div class="form-container" id="formClient">
         <h2>Ajouter ou modifier un client</h2>
         <input type="hidden" id="indexModif">
-        
+
         <h3>Informations du client</h3>
         <label>Nom du client :</label>
         <input type="text" id="nom">
@@ -58,7 +65,7 @@
         <select id="type">
           <option value="">-- Sélectionner --</option>
           <option value="Divorce">Divorce</option>
-          <option value="Divorce">DCM</option>
+          <option value="DCM">DCM</option>
           <option value="Divorce bref délai">Divorce bref délai</option>
           <option value="Requête en fixation des modalités relatives à l'autorité parentale">Requête en fixation des modalités relatives à l'autorité parentale</option>
           <option value="Requête en modification des modalités relatives à l'autorité parentale">Requête en modification des modalités relatives à l'autorité parentale</option>
@@ -70,7 +77,7 @@
           <option value="Appel - Ordonnance de protection">Appel - Ordonnance de protection</option>
           <option value="Appel - Bref délai">Appel - Bref délai</option>
         </select>
-        
+
         <label>Date d’audience :</label>
         <input type="date" id="dateAudience">
         <label>Date de dernier contact :</label>
@@ -83,6 +90,7 @@
           <option value="non" selected>Non</option>
           <option value="oui">Oui</option>
         </select>
+
         <label>Tribunal compétent :</label>
         <select id="tribunal">
           <option value="">-- Sélectionner --</option>
@@ -95,11 +103,10 @@
           <option value="Tribunal judiciaire de Versailles">Tribunal judiciaire de Versailles</option>
           <option value="Tribunal judiciaire d'Auxerres">Tribunal judiciaire d'Auxerres</option>
         </select>
-        
 
         <label>Commentaire :</label>
         <textarea id="commentaire"></textarea>
-        
+
         <label>Montant total (HT) :</label>
         <input type="number" id="montantTotal" step="0.01">
         <label>Montant payé (HT) :</label>
@@ -116,17 +123,16 @@
         <input type="email" id="emailAdverse">
         <label>Profession de l'adverse :</label>
         <input type="text" id="professionAdverse">
-        
+
         <div class="button-group">
           <button id="enregistrerBtn" onclick="ajouterOuModifierClient()" disabled>Enregistrer</button>
           <button id="annulerBtn" onclick="annulerModification()" style="display:none;">Annuler</button>
         </div>
       </div>
-
     </div>
 
-    <!-- Panneau droit : Liste des clients et fiche détaillée -->
-    <div id="rightPanel">
+    <!-- Colonne droite : liste des clients -->
+    <div id="rightPanel" style="flex: 1; min-width: 400px;">
       <div class="form-container">
         <h2>Liste des clients</h2>
         <input type="text" id="recherche" placeholder="Rechercher...">
@@ -143,8 +149,9 @@
       <ul id="listeClients"></ul>
       <div id="fiche-detaillee" style="display:none;"></div>
     </div>
+
   </div>
-  
+
   <script src="renderer.js"></script>
 </body>
 </html>

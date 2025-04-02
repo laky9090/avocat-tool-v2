@@ -10,6 +10,7 @@ let currentCalendarDate = new Date();
 
 
 
+
 // Formater une date au format français
 function formatDateFr(dateStr) {
   if (!dateStr) return "–";
@@ -133,6 +134,7 @@ function chargerClients() {
     
     // Mettre à jour les statistiques après avoir affiché les clients
     updateStats();
+    afficherRappels();
   } catch (error) {
     console.error("Erreur dans chargerClients:", error);
     alert("Impossible de charger les clients.");
@@ -1061,16 +1063,66 @@ function exporterFichePDF(client) {
   }
 }
 
+
+
+
+
+
+
+function afficherRappels() {
+  const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+  const rappels = [];
+
+  clients.forEach(client => {
+    ['dateAudience', 'dateContact', 'dateEcheance'].forEach(type => {
+      if (client[type]) {
+        const date = new Date(client[type]);
+        if (!isNaN(date)) {
+          rappels.push({
+            date,
+            type,
+            nom: client.nom
+          });
+        }
+      }
+    });
+  });
+
+  const aujourdHui = new Date();
+  const rappelsAVenir = rappels
+    .filter(r => r.date >= aujourdHui)
+    .sort((a, b) => a.date - b.date)
+    .slice(0, 10);
+
+  const ul = document.getElementById('listeRappels');
+  ul.innerHTML = '';
+
+  if (rappelsAVenir.length === 0) {
+    ul.innerHTML = '<li>Aucun rappel à venir.</li>';
+    return;
+  }
+
+  rappelsAVenir.forEach(rappel => {
+    const li = document.createElement('li');
+    const typeTexte = {
+      dateAudience: "Audience",
+      dateContact: "Contact",
+      dateEcheance: "Entrée dossier"
+    };
+    li.textContent = `${rappel.nom} – ${typeTexte[rappel.type]} le ${formatDateFr(rappel.date.toISOString().split('T')[0])}`;
+    ul.appendChild(li);
+  });
+}
 // Écouteurs pour filtrer et trier
 document.getElementById('recherche').addEventListener('input', filtrerClients);
 document.getElementById('tri').addEventListener('change', appliquerTri);
 
-// Chargement initial des clients
-chargerClients();
-
-window.addEventListener('load', () => {
-  const inputs = document.querySelectorAll('#formClient input, #formClient textarea, #formClient select');
-  inputs.forEach(input => {
-    input.addEventListener('input', checkFormChanges);
-  });
+// Chargement initial
+window.addEventListener('DOMContentLoaded', () => {
+  // Forcer l'affichage de la vue active dès le début
+  setTimeout(() => {
+    switchView('active');
+    genererRappels();
+  }, 100); // Petit délai pour que le DOM soit bien prêt
 });
+
