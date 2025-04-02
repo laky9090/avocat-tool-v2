@@ -1,6 +1,6 @@
 [
   {
-    "nom": "Lakhdar DAMAR",
+    "nom": "Lakhdar D",
     "adresse": "35 Av Paul Vaillant Couturier, Le Blanc Mesnil",
     "telephone": "0753770320",
     "email": "dhllaky@gmail.com",
@@ -16,7 +16,7 @@
     "adresseAdverse": "2 avenue de la grande armée, Paris",
     "telephoneAdverse": "0753770320",
     "emailAdverse": "dhllaky@gmail.com",
-    "professionAdverse": "Bofbof",
+    "professionAdverse": "Chef de projet",
     "montantTotal": 2000,
     "montantPaye": 500,
     "resteAFacturer": 1500
@@ -90,7 +90,7 @@
     "archived": true
   },
   {
-    "nom": "Jean-Pierre",
+    "nom": "Jean-Pierre L",
     "adresse": "1 avenue de Bau, Paris",
     "telephone": "0753770320",
     "email": "dhllalky@gmail.com",

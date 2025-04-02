@@ -219,17 +219,20 @@ button:disabled {
     gap: 20px;
 }
 
+/* Client Colors */
 .client-item {
-    background: white;
-    padding: 15px;
+    border-radius: 4px;
     margin-bottom: 10px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: transform 0.2s;
+    border-left-width: 4px;
+    border-left-style: solid;
+    padding-left: 10px;
 }
 
 .client-item:hover {
-    transform: translateY(-3px);
+    transform: translateX(5px);
 }
 
 .client-buttons {
@@ -318,6 +321,17 @@ button:disabled {
     padding: 2px 4px;
     border-radius: 3px;
     font-size: 12px;
+    background-color: white;
+    border-width: 2px;
+    border-style: solid;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+#calendarContent td div:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .calendar-nav {

@@ -8,8 +8,38 @@ let currentView = 'active';
 let currentCalendarDate = new Date();
 let isFormVisible = false;
 
+// Ajouter au début du fichier, après les imports
+const clientColors = new Map();
+const usedColors = new Set();
 
+function getClientColor(clientNom) {
+    // Si le client a déjà une couleur, on la retourne
+    if (clientColors.has(clientNom)) {
+        return clientColors.get(clientNom);
+    }
 
+    // Liste de couleurs prédéfinies
+    const colors = [
+        '#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6',
+        '#1abc9c', '#d35400', '#34495e', '#16a085', '#c0392b',
+        '#8e44ad', '#2980b9', '#f39c12', '#27ae60', '#7f8c8d'
+    ];
+
+    // Trouver une couleur non utilisée
+    let color = colors.find(c => !usedColors.has(c));
+    
+    // Si toutes les couleurs sont utilisées, on en génère une aléatoire
+    if (!color) {
+        do {
+            color = '#' + Math.floor(Math.random()*16777215).toString(16);
+        } while (usedColors.has(color));
+    }
+
+    // Enregistrer la couleur pour ce client
+    usedColors.add(color);
+    clientColors.set(clientNom, color);
+    return color;
+}
 
 // Formater une date au format français
 function formatDateFr(dateStr) {
@@ -260,6 +290,9 @@ function afficherClients(clients) {
 
     const li = document.createElement('li');
     li.className = 'client-item';
+    const clientColor = getClientColor(client.nom);
+    li.style.borderLeft = `4px solid ${clientColor}`;
+    li.style.paddingLeft = '10px';
     
     // Contenu synthétique (résumé)
     const info = document.createElement('div');
@@ -558,13 +591,10 @@ function generateMonthlyCalendar(container) {
     if (evenements.length > 0) {
       evenements.forEach(evt => {
         const div = document.createElement('div');
-        div.style.backgroundColor = evt.dateAudience === dateStr ? '#3498db' : 
-                                  evt.dateEcheance === dateStr ? '#e67e22' : '#2ecc71';
-        div.style.color = 'white';
-        div.style.padding = '2px 4px';
-        div.style.marginTop = '2px';
-        div.style.borderRadius = '3px';
-        div.style.fontSize = '11px';
+        const clientColor = getClientColor(evt.nom);
+        div.style.borderColor = clientColor;
+        div.style.backgroundColor = 'white';
+        div.style.color = '#333';
         div.textContent = `${evt.nom} (${evt.dateAudience === dateStr ? 'Audience' : 
                                         evt.dateEcheance === dateStr ? 'Entrée' : 'Contact'})`;
         td.appendChild(div);
