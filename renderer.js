@@ -332,22 +332,18 @@ function toggleCalendar() {
     const viewSelect = document.createElement('select');
     viewSelect.id = 'calendarViewSelect';
     
-    const optionWeek = document.createElement('option');
-    optionWeek.value = 'week';
-    optionWeek.textContent = 'Semaine';
-    
     const optionMonth = document.createElement('option');
     optionMonth.value = 'month';
     optionMonth.textContent = 'Mois';
-    optionMonth.selected = true;  // Par défaut, "Mois"
+    optionMonth.selected = true;
     
     const optionYear = document.createElement('option');
     optionYear.value = 'year';
     optionYear.textContent = 'Année';
     
-    viewSelect.appendChild(optionWeek);
     viewSelect.appendChild(optionMonth);
     viewSelect.appendChild(optionYear);
+    
     
     viewSelect.addEventListener('change', function() {
       generateCalendar(viewSelect.value);
@@ -377,14 +373,13 @@ function toggleCalendar() {
 function generateCalendar(viewMode) {
   const contentDiv = document.getElementById('calendarContent');
   contentDiv.innerHTML = ''; // Nettoyer le contenu précédent
-  if (viewMode === 'week') {
-    generateWeeklyCalendar(contentDiv);
-  } else if (viewMode === 'month') {
+  if (viewMode === 'month') {
     generateMonthlyCalendar(contentDiv);
   } else if (viewMode === 'year') {
     generateYearlyCalendar(contentDiv);
-  }
+  }  
 }
+
 
 
 function formatClientDate(dateStr) {
@@ -392,60 +387,6 @@ function formatClientDate(dateStr) {
   const [yyyy, mm, dd] = dateStr.split("-");
   return `${dd}-${mm}-${yyyy}`;
 }
-
-
-
-function generateWeeklyCalendar(container) {
-  // Vider le conteneur de contenu
-  container.innerHTML = '';
-
-  // Créer le conteneur de navigation pour la semaine
-  const navDiv = document.createElement('div');
-  navDiv.style.textAlign = 'center';
-  navDiv.style.marginBottom = '10px';
-
-  const btnPrev = document.createElement('button');
-  btnPrev.textContent = 'Précédent';
-  btnPrev.onclick = () => {
-    currentCalendarDate.setDate(currentCalendarDate.getDate() - 7);
-    generateWeeklyCalendar(container);
-  };
-
-  const btnNext = document.createElement('button');
-  btnNext.textContent = 'Suivant';
-  btnNext.onclick = () => {
-    currentCalendarDate.setDate(currentCalendarDate.getDate() + 7);
-    generateWeeklyCalendar(container);
-  };
-
-  navDiv.appendChild(btnPrev);
-  navDiv.appendChild(btnNext);
-  container.appendChild(navDiv);
-
-  // Calculer le lundi de la semaine en cours (considérons que la semaine commence le lundi)
-  const today = new Date(currentCalendarDate);
-  const dayOfWeek = today.getDay();
-  // Ajuster pour que lundi = 1 (si dimanche, on le traite comme 7)
-  const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - adjustedDay + 1);
-
-  let html = `<h2>Semaine du ${formatDateFr(monday.toISOString().split('T')[0])}</h2>`;
-  html += '<table style="width:100%; border-collapse:collapse;"><tr>';
-  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(day => {
-    html += `<th style="border:1px solid #ddd; padding:5px;">${day}</th>`;
-  });
-  html += '</tr><tr>';
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    html += `<td style="border:1px solid #ddd; padding:5px;"><strong>${d.getDate()}</strong></td>`;
-  }
-  html += '</tr></table>';
-  container.insertAdjacentHTML('beforeend', html);
-}
-
-
 
 function generateMonthlyCalendar(container) {
   const annee = currentCalendarDate.getFullYear();
