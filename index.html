@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="loader" class="hidden">Chargement...</div>
   <header>
     <h1>Avocat Tool</h1>
   </header>
@@ -25,12 +26,12 @@
     <div id="viewSelector">
       <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
       <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
-      <button onclick="toggleCalendar()" id="btnCalendrier">Voir le calendrier</button>
     </div>
 
     <!-- Calendrier -->
-    <div id="calendarArea" style="display: none;">
-      <div id="calendrier"></div>
+    <div id="calendarArea">
+      <h2>Calendrier</h2>
+      <div id="calendarContent"></div>
     </div>
 
     <!-- Rappels des échéances -->
@@ -45,8 +46,9 @@
 
     <!-- Colonne gauche : formulaire -->
     <div id="leftPanel" style="flex: 1; min-width: 300px;">
-      <div class="form-container" id="formClient">
-        <h2>Ajouter ou modifier un client</h2>
+      <button id="toggleFormBtn" class="primary-button">Ajouter un nouveau client</button>
+      <div class="form-container" id="formClient" style="display: none;">
+        <h2>Ajouter un nouveau client</h2>
         <input type="hidden" id="indexModif">
 
         <h3>Informations du client</h3>

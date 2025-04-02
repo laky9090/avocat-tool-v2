@@ -1,92 +1,61 @@
-/* Réinitialisation et configuration de base */
-html, body {
+:root {
+    --primary-color: #2980b9;
+    --secondary-color: #34495e;
+    --success-color: #27ae60;
+    --error-color: #e74c3c;
+    --warning-color: #f1c40f;
+    --background-color: #f5f5f5;
+    --border-radius: 8px;
+    --spacing: 20px;
+}
+
+/* Base styles */
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    height: 100%;
+}
+
+body {
     font-family: 'Segoe UI', sans-serif;
-    background: #f0f2f5;
-  }
-  
-  /* Header */
-  header {
-    position: relative;
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-    min-height: 200px;
+    background: var(--background-color);
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Header */
+header {
+    background: var(--secondary-color);
+    padding: var(--spacing);
     display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  }
-  header h1 {
+    align-items: center;
+    gap: 15px;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header img {
+    height: 40px;
+    width: auto;
+}
+
+header h1 {
     margin: 0;
     font-size: 2.5rem;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-  }
-  
-  /* Section Statistiques */
-  #statsSection {
+}
+
+/* Main Layout */
+#mainContent {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 15px;
-    background: #fff;
-    margin: 10px auto;
-    max-width: 1000px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  #statsSection h2, 
-  #statsSection p {
-    margin: 5px 0;
-  }
-  #statsContent {
-    text-align: center;
-  }
-  
-  /* Conteneur des boutons de vue dans statsSection */
-  #viewSelector {
-    display: inline-flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  #viewSelector button {
-    background-color: #2ecc71;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s;
-  }
-  #viewSelector button:hover {
-    background-color: #27ae60;
-  }
-  /* Style spécifique pour le bouton "Voir le calendrier" */
-  #viewSelector button#btnCalendrier {
-    background-color: #e67e22;
-  }
-  #viewSelector button#btnCalendrier:hover {
-    background-color: #d35400;
-  }
-  #viewSelector button.active {
-    background-color: #27ae60;
-    outline: 2px solid #1e8c4d;
-  }
-  
-  /* Conteneur principal en flex */
-  #mainContent {
-    display: flex;
-    overflow: hidden;
-    max-width: 1000px;
-    margin: 10px auto;
-    flex: 1;
-  }
-  
-  /* Panneau gauche : formulaire et calendrier */
-  #leftPanel {
+    gap: 30px;
+    padding: var(--spacing);
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+/* Panneau gauche : formulaire et calendrier */
+#leftPanel {
     flex: 1;
     padding: 15px;
     overflow-y: auto;
@@ -94,92 +63,182 @@ html, body {
     border-right: 1px solid #ddd;
     border-radius: 8px 0 0 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  
-  /* Panneau droit : liste des clients et fiche détaillée */
-  #rightPanel {
+}
+
+/* Panneau droit : liste des clients et fiche détaillée */
+#rightPanel {
     flex: 2;
     padding: 15px;
     overflow-y: auto;
     background: #fff;
     border-radius: 0 8px 8px 0;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  
-  /* Formulaire */
-  .form-container {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
+}
+
+/* Form Container */
+.form-container {
+    background: white;
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  .form-container h2,
-  .form-container h3 {
-    color: #2980b9;
+    margin-bottom: 20px;
+}
+
+.form-container h2,
+.form-container h3 {
+    color: var(--primary-color);
     margin-bottom: 10px;
-  }
-  .form-container label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    display: block;
-    color: #555;
-  }
-  .form-container input,
-  .form-container select,
-  .form-container textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+}
+
+/* Form Elements */
+.form-group {
     margin-bottom: 15px;
-    font-size: 1rem;
-  }
-  .form-container button {
-    background-color: #3498db;
-    color: #fff;
-    border: none;
+}
+
+fieldset {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: var(--border-radius);
+}
+
+legend {
+    padding: 0 10px;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.1);
+}
+
+input:invalid,
+select:invalid {
+    border-color: #e74c3c;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
     padding: 10px 20px;
-    border-radius: 5px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-  }
-  .form-container button:hover {
+    transition: opacity 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Search Container */
+.search-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* View Buttons */
+.view-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.view-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #34495e;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+.view-buttons button.active {
+    background: #2980b9;
+}
+
+.view-buttons button:hover {
+    opacity: 0.9;
+}
+
+/* View Selector */
+#viewSelector button {
+    padding: 8px 16px;
+    margin-right: 10px;
+    border: 1px solid #2980b9;
+    background-color: white;
+    color: #2980b9;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#viewSelector button.active {
     background-color: #2980b9;
-  }
-  
-  /* Bouton groupe */
-  .button-group {
-    text-align: center;
-  }
-  .button-group button {
-    margin: 5px;
-  }
-  
-  /* Liste des clients en affichage grille */
-  #listeClients {
+    color: white;
+}
+
+#viewSelector button:hover {
+    opacity: 0.9;
+}
+
+/* Client List */
+#listeClients {
+    list-style: none;
+    padding: 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
-    list-style: none;
-    padding: 0;
-  }
-  .client-item {
-    background: #fff;
+}
+
+.client-item {
+    background: white;
     padding: 15px;
-    border-radius: 8px;
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     transition: transform 0.2s;
-  }
-  .client-item:hover {
+}
+
+.client-item:hover {
     transform: translateY(-3px);
-  }
-  .client-buttons {
+}
+
+.client-buttons {
     margin-top: 10px;
     text-align: center;
-  }
-  .client-buttons button {
-    background-color: #3498db;
+}
+
+.client-buttons button {
+    background-color: var(--primary-color);
     color: #fff;
     border: none;
     padding: 5px 10px;
@@ -187,67 +246,239 @@ html, body {
     border-radius: 5px;
     cursor: pointer;
     font-size: 0.9rem;
-  }
-  .client-buttons button:hover {
+}
+
+.client-buttons button:hover {
     background-color: #2980b9;
-  }
-  
-  /* Calendrier */
-  #calendrier {
+}
+
+/* Calendrier */
+#calendrier {
     background: #fff;
     padding: 15px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin: 20px 0;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  #calendrier h2 {
+}
+
+#calendrier h2 {
     text-align: center;
-    color: #2980b9;
-  }
-  #calendrier table {
+    color: var(--primary-color);
+}
+
+#calendrier table {
     width: 100%;
     border-collapse: collapse;
-  }
-  #calendrier th,
-  #calendrier td {
+}
+
+#calendrier th,
+#calendrier td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: center;
-  }
-  #calendrier th {
+}
+
+#calendrier th {
     background: #ecf0f1;
-  }
-  
-  /* Fiche détaillée */
-  #fiche-detaillee {
+}
+
+/* Calendar Area */
+#calendarArea {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#calendarContent table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#calendarContent th {
+    background-color: #2980b9;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+#calendarContent td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    min-height: 40px;
+    vertical-align: top;
+}
+
+#calendarContent td div {
+    margin: 2px 0;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.calendar-arrow {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #2980b9;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: all 0.3s ease;
+}
+
+.calendar-arrow:hover {
+    color: #1a5276;
+    transform: scale(1.2);
+}
+
+.calendar-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    min-width: 200px;
+    text-align: center;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+calendar-nav button {
+    padding: 5px 15px;
+    border: 1px solid #2980b9;
+    background-color: white;
+    color: #2980b9;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.calendar-nav button:hover {
+    background-color: #2980b9;
+    color: white;
+}
+
+/* Fiche détaillée */
+#fiche-detaillee {
     background: #fff;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     margin-top: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  
-  /* Sélecteur de vue pour le calendrier */
-  #calendarViewSelect {
+}
+
+/* Messages d'erreur */
+.erreur-message {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 5px;
     margin-bottom: 10px;
-    padding: 8px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  /* Bouton de navigation du calendrier dans #calendarContent */
-  #calendarContent button {
-    background-color: #3498db;
-    color: #fff;
-    border: none;
-    padding: 8px 12px;
-    margin: 5px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  #calendarContent button:hover {
+    background-color: #ffe6e6;
+    border: 1px solid #ffcccc;
+    border-radius: 4px;
+    padding: 4px 6px;
+    display: inline-block;
+}
+
+/* Loader */
+.hidden {
+    display: none;
+}
+
+#loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #mainContent {
+        flex-direction: column;
+    }
+    
+    #leftPanel,
+    #rightPanel {
+        min-width: 100%;
+    }
+    
+    .search-container {
+        flex-direction: column;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    button {
+        width: 100%;
+    }
+}
+
+/* Print Styles */
+@media print {
+    header, 
+    .search-container,
+    .button-group {
+        display: none;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .form-container {
+        box-shadow: none;
+    }
+}
+
+/* Primary Button */
+.primary-button {
     background-color: #2980b9;
-  }
-  
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+}
+
+.primary-button:hover {
+    background-color: #2471a3;
+}
