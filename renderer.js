@@ -24,12 +24,12 @@ const SOUS_DOSSIERS = [
     "9-DP",
     "10-RPVA",
     "11-Huissier"
-];
+]; // Ensure this is part of a valid array declaration or assignment
 
 // Modifier la constante pour les dossiers principaux
 const DOSSIERS_PRINCIPAUX = {
-    actifs: 'DOSSIERS EN COURS',
-    archives: 'DOSSIERS ARCHIVES'
+    actifs: 'Dossiers en cours',
+    archives: 'Dossiers archivés'  // Changé de 'Dossiers archives' à 'Dossiers archivés'
 };
 
 function getClientColor(clientNom) {
@@ -1277,7 +1277,7 @@ function afficherCalendrier() {
     const tbody = document.createElement('tbody');
     let row = document.createElement('tr');
     let jourSemaine = (premierJour + 6) % 7;
-    for (let i = 0; i < jourSemaine; i++) {
+    for (let i = 0; jourSemaine; i++) {
       row.appendChild(document.createElement('td'));
     }
     const data = fs.existsSync(cheminFichier)
@@ -1483,6 +1483,270 @@ function creerArborescencePourClientsExistants() {
     }
 }
 
+// Fonction pour initialiser l'explorateur de fichiers
+function initializeFileExplorer() {
+    const treeView = document.getElementById('treeView');
+    const fileList = document.getElementById('fileList');
+    
+    function loadDirectory(dirPath) {
+        try {
+            const items = fs.readdirSync(dirPath, { withFileTypes: true });
+            // Ne garder que les dossiers principaux ou les sous-dossiers des dossiers principaux
+            const directories = items
+                .filter(item => {
+                    if (!item.isDirectory()) return false;
+                    const fullPath = path.join(dirPath, item.name);
+                    const relativePath = path.relative(__dirname, fullPath);
+                    // Vérifier si c'est un dossier principal ou un sous-dossier
+                    return item.name === DOSSIERS_PRINCIPAUX.actifs ||
+                           item.name === DOSSIERS_PRINCIPAUX.archives ||
+                           relativePath.startsWith(DOSSIERS_PRINCIPAUX.actifs) ||
+                           relativePath.startsWith(DOSSIERS_PRINCIPAUX.archives);
+                })
+                .map(item => ({
+                    name: item.name,
+                    path: path.join(dirPath, item.name),
+                    type: 'folder'
+                }));
+            
+            const files = items
+                .filter(item => item.isFile())
+                .map(item => ({
+                    name: item.name,
+                    path: path.join(dirPath, item.name),
+                    type: 'file'
+                }));
+            
+            return [...directories, ...files];
+        } catch (error) {
+            console.error('Erreur lors du chargement du dossier:', error);
+            return [];
+        }
+    }
+
+    function renderTreeView(dirPath, parentElement) {
+        const items = loadDirectory(dirPath);
+        
+        items.filter(item => item.type === 'folder').forEach(folder => {
+            const folderDiv = document.createElement('div');
+            folderDiv.className = 'folder-item';
+            folderDiv.innerHTML = `
+                <span class="folder-toggle">▶</span>
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">${folder.name}</span>
+            `;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'folder-content';
+            contentDiv.style.display = 'none';
+            
+            // Gérer le clic sur le dossier
+            folderDiv.onclick = () => {
+                renderFileList(folder.path);
+            };
+            
+            // Gérer l'expansion/réduction du dossier
+            folderDiv.querySelector('.folder-toggle').onclick = (e) => {
+                e.stopPropagation();
+                const isExpanded = contentDiv.style.display !== 'none';
+                contentDiv.style.display = isExpanded ? 'none' : 'block';
+                e.target.textContent = isExpanded ? '▶' : '▼';
+                
+                if (!isExpanded && contentDiv.children.length === 0) {
+                    renderTreeView(folder.path, contentDiv);
+                }
+            };
+
+            // Ajout des gestionnaires pour le drag & drop
+            folderDiv.ondragover = (e) => {
+                e.preventDefault();
+                folderDiv.classList.add('drag-over');
+            };
+
+            folderDiv.ondragleave = () => {
+                folderDiv.classList.remove('drag-over');
+            };
+
+            folderDiv.ondrop = (e) => {
+                e.preventDefault();
+                folderDiv.classList.remove('drag-over');
+                const filePath = e.dataTransfer.getData('text/plain');
+                const fileName = path.basename(filePath);
+                const newPath = path.join(folder.path, fileName);
+                
+                try {
+                    fs.copyFileSync(filePath, newPath);
+                    renderFileList(folder.path);
+                } catch (error) {
+                    alert('Erreur lors du déplacement du fichier');
+                }
+            };
+
+            parentElement.appendChild(folderDiv);
+            parentElement.appendChild(contentDiv);
+        });
+    }
+
+    function renderFileList(dirPath) {
+        fileList.innerHTML = '';
+        const items = loadDirectory(dirPath);
+        
+        items.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = item.type === 'folder' ? 'folder-item' : 'file-item';
+            itemDiv.draggable = true;
+            itemDiv.innerHTML = `
+                <span class="${item.type}-icon">${item.type === 'folder' ? '📁' : '📄'}</span>
+                <span class="${item.type}-name">${item.name}</span>
+            `;
+            
+            // Gestion du drag & drop
+            itemDiv.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', item.path);
+                itemDiv.classList.add('dragging');
+            };
+            
+            itemDiv.ondragend = () => {
+                itemDiv.classList.remove('dragging');
+            };
+            
+            // Double-clic pour ouvrir
+            if (item.type === 'file') {
+                itemDiv.ondblclick = () => {
+                    shell.openPath(item.path);
+                };
+            }
+            
+            // Menu contextuel (clic droit)
+            itemDiv.oncontextmenu = (e) => {
+                e.preventDefault();
+                
+                const contextMenu = document.createElement('div');
+                contextMenu.className = 'context-menu';
+                contextMenu.style.position = 'fixed';
+                contextMenu.style.left = `${e.clientX}px`;
+                contextMenu.style.top = `${e.clientY}px`;
+                
+                const menuItems = [
+                    {
+                        text: 'Ouvrir',
+                        action: () => shell.openPath(item.path)
+                    },
+                    {
+                        text: 'Renommer',
+                        action: () => {
+                            const newName = prompt('Nouveau nom:', item.name);
+                            if (newName && newName !== item.name) {
+                                const newPath = path.join(path.dirname(item.path), newName);
+                                try {
+                                    fs.renameSync(item.path, newPath);
+                                    renderFileList(dirPath); // Rafraîchir la liste
+                                } catch (error) {
+                                    alert('Erreur lors du renommage');
+                                }
+                            }
+                        }
+                    },
+                    {
+                        text: 'Supprimer',
+                        action: () => {
+                            if (confirm(`Êtes-vous sûr de vouloir supprimer "${item.name}" ?`)) {
+                                try {
+                                    if (item.type === 'folder') {
+                                        fs.rmdirSync(item.path, { recursive: true });
+                                    } else {
+                                        fs.unlinkSync(item.path);
+                                    }
+                                    renderFileList(dirPath); // Rafraîchir la liste
+                                } catch (error) {
+                                    alert('Erreur lors de la suppression');
+                                }
+                            }
+                        }
+                    }
+                ];
+                
+                menuItems.forEach(menuItem => {
+                    const button = document.createElement('button');
+                    button.textContent = menuItem.text;
+                    button.onclick = () => {
+                        menuItem.action();
+                        document.body.removeChild(contextMenu);
+                    };
+                    contextMenu.appendChild(button);
+                });
+                
+                document.body.appendChild(contextMenu);
+                
+                // Fermer le menu au clic ailleurs
+                document.onclick = (e) => {
+                    if (!contextMenu.contains(e.target)) {
+                        document.body.removeChild(contextMenu);
+                    }
+                };
+            };
+            
+            fileList.appendChild(itemDiv);
+        });
+    }
+
+    function refreshView() {
+        treeView.innerHTML = '';
+        const mainFolders = [
+            {
+                name: DOSSIERS_PRINCIPAUX.actifs,
+                path: path.join(__dirname, DOSSIERS_PRINCIPAUX.actifs),
+                type: 'folder'
+            },
+            {
+                name: DOSSIERS_PRINCIPAUX.archives,
+                path: path.join(__dirname, DOSSIERS_PRINCIPAUX.archives),
+                type: 'folder'
+            }
+        ];
+
+        mainFolders.forEach(folder => {
+            if (fs.existsSync(folder.path)) {
+                const folderDiv = document.createElement('div');
+                folderDiv.className = 'folder-item';
+                folderDiv.innerHTML = `
+                    <span class="folder-toggle">▶</span>
+                    <span class="folder-icon">📁</span>
+                    <span class="folder-name">${folder.name}</span>
+                `;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'folder-content';
+                contentDiv.style.display = 'none';
+                
+                folderDiv.querySelector('.folder-toggle').onclick = (e) => {
+                    e.stopPropagation();
+                    const isExpanded = contentDiv.style.display !== 'none';
+                    contentDiv.style.display = isExpanded ? 'none' : 'block';
+                    e.target.textContent = isExpanded ? '▶' : '▼';
+                    
+                    if (!isExpanded && contentDiv.children.length === 0) {
+                        renderTreeView(folder.path, contentDiv);
+                    }
+                };
+                
+                folderDiv.onclick = () => {
+                    renderFileList(folder.path);
+                };
+                
+                treeView.appendChild(folderDiv);
+                treeView.appendChild(contentDiv);
+            }
+        });
+
+        // Afficher le contenu du dossier racine par défaut
+        renderFileList(__dirname);
+    }
+
+    // Initialisation
+    refreshView();
+}
+
 // Modifiez l'écouteur DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     // Charge et affiche immédiatement tous les clients
@@ -1527,5 +1791,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-});
 
+    // Initialiser l'explorateur de fichiers
+    initializeFileExplorer();
+});
