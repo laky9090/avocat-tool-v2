@@ -12,6 +12,20 @@ let isFormVisible = false;
 const clientColors = new Map();
 const usedColors = new Set();
 
+const SOUS_DOSSIERS = [
+    "1-convention d'honoraires",
+    "2-Factures",
+    "3-Correspondances",
+    "4-Assignation",
+    "5-Requête",
+    "6-Pièces client",
+    "7-Décisions",
+    "8-Actes de naissance",
+    "9-DP",
+    "10-RPVA",
+    "11-Huissier"
+];
+
 function getClientColor(clientNom) {
     // Si le client a déjà une couleur, on la retourne
     if (clientColors.has(clientNom)) {
@@ -112,6 +126,40 @@ function validateForm() {
     return errors;
 }
 
+// Fonction pour créer l'arborescence d'un client
+function creerArborescenceClient(client) {
+    try {
+        const baseDir = path.join(__dirname, client.archived ? 'Dossiers archivés' : 'Dossiers en cours');
+        const clientDir = path.join(baseDir, `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
+
+        // Créer les dossiers principaux s'ils n'existent pas
+        if (!fs.existsSync(path.join(__dirname, 'Dossiers en cours'))) {
+            fs.mkdirSync(path.join(__dirname, 'Dossiers en cours'), { recursive: true });
+        }
+        if (!fs.existsSync(path.join(__dirname, 'Dossiers archivés'))) {
+            fs.mkdirSync(path.join(__dirname, 'Dossiers archivés'), { recursive: true });
+        }
+
+        // Créer le dossier du client s'il n'existe pas
+        if (!fs.existsSync(clientDir)) {
+            fs.mkdirSync(clientDir, { recursive: true });
+        }
+
+        // Créer tous les sous-dossiers
+        SOUS_DOSSIERS.forEach(sousDir => {
+            const completePath = path.join(clientDir, sousDir);
+            if (!fs.existsSync(completePath)) {
+                fs.mkdirSync(completePath, { recursive: true });
+            }
+        });
+
+        return clientDir;
+    } catch (error) {
+        console.error("Erreur lors de la création de l'arborescence:", error);
+        return null;
+    }
+}
+
 function ajouterOuModifierClient() {
     try {
         // Effacer les anciens messages d'erreur
@@ -162,15 +210,28 @@ function ajouterOuModifierClient() {
         if (indexModif === "") {
             // Ajout d'un nouveau client
             clients.push(formData);
+            creerArborescenceClient(formData);
         } else {
             // Modification d'un client existant
             const index = parseInt(indexModif);
             if (index >= 0 && index < clients.length) {
+                const ancienClient = clients[index];
+                const ancienDossier = path.join(__dirname, 
+                    ancienClient.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+                    `${ancienClient.nom}_${ancienClient.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
+
                 // Conserver le statut archived s'il existe
-                if (clients[index].archived) {
-                    formData.archived = clients[index].archived;
+                if (ancienClient.archived) {
+                    formData.archived = ancienClient.archived;
                 }
+                
                 clients[index] = formData;
+                const nouveauDossier = creerArborescenceClient(formData);
+
+                // Déplacer les fichiers si le nom a changé
+                if (ancienDossier !== nouveauDossier && fs.existsSync(ancienDossier)) {
+                    fs.renameSync(ancienDossier, nouveauDossier);
+                }
             }
         }
 
@@ -306,20 +367,30 @@ function showDeleteConfirmation(client, index) {
     };
     
     dialog.querySelector('.confirm-delete').onclick = () => {
-        // Récupérer les clients actuels
-        let clients = fs.existsSync(cheminFichier)
-            ? JSON.parse(fs.readFileSync(cheminFichier))
-            : [];
+        try {
+            // Supprimer le dossier du client
+            const clientDir = path.join(__dirname, 
+                client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+                `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
             
-        // Supprimer le client
-        clients.splice(index, 1);
-        
-        // Sauvegarder dans le fichier
-        fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
-        
-        // Recharger la liste et fermer la boîte de dialogue
-        chargerClients();
-        document.body.removeChild(overlay);
+            if (fs.existsSync(clientDir)) {
+                fs.rmSync(clientDir, { recursive: true, force: true });
+            }
+
+            // Supprimer le client de la liste
+            let clients = fs.existsSync(cheminFichier)
+                ? JSON.parse(fs.readFileSync(cheminFichier))
+                : [];
+            
+            clients.splice(index, 1);
+            fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+            
+            chargerClients();
+            document.body.removeChild(overlay);
+        } catch (error) {
+            console.error("Erreur lors de la suppression:", error);
+            alert("Erreur lors de la suppression du dossier");
+        }
     };
 }
 
@@ -477,13 +548,35 @@ function afficherClients(clients) {
 
 
 function toggleArchive(index) {
-  let clients = fs.existsSync(cheminFichier)
-    ? JSON.parse(fs.readFileSync(cheminFichier))
-    : [];
-  // Basculer la propriété "archived" (si inexistante, on la considère comme false)
-  clients[index].archived = !clients[index].archived;
-  fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
-  chargerClients();
+    try {
+        let clients = fs.existsSync(cheminFichier)
+            ? JSON.parse(fs.readFileSync(cheminFichier))
+            : [];
+        
+        const client = clients[index];
+        const ancienDossier = path.join(__dirname, 
+            client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+            `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
+        
+        // Basculer le statut
+        client.archived = !client.archived;
+        
+        const nouveauDossier = path.join(__dirname, 
+            client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+            `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
+        
+        // Déplacer le dossier si nécessaire
+        if (fs.existsSync(ancienDossier)) {
+            fs.renameSync(ancienDossier, nouveauDossier);
+        } else {
+            creerArborescenceClient(client);
+        }
+        
+        fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+        chargerClients();
+    } catch (error) {
+        console.error("Erreur dans toggleArchive:", error);
+    }
 }
 
 
