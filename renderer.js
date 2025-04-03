@@ -26,6 +26,12 @@ const SOUS_DOSSIERS = [
     "11-Huissier"
 ];
 
+// Modifier la constante pour les dossiers principaux
+const DOSSIERS_PRINCIPAUX = {
+    actifs: 'DOSSIERS EN COURS',
+    archives: 'DOSSIERS ARCHIVES'
+};
+
 function getClientColor(clientNom) {
     // Si le client a déjà une couleur, on la retourne
     if (clientColors.has(clientNom)) {
@@ -129,15 +135,16 @@ function validateForm() {
 // Fonction pour créer l'arborescence d'un client
 function creerArborescenceClient(client) {
     try {
-        const baseDir = path.join(__dirname, client.archived ? 'Dossiers archivés' : 'Dossiers en cours');
+        const baseDir = path.join(__dirname, 
+            client.archived ? DOSSIERS_PRINCIPAUX.archives : DOSSIERS_PRINCIPAUX.actifs);
         const clientDir = path.join(baseDir, `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
 
         // Créer les dossiers principaux s'ils n'existent pas
-        if (!fs.existsSync(path.join(__dirname, 'Dossiers en cours'))) {
-            fs.mkdirSync(path.join(__dirname, 'Dossiers en cours'), { recursive: true });
+        if (!fs.existsSync(path.join(__dirname, DOSSIERS_PRINCIPAUX.actifs))) {
+            fs.mkdirSync(path.join(__dirname, DOSSIERS_PRINCIPAUX.actifs), { recursive: true });
         }
-        if (!fs.existsSync(path.join(__dirname, 'Dossiers archivés'))) {
-            fs.mkdirSync(path.join(__dirname, 'Dossiers archivés'), { recursive: true });
+        if (!fs.existsSync(path.join(__dirname, DOSSIERS_PRINCIPAUX.archives))) {
+            fs.mkdirSync(path.join(__dirname, DOSSIERS_PRINCIPAUX.archives), { recursive: true });
         }
 
         // Créer le dossier du client s'il n'existe pas
@@ -216,21 +223,50 @@ function ajouterOuModifierClient() {
             const index = parseInt(indexModif);
             if (index >= 0 && index < clients.length) {
                 const ancienClient = clients[index];
+                
+                // Construction des chemins
                 const ancienDossier = path.join(__dirname, 
                     ancienClient.archived ? 'Dossiers archivés' : 'Dossiers en cours',
                     `${ancienClient.nom}_${ancienClient.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
-
+                
                 // Conserver le statut archived s'il existe
                 if (ancienClient.archived) {
                     formData.archived = ancienClient.archived;
                 }
                 
+                // Mettre à jour le client dans le tableau
                 clients[index] = formData;
-                const nouveauDossier = creerArborescenceClient(formData);
+                
+                const nouveauDossier = path.join(__dirname, 
+                    formData.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+                    `${formData.nom}_${formData.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
 
-                // Déplacer les fichiers si le nom a changé
+                // Si le nom a changé et que l'ancien dossier existe
                 if (ancienDossier !== nouveauDossier && fs.existsSync(ancienDossier)) {
-                    fs.renameSync(ancienDossier, nouveauDossier);
+                    try {
+                        // S'assurer que le dossier parent existe
+                        const nouveauDossierParent = path.dirname(nouveauDossier);
+                        if (!fs.existsSync(nouveauDossierParent)) {
+                            fs.mkdirSync(nouveauDossierParent, { recursive: true });
+                        }
+                        
+                        // Essayer de renommer le dossier
+                        try {
+                            fs.renameSync(ancienDossier, nouveauDossier);
+                        } catch (error) {
+                            // Code d'erreur EBUSY indique qu'un fichier est ouvert
+                            if (error.code === 'EBUSY') {
+                                alert("Veuillez fermer tous les fichiers ouverts pour ce client avant de modifier le nom/prénom");
+                            } else {
+                                alert("Erreur lors de la modification du nom : " + error.message);
+                            }
+                            return false;
+                        }
+                    } catch (error) {
+                        console.error("Erreur lors du renommage du dossier:", error);
+                        alert("Erreur lors de la modification du dossier");
+                        return false;
+                    }
                 }
             }
         }
@@ -370,7 +406,7 @@ function showDeleteConfirmation(client, index) {
         try {
             // Supprimer le dossier du client
             const clientDir = path.join(__dirname, 
-                client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+                client.archived ? DOSSIERS_PRINCIPAUX.archives : DOSSIERS_PRINCIPAUX.actifs,
                 `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
             
             if (fs.existsSync(clientDir)) {
@@ -513,6 +549,62 @@ function afficherClients(clients) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     
+    const btnDupliquer = document.createElement('button');
+    btnDupliquer.textContent = '📋 Dupliquer';
+    btnDupliquer.onclick = () => {
+        // Générer un nouveau nom unique
+        let nouveauNom = `${client.nom} (copie)`;
+        let numero = 1;
+        const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+        
+        // Vérifier si le nom existe déjà et incrémenter le numéro si nécessaire
+        while (clients.some(c => c.nom === nouveauNom)) {
+            numero++;
+            nouveauNom = `${client.nom} (copie ${numero})`;
+        }
+
+        // Afficher le formulaire
+        isFormVisible = true;
+        document.getElementById('formClient').style.display = 'block';
+        document.getElementById('toggleFormBtn').textContent = 'Masquer le formulaire';
+        
+        // Remplir le formulaire avec les données du client
+        document.getElementById('nom').value = nouveauNom;
+        document.getElementById('prenom').value = ''; // Vide pour le nouveau client
+        document.getElementById('adresse').value = client.adresse;
+        document.getElementById('telephone').value = client.telephone;
+        document.getElementById('email').value = client.email;
+        document.getElementById('profession').value = client.profession;
+        document.getElementById('tribunal').value = client.tribunal;
+        document.getElementById('type').value = client.type;
+        document.getElementById('dateAudience').value = '';  // Vide car nouvelle audience
+        document.getElementById('dateContact').value = '';   // Vide car nouveau contact
+        document.getElementById('dateEcheance').value = '';  // Vide car nouvelle date
+        document.getElementById('commentaire').value = client.commentaire;
+        
+        document.getElementById('nomAdverse').value = client.nomAdverse;
+        document.getElementById('prenomAdverse').value = client.prenomAdverse || '';
+        document.getElementById('adresseAdverse').value = client.adresseAdverse;
+        document.getElementById('telephoneAdverse').value = client.telephoneAdverse;
+        document.getElementById('emailAdverse').value = client.emailAdverse;
+        document.getElementById('professionAdverse').value = client.professionAdverse;
+        
+        document.getElementById('aideJuridictionnelle').value = client.aideJuridictionnelle;
+        document.getElementById('montantTotal').value = client.montantTotal;
+        document.getElementById('montantPaye').value = '0'; // Montant payé à 0 pour le nouveau client
+        
+        // Réinitialiser l'index de modification car c'est un nouveau client
+        document.getElementById('indexModif').value = '';
+        originalClientData = null;
+        
+        // Activer le bouton Enregistrer
+        document.getElementById('enregistrerBtn').disabled = false;
+        document.getElementById('annulerBtn').style.display = 'inline-block';
+        
+        // Faire défiler jusqu'au formulaire
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    
     const btnExporter = document.createElement('button');
     btnExporter.textContent = 'Exporter en PDF';
     btnExporter.onclick = () => exporterFichePDF(client);
@@ -531,6 +623,7 @@ function afficherClients(clients) {
     
     // Ajoutez les autres boutons dans le conteneur
     buttons.appendChild(btnModifier);
+    buttons.appendChild(btnDupliquer);
     buttons.appendChild(btnJoindre);
     buttons.appendChild(btnExporter);
     buttons.appendChild(btnSuppr);
@@ -555,27 +648,40 @@ function toggleArchive(index) {
         
         const client = clients[index];
         const ancienDossier = path.join(__dirname, 
-            client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+            client.archived ? DOSSIERS_PRINCIPAUX.archives : DOSSIERS_PRINCIPAUX.actifs,
             `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
         
         // Basculer le statut
         client.archived = !client.archived;
         
         const nouveauDossier = path.join(__dirname, 
-            client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+            client.archived ? DOSSIERS_PRINCIPAUX.archives : DOSSIERS_PRINCIPAUX.actifs,
             `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
-        
-        // Déplacer le dossier si nécessaire
+
+        // Si l'ancien dossier existe, le déplacer
         if (fs.existsSync(ancienDossier)) {
+            // Assurer que le dossier parent existe
+            const nouveauDossierParent = path.dirname(nouveauDossier);
+            if (!fs.existsSync(nouveauDossierParent)) {
+                fs.mkdirSync(nouveauDossierParent, { recursive: true });
+            }
             fs.renameSync(ancienDossier, nouveauDossier);
         } else {
+            // Si l'ancien dossier n'existe pas, créer la nouvelle arborescence
             creerArborescenceClient(client);
         }
-        
+
+        // Pour les clients existants qui n'ont pas encore d'arborescence
+        if (!fs.existsSync(nouveauDossier)) {
+            creerArborescenceClient(client);
+        }
+
+        // Mettre à jour le fichier clients.json
         fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
         chargerClients();
     } catch (error) {
         console.error("Erreur dans toggleArchive:", error);
+        alert("Erreur lors de l'archivage/désarchivage du dossier");
     }
 }
 
@@ -1218,13 +1324,6 @@ function afficherCalendrier() {
 // Exporter la fiche client en PDF en incluant toutes les informations
 function exporterFichePDF(client) {
   try {
-    const { nom, prenom, adresse, telephone, email, profession,
-            type, dateAudience, dateContact, dateEcheance, commentaire,
-            nomAdverse, prenomAdverse, adresseAdverse, telephoneAdverse, emailAdverse, professionAdverse } = client;
-    
-    const doc = new PDFDocument({ margin: 50 });
-    const nomFichier = `${nom.replace(/\s+/g, '_')}_fiche.pdf`;
-    const cheminFichierPdf = path.join(__dirname, nomFichier);
     const stream = fs.createWriteStream(cheminFichierPdf);
     doc.pipe(stream);
 
@@ -1364,6 +1463,26 @@ function afficherRappels() {
     `;
 }
 
+function creerArborescencePourClientsExistants() {
+    try {
+        const clients = fs.existsSync(cheminFichier)
+            ? JSON.parse(fs.readFileSync(cheminFichier))
+            : [];
+
+        clients.forEach(client => {
+            const dossierClient = path.join(__dirname, 
+                client.archived ? 'Dossiers archivés' : 'Dossiers en cours',
+                `${client.nom}_${client.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
+
+            if (!fs.existsSync(dossierClient)) {
+                creerArborescenceClient(client);
+            }
+        });
+    } catch (error) {
+        console.error("Erreur lors de la création des arborescences:", error);
+    }
+}
+
 // Modifiez l'écouteur DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     // Charge et affiche immédiatement tous les clients
@@ -1374,6 +1493,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Génère immédiatement le calendrier
     generateCalendar('month');
+    
+    // Créer l'arborescence pour tous les clients existants
+    creerArborescencePourClientsExistants();
     
     // Initialise les gestionnaires d'événements
     document.getElementById('recherche').addEventListener('input', filtrerClients);
