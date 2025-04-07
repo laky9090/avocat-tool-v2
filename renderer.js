@@ -1600,26 +1600,24 @@ function initializeFileExplorer() {
                 <span class="${item.type}-name">${item.name}</span>
             `;
             
-            // Gestion du drag & drop
-            itemDiv.ondragstart = (e) => {
-                e.dataTransfer.setData('text/plain', item.path);
-                itemDiv.classList.add('dragging');
-            };
-            
-            itemDiv.ondragend = () => {
-                itemDiv.classList.remove('dragging');
-            };
-            
             // Double-clic pour ouvrir
-            if (item.type === 'file') {
-                itemDiv.ondblclick = () => {
+            itemDiv.ondblclick = () => {
+                if (item.type === 'folder') {
+                    renderFileList(item.path);
+                } else {
                     shell.openPath(item.path);
-                };
-            }
-            
+                }
+            };
+
             // Menu contextuel (clic droit)
             itemDiv.oncontextmenu = (e) => {
                 e.preventDefault();
+                
+                // Supprimer tout menu contextuel existant
+                const existingMenu = document.querySelector('.context-menu');
+                if (existingMenu) {
+                    document.body.removeChild(existingMenu);
+                }
                 
                 const contextMenu = document.createElement('div');
                 contextMenu.className = 'context-menu';
@@ -1630,20 +1628,37 @@ function initializeFileExplorer() {
                 const menuItems = [
                     {
                         text: 'Ouvrir',
-                        action: () => shell.openPath(item.path)
+                        action: () => {
+                            if (item.type === 'folder') {
+                                renderFileList(item.path);
+                            } else {
+                                shell.openPath(item.path);
+                            }
+                            document.body.removeChild(contextMenu);
+                        }
                     },
                     {
                         text: 'Renommer',
                         action: () => {
-                            const newName = prompt('Nouveau nom:', item.name);
+                            const newName = prompt('Nouveau nom :', item.name);
                             if (newName && newName !== item.name) {
                                 const newPath = path.join(path.dirname(item.path), newName);
                                 try {
                                     fs.renameSync(item.path, newPath);
-                                    renderFileList(dirPath); // Rafraîchir la liste
+                                    // Rafraîchir l'arborescence complète
+                                    refreshView();
+                                    // Rafraîchir la liste des fichiers du dossier courant
+                                    renderFileList(dirPath);
                                 } catch (error) {
-                                    alert('Erreur lors du renommage');
+                                    if (error.code === 'EBUSY') {
+                                        alert('Veuillez fermer le fichier avant de le renommer');
+                                    } else {
+                                        alert('Erreur lors du renommage : ' + error.message);
+                                    }
                                 }
+                            }
+                            if (contextMenu.parentNode) {
+                                document.body.removeChild(contextMenu);
                             }
                         }
                     },
@@ -1657,33 +1672,34 @@ function initializeFileExplorer() {
                                     } else {
                                         fs.unlinkSync(item.path);
                                     }
-                                    renderFileList(dirPath); // Rafraîchir la liste
+                                    renderFileList(dirPath);
                                 } catch (error) {
                                     alert('Erreur lors de la suppression');
                                 }
                             }
+                            document.body.removeChild(contextMenu);
                         }
                     }
                 ];
-                
+
                 menuItems.forEach(menuItem => {
                     const button = document.createElement('button');
                     button.textContent = menuItem.text;
-                    button.onclick = () => {
-                        menuItem.action();
-                        document.body.removeChild(contextMenu);
-                    };
+                    button.onclick = menuItem.action;
                     contextMenu.appendChild(button);
                 });
-                
+
                 document.body.appendChild(contextMenu);
-                
+
                 // Fermer le menu au clic ailleurs
-                document.onclick = (e) => {
-                    if (!contextMenu.contains(e.target)) {
-                        document.body.removeChild(contextMenu);
-                    }
-                };
+                setTimeout(() => {
+                    document.addEventListener('click', function closeMenu(e) {
+                        if (!contextMenu.contains(e.target)) {
+                            document.body.removeChild(contextMenu);
+                            document.removeEventListener('click', closeMenu);
+                        }
+                    });
+                }, 0);
             };
             
             fileList.appendChild(itemDiv);

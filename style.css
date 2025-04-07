@@ -733,26 +733,39 @@ calendar-nav button {
 
 .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 5px 0;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 1000;
+    min-width: 180px;
 }
 
 .context-menu button {
     display: block;
     width: 100%;
-    padding: 8px 15px;
+    padding: 8px 16px;
     border: none;
     background: none;
     text-align: left;
     cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: all 0.2s ease;
 }
 
 .context-menu button:hover {
-    background-color: #f5f5f5;
+    background-color: #f0f7ff;
+    color: #2196f3;
+}
+
+.context-menu button:active {
+    background-color: #e3f2fd;
+}
+
+.context-menu button:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .file-item.dragging {
