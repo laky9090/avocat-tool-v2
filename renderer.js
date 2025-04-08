@@ -61,6 +61,28 @@ function getClientColor(clientNom) {
     return color;
 }
 
+// Ajouter au début du fichier, après les constantes
+function generateDossierNumber() {
+    const currentYear = new Date().getFullYear();
+    let clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+    
+    // Filtrer les dossiers de l'année en cours
+    const dossiersAnnee = clients.filter(client => client.numeroDossier && 
+        client.numeroDossier.startsWith(currentYear.toString()));
+    
+    // Trouver le plus grand numéro
+    let maxNumber = 0;
+    dossiersAnnee.forEach(client => {
+        const num = parseInt(client.numeroDossier.split('-')[1]);
+        if (!isNaN(num) && num > maxNumber) {
+            maxNumber = num;
+        }
+    });
+    
+    // Générer le nouveau numéro
+    return `${currentYear}-${(maxNumber + 1).toString().padStart(3, '0')}`;
+}
+
 // Formater une date au format français
 function formatDateFr(dateStr) {
   if (!dateStr) return "–";
@@ -180,6 +202,7 @@ function ajouterOuModifierClient() {
 
         // Récupération des champs
         const formData = {
+            numeroDossier: document.getElementById('indexModif').value === '' ? generateDossierNumber() : client.numeroDossier,
             nom: document.getElementById('nom').value.trim(),
             prenom: document.getElementById('prenom').value.trim(), // Nouveau champ
             adresse: document.getElementById('adresse').value.trim(),
@@ -448,7 +471,7 @@ function afficherClients(clients) {
     // Contenu synthétique (résumé)
     const info = document.createElement('div');
     info.innerHTML = `
-      <p><strong>${client.nom} ${client.prenom || ''}</strong> (${client.type})</p>
+      <p><strong>${client.numeroDossier}</strong> - ${client.nom} ${client.prenom || ''} (${client.type})</p>
       <p>Montant total (HT) : ${client.montantTotal || '0'} €</p>
       ${client.archived ? '<p style="color:red;">[Archivé]</p>' : ''}
     `;
@@ -621,7 +644,20 @@ function afficherClients(clients) {
     toggleBtn.textContent = client.archived ? 'Désarchiver' : 'Archiver';
     toggleBtn.onclick = () => toggleArchive(index);
     
-    // Ajoutez les autres boutons dans le conteneur
+    const btnEmail = document.createElement('button');
+    btnEmail.innerHTML = '📧 Email';
+    btnEmail.onclick = () => {
+        if (client.email) {
+            const subject = `${client.numeroDossier} - ${client.nom} / ${client.nomAdverse || 'Sans adversaire'}`;
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(client.email)}&su=${encodeURIComponent(subject)}`;
+            shell.openExternal(gmailUrl);
+        } else {
+            alert('Aucune adresse email renseignée pour ce client');
+        }
+    };
+    
+    // Ajouter les boutons dans le conteneur dans l'ordre souhaité
+    buttons.appendChild(btnEmail); // Nouveau bouton email
     buttons.appendChild(btnModifier);
     buttons.appendChild(btnDupliquer);
     buttons.appendChild(btnJoindre);
@@ -636,8 +672,6 @@ function afficherClients(clients) {
     liste.appendChild(li);
   });
 }
-
-
 
 
 function toggleArchive(index) {
@@ -1763,6 +1797,22 @@ function initializeFileExplorer() {
     refreshView();
 }
 
+// Fonction pour migrer les dossiers
+function migrateDossiers() {
+    let clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
+    const annee = new Date().getFullYear();
+    let counter = 1;
+    
+    clients.forEach(client => {
+        if (!client.numeroDossier) {
+            client.numeroDossier = `${annee}-${counter.toString().padStart(3, '0')}`;
+            counter++;
+        }
+    });
+    
+    fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
+}
+
 // Modifiez l'écouteur DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     // Charge et affiche immédiatement tous les clients
@@ -1810,4 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialiser l'explorateur de fichiers
     initializeFileExplorer();
+
+    // Appeler la fonction de migration des dossiers
+    migrateDossiers();
 });

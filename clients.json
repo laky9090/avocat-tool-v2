@@ -21,7 +21,8 @@
     "professionAdverse": "Chef de projet",
     "montantTotal": 2000,
     "montantPaye": 500,
-    "resteAFacturer": 1500
+    "resteAFacturer": 1500,
+    "numeroDossier": "2025-001"
   },
   {
     "nom": "SANY",
@@ -45,7 +46,8 @@
     "montantTotal": 1500,
     "montantPaye": 500,
     "resteAFacturer": 1000,
-    "archived": true
+    "archived": true,
+    "numeroDossier": "2025-002"
   },
   {
     "nom": "BIGARD",
@@ -69,7 +71,8 @@
     "montantTotal": 1500,
     "montantPaye": 500,
     "resteAFacturer": 1000,
-    "archived": true
+    "archived": true,
+    "numeroDossier": "2025-003"
   },
   {
     "nom": "LONGLET",
@@ -93,6 +96,7 @@
     "professionAdverse": "Testeur2",
     "montantTotal": 1500,
     "montantPaye": 500,
-    "resteAFacturer": 1000
+    "resteAFacturer": 1000,
+    "numeroDossier": "2025-004"
   }
 ]
