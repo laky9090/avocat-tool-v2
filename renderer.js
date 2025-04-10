@@ -125,6 +125,39 @@ function showError(field, message) {
     input.parentElement.appendChild(errorDiv);
 }
 
+// Ajouter au début du fichier après les constantes
+function initializeTheme() {
+    const themeToggle = document.getElementById('themeToggle');
+    if (!themeToggle) {
+        console.error('Bouton de thème non trouvé');
+        return;
+    }
+
+    // Charger le thème sauvegardé ou utiliser le thème clair par défaut
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeButton(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeButton(newTheme);
+    });
+
+    function updateThemeButton(theme) {
+        const themeIcon = themeToggle.querySelector('#themeIcon');
+        const themeText = themeToggle.querySelector('#themeText');
+        
+        if (themeIcon && themeText) {
+            themeIcon.textContent = theme === 'dark' ? '🌜' : '🌞';
+            themeText.textContent = theme === 'dark' ? 'Mode clair' : 'Mode sombre';
+        }
+    }
+}
+
 // Amélioration de la validation du formulaire
 function validateForm() {
     document.querySelectorAll('.erreur-message').forEach(el => el.remove());
@@ -1938,6 +1971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     initializeTags();
+    initializeTheme();
 });
 
 // Modifier le gestionnaire du bouton Enregistrer

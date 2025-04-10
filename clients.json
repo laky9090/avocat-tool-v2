@@ -123,13 +123,13 @@
     "montantTotal": "2000",
     "montantPaye": "0",
     "tags": [
-      "En attente"
+      "Familial"
     ],
     "notes": [
       {
-        "content": "test de note",
-        "date": "2025-04-10T18:30:43.168Z",
-        "id": 1744309843168
+        "content": "Coucou ma cherie d'amour de toujours",
+        "date": "2025-04-10T19:12:16.279Z",
+        "id": 1744312336279
       }
     ],
     "archived": false
