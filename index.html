@@ -130,6 +130,25 @@
         <label>Profession de l'adverse :</label>
         <input type="text" id="professionAdverse">
 
+        <div class="form-group">
+          <input type="hidden" id="clientNotes" value="[]">
+          <label>Notes rapides :</label>
+          <div class="notes-container">
+            <div class="notes-list"></div>
+            <div class="add-note">
+              <input type="text" id="newNote" placeholder="Ajouter une note...">
+              <button type="button" onclick="addNote()">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tags :</label>
+          <div class="tags-container">
+            <!-- Les tags seront générés dynamiquement ici -->
+          </div>
+        </div>
+
         <div class="button-group">
           <button id="enregistrerBtn" onclick="ajouterOuModifierClient()" disabled>Enregistrer</button>
           <button id="annulerBtn" onclick="annulerModification()" style="display:none;">Annuler</button>

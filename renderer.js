@@ -32,6 +32,13 @@ const DOSSIERS_PRINCIPAUX = {
     archives: 'Dossiers archivés'  // Changé de 'Dossiers archives' à 'Dossiers archivés'
 };
 
+// Ajouter ces constantes après les autres constantes existantes
+const TAGS_PREDEFINED = [
+    'Urgent', 'En attente', 'À relancer', 
+    'Familial', 'Commercial', 'Pénal',
+    'Civil', 'Social', 'Administratif'
+];
+
 function getClientColor(clientNom) {
     // Si le client a déjà une couleur, on la retourne
     if (clientColors.has(clientNom)) {
@@ -51,7 +58,7 @@ function getClientColor(clientNom) {
     // Si toutes les couleurs sont utilisées, on en génère une aléatoire
     if (!color) {
         do {
-            color = '#' + Math.floor(Math.random()*16777215).toString(16);
+            color = '#' + Math.floor(Math.random()*16777215).toString().hex;
         } while (usedColors.has(color));
     }
 
@@ -189,6 +196,7 @@ function creerArborescenceClient(client) {
     }
 }
 
+// Modifier la fonction ajouterOuModifierClient pour inclure les tags
 function ajouterOuModifierClient() {
     try {
         // Effacer les anciens messages d'erreur
@@ -197,44 +205,40 @@ function ajouterOuModifierClient() {
         // Validation
         const errors = validateForm();
         if (errors.size > 0) {
-            return false; // Arrête l'exécution si il y a des erreurs
+            return;
         }
 
         // Récupération des champs
         const formData = {
-            numeroDossier: document.getElementById('indexModif').value === '' ? generateDossierNumber() : client.numeroDossier,
+            numeroDossier: document.getElementById('indexModif').value === '' ? generateDossierNumber() : originalClientData?.numeroDossier,
             nom: document.getElementById('nom').value.trim(),
-            prenom: document.getElementById('prenom').value.trim(), // Nouveau champ
+            prenom: document.getElementById('prenom').value.trim(),
             adresse: document.getElementById('adresse').value.trim(),
             telephone: document.getElementById('telephone').value.trim(),
             email: document.getElementById('email').value.trim(),
             profession: document.getElementById('profession').value.trim(),
-            tribunal: document.getElementById('tribunal').value.trim(),
-            type: document.getElementById('type').value.trim(),
+            tribunal: document.getElementById('tribunal').value,
+            type: document.getElementById('type').value,
             dateAudience: document.getElementById('dateAudience').value,
             dateContact: document.getElementById('dateContact').value,
             dateEcheance: document.getElementById('dateEcheance').value,
             commentaire: document.getElementById('commentaire').value.trim(),
-            aideJuridictionnelle: document.getElementById('aideJuridictionnelle').value,
             nomAdverse: document.getElementById('nomAdverse').value.trim(),
-            prenomAdverse: document.getElementById('prenomAdverse').value.trim(), // Nouveau champ
+            prenomAdverse: document.getElementById('prenomAdverse').value.trim(),
             adresseAdverse: document.getElementById('adresseAdverse').value.trim(),
             telephoneAdverse: document.getElementById('telephoneAdverse').value.trim(),
             emailAdverse: document.getElementById('emailAdverse').value.trim(),
             professionAdverse: document.getElementById('professionAdverse').value.trim(),
-            montantTotal: parseFloat(document.getElementById('montantTotal').value) || 0,
-            montantPaye: parseFloat(document.getElementById('montantPaye').value) || 0
+            aideJuridictionnelle: document.getElementById('aideJuridictionnelle').value,
+            montantTotal: document.getElementById('montantTotal').value,
+            montantPaye: document.getElementById('montantPaye').value,
+            tags: Array.from(document.querySelectorAll('.tag-item.selected')).map(tag => tag.textContent.trim()),
+            notes: JSON.parse(document.getElementById('clientNotes').value || '[]'),
+            archived: originalClientData?.archived || false
         };
 
-        // Calcul du reste à facturer
-        formData.resteAFacturer = formData.montantTotal - formData.montantPaye;
-
-        let clients = [];
-        if (fs.existsSync(cheminFichier)) {
-            const fileContent = fs.readFileSync(cheminFichier, 'utf8');
-            clients = JSON.parse(fileContent);
-        }
-
+        // Lecture du fichier existant
+        let clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
         const indexModif = document.getElementById('indexModif').value;
 
         if (indexModif === "") {
@@ -245,52 +249,8 @@ function ajouterOuModifierClient() {
             // Modification d'un client existant
             const index = parseInt(indexModif);
             if (index >= 0 && index < clients.length) {
-                const ancienClient = clients[index];
-                
-                // Construction des chemins
-                const ancienDossier = path.join(__dirname, 
-                    ancienClient.archived ? 'Dossiers archivés' : 'Dossiers en cours',
-                    `${ancienClient.nom}_${ancienClient.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
-                
-                // Conserver le statut archived s'il existe
-                if (ancienClient.archived) {
-                    formData.archived = ancienClient.archived;
-                }
-                
-                // Mettre à jour le client dans le tableau
+                formData.archived = clients[index].archived; // Conserver le statut d'archivage
                 clients[index] = formData;
-                
-                const nouveauDossier = path.join(__dirname, 
-                    formData.archived ? 'Dossiers archivés' : 'Dossiers en cours',
-                    `${formData.nom}_${formData.prenom || ''}`.replace(/[<>:"/\\|?*]/g, '_'));
-
-                // Si le nom a changé et que l'ancien dossier existe
-                if (ancienDossier !== nouveauDossier && fs.existsSync(ancienDossier)) {
-                    try {
-                        // S'assurer que le dossier parent existe
-                        const nouveauDossierParent = path.dirname(nouveauDossier);
-                        if (!fs.existsSync(nouveauDossierParent)) {
-                            fs.mkdirSync(nouveauDossierParent, { recursive: true });
-                        }
-                        
-                        // Essayer de renommer le dossier
-                        try {
-                            fs.renameSync(ancienDossier, nouveauDossier);
-                        } catch (error) {
-                            // Code d'erreur EBUSY indique qu'un fichier est ouvert
-                            if (error.code === 'EBUSY') {
-                                alert("Veuillez fermer tous les fichiers ouverts pour ce client avant de modifier le nom/prénom");
-                            } else {
-                                alert("Erreur lors de la modification du nom : " + error.message);
-                            }
-                            return false;
-                        }
-                    } catch (error) {
-                        console.error("Erreur lors du renommage du dossier:", error);
-                        alert("Erreur lors de la modification du dossier");
-                        return false;
-                    }
-                }
             }
         }
 
@@ -298,37 +258,25 @@ function ajouterOuModifierClient() {
         fs.writeFileSync(cheminFichier, JSON.stringify(clients, null, 2));
 
         // Réinitialisation du formulaire et mise à jour de l'interface
-        isFormVisible = false;
         document.getElementById('formClient').style.display = 'none';
         document.getElementById('toggleFormBtn').textContent = 'Ajouter un nouveau client';
-        document.getElementById('indexModif').value = '';
-        originalClientData = null;
+        isFormVisible = false;
+        document.getElementById('enregistrerBtn').disabled = true;
         document.getElementById('annulerBtn').style.display = 'none';
+        originalClientData = null;
 
-        // Recharger la liste des clients
+        // Rafraîchir l'affichage
         chargerClients();
-        
-        // Mettre à jour le calendrier
-        const calendarContent = document.getElementById('calendarContent');
-        if (calendarContent) {
-            calendarContent.innerHTML = '';
-            generateCalendar('month');
-        }
+        updateStats();
 
-        // Réinitialiser tous les champs
-        document.querySelectorAll('#formClient input, #formClient textarea, #formClient select').forEach(element => {
-            element.value = '';
-        });
-        document.getElementById('aideJuridictionnelle').value = 'non';
+        // Réinitialiser les champs
+        resetForm();
 
-        return true;
     } catch (error) {
-        console.error("Erreur dans ajouterOuModifierClient:", error);
-        return false;
+        console.error("Erreur lors de l'ajout/modification du client:", error);
+        // Ne pas relancer l'erreur, juste la logger
     }
 }
-
-
 
 // Charger et afficher la liste des clients
 function chargerClients() {
@@ -399,7 +347,6 @@ function chargerClients() {
     }
 }
 
-
 // Fonction pour créer et afficher la boîte de dialogue de confirmation
 function showDeleteConfirmation(client, index) {
     const overlay = document.createElement('div');
@@ -453,6 +400,17 @@ function showDeleteConfirmation(client, index) {
     };
 }
 
+// Charger un client et ses informations
+function chargerClient(client) {
+    // Charger les tags
+    document.querySelectorAll('.tag-item').forEach(tagItem => {
+        tagItem.classList.remove('selected'); // Réinitialiser d'abord
+        if (client.tags && client.tags.includes(tagItem.textContent.trim())) {
+            tagItem.classList.add('selected');
+        }
+    });
+}
+
 // Afficher les clients dans la liste
 function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
@@ -491,6 +449,30 @@ function afficherClients(clients) {
       <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
       <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
       <p>Commentaire : ${client.commentaire || '–'}</p>
+      
+      ${client.tags && client.tags.length > 0 ? `
+      <div class="client-tags">
+          <strong>Tags :</strong>
+          <div class="tags-display">
+              ${client.tags.map(tag => `
+                  <span class="tag-display">${tag}</span>
+              `).join('')}
+          </div>
+      </div>` : ''}
+      
+      ${client.notes && client.notes.length > 0 ? `
+      <div class="client-notes">
+          <strong>Notes :</strong>
+          <div class="notes-display">
+              ${client.notes.map(note => `
+                  <div class="note-display">
+                      <div class="note-content">${note.content}</div>
+                      <div class="note-date">${formatDateFr(note.date)}</div>
+                  </div>
+              `).join('')}
+          </div>
+      </div>` : ''}
+      
       <hr>
       <p><strong>Adverse</strong></p>
       <p>Nom complet : ${client.nomAdverse} ${client.prenomAdverse || ''}</p>
@@ -510,8 +492,6 @@ function afficherClients(clients) {
     // Bouton pour basculer l'affichage détaillé
     const btnToggleDetail = document.createElement('button');
     const btnVoir = null; // évite l’erreur plus bas si le code s’attend à cette variable
-
-
     btnToggleDetail.textContent = 'Voir la fiche';
     btnToggleDetail.onclick = () => {
       if (detailDiv.style.display === 'none') {
@@ -523,8 +503,6 @@ function afficherClients(clients) {
       }
     };
     buttons.appendChild(btnToggleDetail);
-    
-    
     const btnModifier = document.createElement('button');
     btnModifier.textContent = 'Modifier';
     btnModifier.onclick = () => {
@@ -564,6 +542,16 @@ function afficherClients(clients) {
         
         // Stocker les données originales pour vérifier les modifications
         originalClientData = { ...client };
+        
+        // Charger les tags
+        document.querySelectorAll('.tag-checkbox').forEach(cb => {
+            cb.checked = client.tags && client.tags.includes(cb.value);
+            cb.closest('.tag-item').classList.toggle('selected', cb.checked);
+        });
+        
+        // Charger les notes
+        document.getElementById('clientNotes').value = JSON.stringify(client.notes || []);
+        renderNotes(client.notes || []);
         
         document.getElementById('annulerBtn').style.display = 'inline-block';
         checkFormChanges();
@@ -673,7 +661,6 @@ function afficherClients(clients) {
   });
 }
 
-
 function toggleArchive(index) {
     try {
         let clients = fs.existsSync(cheminFichier)
@@ -719,7 +706,6 @@ function toggleArchive(index) {
     }
 }
 
-
 function switchView(view) {
     currentView = view;
     
@@ -742,10 +728,6 @@ function switchView(view) {
     afficherClients(clients);
 }
 
-
-
-
-
 function toggleCalendar() {
     const calendarArea = document.getElementById('calendarArea');
     const btnCalendrier = document.getElementById('btnCalendrier');
@@ -760,9 +742,6 @@ function toggleCalendar() {
     }
 }
 
-
-
-
 function generateCalendar(viewMode) {
   const contentDiv = document.getElementById('calendarContent');
   contentDiv.innerHTML = ''; // Nettoyer le contenu précédent
@@ -772,8 +751,6 @@ function generateCalendar(viewMode) {
     generateYearlyCalendar(contentDiv);
   }  
 }
-
-
 
 function formatClientDate(dateStr) {
   if (!dateStr) return "";
@@ -901,8 +878,6 @@ function generateMonthlyCalendar(container) {
   container.insertAdjacentHTML('beforeend', html);
 }
 
-
-
 function generateYearlyCalendar(container) {
   // Vider le conteneur de contenu
   container.innerHTML = '';
@@ -946,11 +921,6 @@ function generateYearlyCalendar(container) {
   html += '</div>';
   container.insertAdjacentHTML('beforeend', html);
 }
-
-
-
-
-
 
 function updateStats() {
     const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
@@ -1006,9 +976,6 @@ function updateStats() {
     document.getElementById('statsContent').innerHTML = statsHtml;
 }
 
-
-
-
 function checkFormChanges() {
     // Si c'est un nouveau client (pas de données originales), on active toujours le bouton
     if (!originalClientData) {
@@ -1019,7 +986,7 @@ function checkFormChanges() {
     // Pour une modification, on compare avec les données originales
     const currentData = {
         nom: document.getElementById('nom').value,
-        prenom: document.getElementById('prenom').value, // Nouveau champ
+        prenom: document.getElementById('prenom').value,
         adresse: document.getElementById('adresse').value,
         telephone: document.getElementById('telephone').value,
         email: document.getElementById('email').value,
@@ -1038,21 +1005,48 @@ function checkFormChanges() {
         professionAdverse: document.getElementById('professionAdverse').value,
         aideJuridictionnelle: document.getElementById('aideJuridictionnelle').value,
         montantTotal: document.getElementById('montantTotal').value,
-        montantPaye: document.getElementById('montantPaye').value
+        montantPaye: document.getElementById('montantPaye').value,
+        // Ajouter les notes et tags
+        notes: JSON.parse(document.getElementById('clientNotes').value || '[]'),
+        tags: Array.from(document.querySelectorAll('.tag-checkbox:checked')).map(cb => cb.value)
     };
     
     let modified = false;
+
+    // Vérifier les champs simples
     for (let key in originalClientData) {
+        if (key === 'notes' || key === 'tags') continue; // On les traite séparément
         if (originalClientData[key] != currentData[key]) {
             modified = true;
             break;
         }
     }
+
+    // Vérifier les notes
+    if (!modified) {
+        const originalNotes = originalClientData.notes || [];
+        const currentNotes = currentData.notes;
+        if (originalNotes.length !== currentNotes.length) {
+            modified = true;
+        } else {
+            // Comparer chaque note
+            modified = JSON.stringify(originalNotes) !== JSON.stringify(currentNotes);
+        }
+    }
+
+    // Vérifier les tags
+    if (!modified) {
+        const originalTags = originalClientData.tags || [];
+        const currentTags = currentData.tags;
+        if (originalTags.length !== currentTags.length) {
+            modified = true;
+        } else {
+            modified = JSON.stringify(originalTags.sort()) !== JSON.stringify(currentTags.sort());
+        }
+    }
     
     document.getElementById('enregistrerBtn').disabled = !modified;
 }
-
-
 
 function annulerModification() {
     // Réinitialiser tous les champs du formulaire à vide
@@ -1093,13 +1087,6 @@ function annulerModification() {
     document.getElementById('formClient').style.display = 'none';
     document.getElementById('toggleFormBtn').textContent = 'Ajouter un nouveau client';
 }
-
-
-
-
-
-
-
 
 // Afficher la fiche détaillée d'un client
 function afficherFicheClient(client) {
@@ -1432,11 +1419,85 @@ function exporterFichePDF(client) {
   }
 }
 
+function initializeTags() {
+    const container = document.querySelector('.tags-container');
+    if (!container) return;
+    
+    // Vider le conteneur avant d'ajouter les tags
+    container.innerHTML = '';
+    
+    // Créer les tags
+    TAGS_PREDEFINED.forEach(tag => {
+        const tagDiv = document.createElement('div');
+        tagDiv.className = 'tag-item';
+        tagDiv.textContent = tag;
+        
+        tagDiv.addEventListener('click', () => {
+            tagDiv.classList.toggle('selected');
+            // Activer le bouton Enregistrer
+            const enregistrerBtn = document.getElementById('enregistrerBtn');
+            if (enregistrerBtn) enregistrerBtn.disabled = false;
+        });
+        
+        container.appendChild(tagDiv);
+    });
+}
 
+function addNote() {
+    const input = document.getElementById('newNote');
+    const content = input.value.trim();
+    if (!content) return;
 
+    // Activer le bouton Enregistrer car il y a eu une modification
+    const enregistrerBtn = document.getElementById('enregistrerBtn');
+    if (enregistrerBtn) enregistrerBtn.disabled = false;
 
+    // Récupérer les notes existantes ou initialiser un tableau vide
+    const notes = JSON.parse(document.getElementById('clientNotes').value || '[]');
+    
+    // Ajouter la nouvelle note
+    notes.push({
+        content,
+        date: new Date().toISOString(),
+        id: Date.now()
+    });
 
+    // Mettre à jour le champ caché et l'affichage
+    document.getElementById('clientNotes').value = JSON.stringify(notes);
+    renderNotes(notes);
+    input.value = '';
+}
 
+function deleteNote(id) {
+    // Récupérer les notes existantes
+    const notes = JSON.parse(document.getElementById('clientNotes').value || '[]');
+    
+    // Filtrer pour retirer la note à supprimer
+    const updatedNotes = notes.filter(note => note.id !== id);
+    
+    // Activer le bouton Enregistrer car il y a eu une modification
+    const enregistrerBtn = document.getElementById('enregistrerBtn');
+    if (enregistrerBtn) enregistrerBtn.disabled = false;
+
+    // Mettre à jour le champ caché et l'affichage
+    document.getElementById('clientNotes').value = JSON.stringify(updatedNotes);
+    renderNotes(updatedNotes);
+}
+
+function renderNotes(notes) {
+    const container = document.querySelector('.notes-list');
+    if (!container) return;
+
+    container.innerHTML = notes.map(note => `
+        <div class="note-item">
+            <div class="note-content">
+                ${note.content}
+                <div class="note-date">${formatDateFr(note.date)}</div>
+            </div>
+            <button class="note-delete" onclick="deleteNote(${note.id})">✖</button>
+        </div>
+    `).join('');
+}
 
 function afficherRappels() {
     const clients = fs.existsSync(cheminFichier) ? JSON.parse(fs.readFileSync(cheminFichier)) : [];
@@ -1863,4 +1924,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Appeler la fonction de migration des dossiers
     migrateDossiers();
+
+    // Initialiser les tags
+    initializeTags();
+    
+    // Ajouter le gestionnaire pour le bouton d'ajout de note
+    document.querySelector('.add-note button').addEventListener('click', addNote);
+    
+    // Permettre l'ajout de note avec la touche Entrée
+    document.getElementById('newNote').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addNote();
+        }
+    });
+    initializeTags();
 });
+
+// Modifier le gestionnaire du bouton Enregistrer
+document.getElementById('enregistrerBtn').onclick = () => {
+    ajouterOuModifierClient();
+};
