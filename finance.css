@@ -123,10 +123,40 @@ header {
     margin-top: 20px;
 }
 
-#invoicesTable th {
-    background-color: var(--background-secondary);
+/* Styles pour les en-têtes de colonnes triables */
+#invoicesTable th:not(:last-child) {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
     padding: 12px;
+    padding-right: 25px;
     text-align: left;
+}
+
+#invoicesTable th:not(:last-child)::after {
+    content: '⇕';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    margin-left: 8px;
+}
+
+/* Remettre le padding normal pour la colonne Actions */
+#invoicesTable th:last-child {
+    padding: 12px;
+    cursor: default;
+}
+
+#invoicesTable th.sort-asc::after {
+    content: '↑';
+    opacity: 1;
+}
+
+#invoicesTable th.sort-desc::after {
+    content: '↓';
+    opacity: 1;
 }
 
 #invoicesTable th, #invoicesTable td {
@@ -138,39 +168,37 @@ header {
 #invoicesTable th:nth-child(1), 
 #invoicesTable td:nth-child(1) {
     /* N° Facture */
-    width: 12%;
+    width: 15%;
     text-align: left;
 }
 
 #invoicesTable th:nth-child(2), 
 #invoicesTable td:nth-child(2) {
     /* Client */
-    width: 20%;
+    width: 25%;
     text-align: left;
 }
 
 #invoicesTable th:nth-child(3), 
 #invoicesTable td:nth-child(3) {
     /* Date */
-    width: 12%;
+    width: 15%;
     text-align: center;
 }
 
 #invoicesTable th:nth-child(4), 
 #invoicesTable td:nth-child(4),
 #invoicesTable th:nth-child(5), 
-#invoicesTable td:nth-child(5),
-#invoicesTable th:nth-child(6), 
-#invoicesTable td:nth-child(6) {
-    /* Montants */
-    width: 15%;
+#invoicesTable td:nth-child(5) {
+    /* Montants HT et TTC */
+    width: 17.5%;
     text-align: right;
 }
 
-#invoicesTable th:nth-child(7), 
-#invoicesTable td:nth-child(7) {
+#invoicesTable th:nth-child(6), 
+#invoicesTable td:nth-child(6) {
     /* Actions */
-    width: 11%;
+    width: 10%;
     text-align: center;
 }
 
@@ -312,4 +340,8 @@ body > *:not(.finance-dashboard) {
 
 #emailModal .files-list li {
     padding: 5px 0;
+}
+
+.edit-btn:hover {
+    color: #ff9800;
 }

@@ -117,6 +117,88 @@ function generateDossiersData() {
     };
 }
 
+// Variables pour le tri des colonnes
+let currentSort = {
+    column: null,
+    direction: 'asc'
+};
+
+function initializeSortableColumns() {
+    const headers = document.querySelectorAll('#invoicesTable th');
+    headers.forEach((header, index) => {
+        header.addEventListener('click', () => {
+            const column = getColumnKey(index);
+            if (column) {
+                sortTable(column, header);
+            }
+        });
+    });
+}
+
+function getColumnKey(index) {
+    // Ne pas inclure la colonne Actions (index 5)
+    const columns = {
+        0: 'number',
+        1: 'client',
+        2: 'date',
+        3: 'totalHT',
+        4: 'totalTTC'
+    };
+    return columns[index];
+}
+
+function sortTable(column, header) {
+    // Mettre à jour les indicateurs visuels
+    document.querySelectorAll('#invoicesTable th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    // Inverser la direction si on clique sur la même colonne
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+
+    // Ajouter la classe de tri appropriée
+    header.classList.add(`sort-${currentSort.direction}`);
+
+    // Trier les factures
+    invoices.sort((a, b) => {
+        let valueA = getComparisonValue(a, column);
+        let valueB = getComparisonValue(b, column);
+        
+        const direction = currentSort.direction === 'asc' ? 1 : -1;
+        
+        if (valueA < valueB) return -1 * direction;
+        if (valueA > valueB) return 1 * direction;
+        return 0;
+    });
+
+    // Mettre à jour l'affichage
+    updateInvoicesList();
+}
+
+function getComparisonValue(invoice, column) {
+    switch (column) {
+        case 'number':
+            return invoice.number;
+        case 'client':
+            return `${invoice.client.nom} ${invoice.client.prenom}`.toLowerCase();
+        case 'date':
+            return new Date(invoice.date);
+        case 'totalHT':
+            return invoice.totalHT;
+        case 'tva':
+            return invoice.tva;
+        case 'totalTTC':
+            return invoice.totalTTC;
+        default:
+            return '';
+    }
+}
+
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
     // Disable scroll events completely
@@ -152,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initializeTheme();
     populateClientSelect();
+    initializeSortableColumns();
 });
 
 function initializeTheme() {
@@ -446,11 +529,10 @@ function updateInvoicesList() {
             <td>${invoice.client.nom} ${invoice.client.prenom}</td>
             <td>${formatDate(invoice.date)}</td>
             <td>${formatMoney(invoice.totalHT)}</td>
-            <td>${formatMoney(invoice.tva)}</td>
             <td>${formatMoney(invoice.totalTTC)}</td>
             <td>
                 <button onclick="viewInvoice('${invoice.number}')" class="action-btn view-btn" title="Voir">👁️</button>
-                <button onclick="downloadInvoice('${invoice.number}')" class="action-btn download-btn" title="Télécharger">📥</button>
+                <button onclick="editInvoice('${invoice.number}')" class="action-btn edit-btn" title="Modifier">✏️</button>
                 <button onclick="deleteInvoice('${invoice.number}')" class="action-btn delete-btn" title="Supprimer">🗑️</button>
             </td>
         `;
