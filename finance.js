@@ -542,8 +542,6 @@ function updateInvoicesList() {
             <td>${formatMoney(invoice.totalHT)}</td>
             <td>${formatMoney(invoice.totalTTC)}</td>
             <td>
-                <button onclick="viewInvoice('${invoice.number}')" class="action-btn view-btn" title="Voir">👁️</button>
-                <button onclick="editInvoice('${invoice.number}')" class="action-btn edit-btn" title="Modifier">✏️</button>
                 <button onclick="deleteInvoice('${invoice.number}')" class="action-btn delete-btn" title="Supprimer">🗑️</button>
             </td>
         `;

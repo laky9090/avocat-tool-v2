@@ -251,6 +251,28 @@ header {
     background-color: var(--hover-background);
 }
 
+/* Style pour la colonne Actions */
+#invoicesTable td:last-child {
+    text-align: center;
+    padding: 8px;
+}
+
+/* Style pour le bouton Supprimer */
+.action-btn.delete-btn {
+    display: inline-block;
+    margin: 0 auto;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+}
+
+/* Hover effect */
+.action-btn.delete-btn:hover {
+    background-color: var(--hover-background);
+}
+
 /* Formulaires */
 .form-section {
     background-color: var(--card-background);
