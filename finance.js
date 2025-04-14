@@ -15,6 +15,49 @@ const CABINET_INFO = {
 
 const fs = require('fs');
 const path = require('path');
+const { shell } = require('electron');
+
+// Ajouter après les constantes globales
+function getClientName(clientId) {
+    try {
+        const client = clients.find(c => c.numeroDossier === clientId);
+        if (!client) {
+            console.warn(`Client non trouvé pour l'ID: ${clientId}`);
+            return 'Client inconnu';
+        }
+        return `${client.nom} ${client.prenom || ''}`.trim();
+    } catch (error) {
+        console.error('Erreur dans getClientName:', error);
+        return 'Erreur';
+    }
+}
+
+// Fonctions utilitaires de formatage
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }).format(date);
+    } catch (error) {
+        console.error('Erreur de formatage de date:', error);
+        return 'Date invalide';
+    }
+}
+
+function formatMoney(amount) {
+    try {
+        return new Intl.NumberFormat('fr-FR', {
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount);
+    } catch (error) {
+        console.error('Erreur de formatage monétaire:', error);
+        return '0,00 €';
+    }
+}
 
 // Variables globales pour stocker les instances de graphiques
 let revenueChart = null;
@@ -108,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
     setupEventListeners();
     initializeTheme();
+    populateClientSelect();
 });
 
 function initializeTheme() {
@@ -179,42 +223,59 @@ function synchronizeClientFolders() {
 // Modifier la fonction loadData
 function loadData() {
     try {
-        // Charger les clients depuis le fichier clients.json
+        // 1. Charger les clients
         const clientsPath = path.join(__dirname, 'clients.json');
         console.log('Chargement des clients depuis:', clientsPath);
         
         if (fs.existsSync(clientsPath)) {
             const data = fs.readFileSync(clientsPath, 'utf8');
-            clients = JSON.parse(data);
-            console.log(`${clients.length} clients chargés depuis clients.json`);
+            
+            // Vérifier que le contenu n'est pas vide
+            if (!data.trim()) {
+                throw new Error('Fichier clients.json vide');
+            }
 
-            // Synchroniser les dossiers après le chargement des clients
-            synchronizeClientFolders();
+            try {
+                clients = JSON.parse(data);
+                
+                // Vérification du format des données
+                if (!Array.isArray(clients)) {
+                    throw new Error('Format de données clients invalide');
+                }
+                
+                console.log(`${clients.length} clients chargés avec succès`);
+                
+                // 2. Peupler la liste des clients APRÈS avoir vérifié les données
+                populateClientSelect();
+                
+            } catch (parseError) {
+                console.error('Erreur de parsing JSON:', parseError);
+                alert('Erreur lors de la lecture du fichier clients.json');
+                clients = [];
+            }
         } else {
             console.error('Fichier clients.json non trouvé');
             clients = [];
         }
 
-        // Peupler la liste des clients
-        populateClientSelect();
-
-        // Charger les factures
+        // 3. Charger les factures
         const invoicesPath = path.join(__dirname, 'invoices.json');
         if (fs.existsSync(invoicesPath)) {
-            const data = fs.readFileSync(invoicesPath, 'utf8');
-            invoices = JSON.parse(data);
-            console.log('Factures chargées:', invoices.length);
+            const invoicesData = fs.readFileSync(invoicesPath, 'utf8');
+            invoices = JSON.parse(invoicesData);
             updateInvoicesList();
         } else {
-            console.log('Aucun fichier de factures trouvé, initialisation d\'une nouvelle liste');
             invoices = [];
-            fs.writeFileSync(invoicesPath, JSON.stringify(invoices, null, 2));
+            fs.writeFileSync(invoicesPath, JSON.stringify([], null, 2));
         }
+
+        // 4. Mettre à jour les graphiques
+        updateCharts();
+
     } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
         console.error('Stack:', error.stack);
-        clients = [];
-        invoices = [];
+        alert(`Erreur de chargement : ${error.message}`);
     }
 }
 
@@ -363,6 +424,17 @@ function saveInvoice(formData) {
     closeModal();
 }
 
+function saveInvoicesToFile() {
+    try {
+        const invoicesPath = path.join(__dirname, 'invoices.json');
+        fs.writeFileSync(invoicesPath, JSON.stringify(invoices, null, 2));
+        console.log('Factures sauvegardées avec succès');
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde des factures:', error);
+        throw new Error('Impossible de sauvegarder les factures');
+    }
+}
+
 function updateInvoicesList() {
     const tbody = document.getElementById('invoicesList');
     tbody.innerHTML = invoices.map(invoice => `
@@ -390,46 +462,46 @@ function populateClientSelect() {
         return;
     }
 
-    // Vider la liste
     select.innerHTML = '<option value="">Sélectionner un client</option>';
 
-    // Vérifier si nous avons des clients
     if (!Array.isArray(clients) || clients.length === 0) {
         console.error('Aucun client disponible');
         return;
     }
 
-    // Créer les groupes
+    console.log(`Préparation de ${clients.length} clients pour la liste`);
+
+    const sortedClients = [...clients].sort((a, b) => a.nom.localeCompare(b.nom));
+    
     const currentGroup = document.createElement('optgroup');
     currentGroup.label = 'Dossiers en cours';
     
     const archivedGroup = document.createElement('optgroup');
     archivedGroup.label = 'Dossiers archivés';
 
-    // Trier et répartir les clients
-    clients.forEach(client => {
-        if (client && client.numeroDossier) {
+    let currentCount = 0;
+    let archivedCount = 0;
+
+    sortedClients.forEach(client => {
+        if (client?.numeroDossier && client?.nom) {
             const option = document.createElement('option');
             option.value = client.numeroDossier;
             option.textContent = `${client.nom} ${client.prenom || ''} (${client.numeroDossier})`;
             
             if (client.archived) {
                 archivedGroup.appendChild(option);
+                archivedCount++;
             } else {
                 currentGroup.appendChild(option);
+                currentCount++;
             }
         }
     });
 
-    // Ajouter les groupes non vides
-    if (currentGroup.children.length > 0) {
-        select.appendChild(currentGroup);
-    }
-    if (archivedGroup.children.length > 0) {
-        select.appendChild(archivedGroup);
-    }
+    if (currentCount > 0) select.appendChild(currentGroup);
+    if (archivedCount > 0) select.appendChild(archivedGroup);
 
-    console.log(`Clients chargés dans le select : ${select.options.length - 1}`);
+    console.log(`Liste peuplée avec ${currentCount} dossiers en cours et ${archivedCount} dossiers archivés`);
 }
 
 // Ajouter cette fonction après les autres fonctions
@@ -492,15 +564,11 @@ async function handleInvoiceSubmission(event) {
             throw new Error('Client non trouvé');
         }
 
-        // Vérifier que le client a un email
         if (!client.email) {
             throw new Error('Email du client non renseigné');
         }
 
-        // Générer le numéro de facture
         const invoiceNumber = generateInvoiceNumber();
-
-        // Créer l'objet facture
         const invoice = {
             number: invoiceNumber,
             date: new Date().toISOString(),
@@ -511,8 +579,10 @@ async function handleInvoiceSubmission(event) {
             totalTTC: formData.totalHT * 1.20
         };
 
-        // Générer et sauvegarder le PDF
-        const pdfBuffer = await generateInvoicePDF(invoice);
+        // Générer le PDF et convertir ArrayBuffer en Buffer
+        const pdfArrayBuffer = await generateInvoicePDF(invoice);
+        const pdfBuffer = Buffer.from(pdfArrayBuffer);
+
         const baseFolder = client.archived ? 'Dossiers archivés' : 'Dossiers en cours';
         const clientFolder = path.join(__dirname, baseFolder, `${client.nom}_${client.prenom}`, '2-Factures');
         
@@ -521,40 +591,41 @@ async function handleInvoiceSubmission(event) {
         }
 
         const pdfPath = path.join(clientFolder, `Facture_${invoiceNumber}.pdf`);
-        fs.writeFileSync(pdfPath, Buffer.from(pdfBuffer));
+        fs.writeFileSync(pdfPath, pdfBuffer);
 
-        // Lire et encoder le logo en base64
+        // Lire le logo
         const logoPath = path.join(__dirname, 'logo_candice.png');
-        const logoBase64 = fs.readFileSync(logoPath, { encoding: 'base64' });
+        const ribPath = path.join(__dirname, 'RIB.pdf');
 
-        const emailSubject = encodeURIComponent(`Note d'honoraire - Maître Candice ROVERA`);
-        const emailBody = encodeURIComponent(`
-        <html>
-        <body>
-            <p>Cher(e) ${client.nom},</p>
-            <p>Veuillez trouver ci-joint ma note d'honoraire d'un montant de ${invoice.totalTTC.toFixed(2)} € TTC, dont je vous remercie par avance pour le règlement.</p>
-            <p>Vous trouverez également ci-joint mon RIB.</p>
-            <p>Vous en souhaitant bonne réception,<br>
-            Je reste à votre disposition,<br>
-            Bien à vous,</p>
-            <p><img src="data:image/png;base64,${logoBase64}" alt="Logo" style="max-width: 200px;"></p>
-            <p><strong>Maître Candice ROVERA<br>
-            Avocate au Barreau de Paris<br>
-            124 Boulevard de Strasbourg<br>
-            75010 PARIS<br>
-            06.07.50.43.81<br>
-            Toque C0199<br>
-            Site internet : https://candicerovera-avocat.fr/</strong></p>
-        </body>
-        </html>
-        `);
+        // Créer le corps du message avec le chemin des fichiers
+        const emailBody = `
+Cher(e) ${client.nom},
 
-        // Modifier l'URL Gmail pour spécifier le contenu HTML
-        const ribPath = path.join(__dirname, 'RIB.pdf'); // Assurez-vous que le RIB est présent dans le dossier
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(client.email)}&su=${emailSubject}&body=${emailBody}&attach=${encodeURIComponent(pdfPath)},${encodeURIComponent(ribPath)}&html=true`;
-        require('electron').shell.openExternal(gmailUrl);
+Veuillez trouver ci-joint ma note d'honoraire d'un montant de ${invoice.totalTTC.toFixed(2)} € TTC, dont je vous remercie par avance pour le règlement.
 
-        // Fermer la modal et réinitialiser
+Vous trouverez également ci-joint mon RIB.
+
+Vous en souhaitant bonne réception,
+Je reste à votre disposition,
+Bien à vous,
+
+Maître Candice ROVERA
+Avocate au Barreau de Paris
+124 Boulevard de Strasbourg
+75010 PARIS
+06.07.50.43.81
+Toque C0199
+Site internet : https://candicerovera-avocat.fr/`;
+
+        // Ouvrir l'explorateur Windows au dossier contenant la facture
+        shell.showItemInFolder(pdfPath);
+
+        // Afficher un message plus détaillé
+        alert(`La facture a été générée avec succès dans le dossier :\n${clientFolder}\n\nPour envoyer la facture par email :\n1. Ouvrez votre logiciel de messagerie\n2. Créez un nouveau message à ${client.email}\n3. Copiez-collez le texte ci-dessous\n4. Joignez la facture depuis le dossier ouvert\n\n${emailBody}`);
+
+        // Sauvegarder et mettre à jour l'interface
+        invoices.push(invoice);
+        saveInvoicesToFile();
         closeModal();
         loadData();
         updateCharts();
