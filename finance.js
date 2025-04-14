@@ -21,6 +21,10 @@ const { shell } = require('electron');
 let draggedColumn = null;
 let originalIndex = null;
 
+// Variables globales pour stocker les instances de graphiques
+let revenueChart = null;
+let dossiersChart = null;
+
 // Ajouter après les constantes globales
 function getClientName(clientId) {
     try {
@@ -62,10 +66,6 @@ function formatMoney(amount) {
         return '0,00 €';
     }
 }
-
-// Variables globales pour stocker les instances de graphiques
-let revenueChart = null;
-let dossiersChart = null;
 
 function generateRevenueData() {
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateClientSelect();
     initializeSortableColumns();
     initializeDraggableColumns();
+    updateFinancialStats();
 });
 
 function initializeTheme() {
@@ -360,6 +361,8 @@ function loadData() {
         }
 
         // 4. Mettre à jour les graphiques
+        updateInvoicesList();
+        updateFinancialStats();
         updateCharts();
 
     } catch (error) {
@@ -397,20 +400,85 @@ function initializeCharts(options) {
 
 // Fonction pour mettre à jour les graphiques
 function updateCharts() {
-    // Détruire et recréer les graphiques avec les nouvelles données
-    initializeCharts({
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-            duration: 0
+    updateRevenueChart();
+    updateDossiersChart();
+}
+
+function updateRevenueChart() {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    // Détruire le graphique existant s'il existe
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+
+    // Obtenir les données mensuelles
+    const monthlyData = getMonthlyRevenue();
+
+    // Créer le nouveau graphique
+    revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.labels,
+            datasets: [{
+                label: 'CA mensuel',
+                data: monthlyData.data,
+                borderColor: '#2196F3',
+                tension: 0.1
+            }]
         },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'bottom'
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
     });
+}
+
+function updateDossiersChart() {
+    const ctx = document.getElementById('dossiersChart').getContext('2d');
+    
+    // Détruire le graphique existant s'il existe
+    if (dossiersChart) {
+        dossiersChart.destroy();
+    }
+
+    // Créer le nouveau graphique
+    dossiersChart = new Chart(ctx, {
+        type: 'pie',
+        data: generateDossiersData(),
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+function getMonthlyRevenue() {
+    const currentYear = new Date().getFullYear();
+    const months = Array(12).fill(0);
+    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    // Calculer le CA pour chaque mois
+    invoices.forEach(invoice => {
+        const date = new Date(invoice.date);
+        if (date.getFullYear() === currentYear) {
+            months[date.getMonth()] += invoice.totalHT;
+        }
+    });
+
+    return {
+        labels: monthNames,
+        data: months
+    };
 }
 
 // Modifier la fonction generateInvoiceNumber pour gérer le cas où invoices est undefined
@@ -512,6 +580,8 @@ function saveInvoice(formData) {
     invoices.push(invoice);
     saveInvoicesToFile();
     updateInvoicesList();
+    updateFinancialStats();
+    updateCharts();
     closeModal();
 }
 
@@ -563,6 +633,7 @@ function updateInvoiceStatus(invoiceNumber, newStatus) {
         invoice.status = newStatus;
         saveInvoicesToFile();
         updateCharts();
+        updateFinancialStats();
     }
 }
 
@@ -588,6 +659,7 @@ function deleteInvoice(invoiceNumber) {
             invoices.splice(index, 1);
             saveInvoicesToFile();
             updateInvoicesList();
+            updateFinancialStats();
             updateCharts();
         }
     }
@@ -768,6 +840,7 @@ Site internet : https://candicerovera-avocat.fr/`;
         closeModal();
         loadData();
         updateCharts();
+        updateFinancialStats();
 
         // Ouvrir la modale d'email avec le bon client
         openEmailModal({
@@ -1033,4 +1106,26 @@ function updateColumnOrder(fromIndex, toIndex) {
 
     // Sauvegarder le nouvel ordre dans le localStorage
     localStorage.setItem('columnOrder', JSON.stringify(columns));
+}
+
+function updateFinancialStats() {
+    const currentYear = new Date().getFullYear();
+    let currentYearHT = 0;
+    let totalTVA = 0;
+    let totalTTC = 0;
+
+    // Calculer les totaux pour l'année en cours
+    invoices.forEach(invoice => {
+        const invoiceDate = new Date(invoice.date);
+        if (invoiceDate.getFullYear() === currentYear) {
+            currentYearHT += invoice.totalHT;
+            totalTVA += invoice.totalHT * 0.20;
+            totalTTC += invoice.totalTTC;
+        }
+    });
+
+    // Mettre à jour l'affichage
+    document.getElementById('totalHT').textContent = formatMoney(currentYearHT);
+    document.getElementById('totalTVA').textContent = formatMoney(totalTVA);
+    document.getElementById('totalTTC').textContent = formatMoney(totalTTC);
 }
