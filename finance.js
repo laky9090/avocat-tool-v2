@@ -140,13 +140,14 @@ function initializeSortableColumns() {
 }
 
 function getColumnKey(index) {
-    // Ne pas inclure la colonne Actions (index 5)
     const columns = {
         0: 'number',
         1: 'client',
         2: 'date',
-        3: 'totalHT',
-        4: 'totalTTC'
+        3: 'description',
+        4: 'totalHT',
+        5: 'totalTTC',
+        6: 'actions'
     };
     return columns[index];
 }
@@ -527,12 +528,17 @@ function updateInvoicesList() {
     const tbody = document.querySelector('#invoicesTable tbody');
     tbody.innerHTML = '';
 
-    invoices.forEach((invoice, index) => {
+    invoices.forEach(invoice => {
+        // Récupérer la description de la première prestation
+        const description = invoice.prestations && invoice.prestations[0] ? 
+            invoice.prestations[0].description : '';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${invoice.number}</td>
             <td>${invoice.client.nom} ${invoice.client.prenom}</td>
             <td>${formatDate(invoice.date)}</td>
+            <td>${description}</td>
             <td>${formatMoney(invoice.totalHT)}</td>
             <td>${formatMoney(invoice.totalTTC)}</td>
             <td>
