@@ -559,11 +559,13 @@ async function handleInvoiceSubmission(event) {
         const formData = getFormData();
         if (!formData) return;
 
+        // Récupérer le client sélectionné
         const client = clients.find(c => c.numeroDossier === formData.clientId);
         if (!client) {
             throw new Error('Client non trouvé');
         }
 
+        // Vérifier l'email
         if (!client.email) {
             throw new Error('Email du client non renseigné');
         }
@@ -572,7 +574,7 @@ async function handleInvoiceSubmission(event) {
         const invoice = {
             number: invoiceNumber,
             date: new Date().toISOString(),
-            client: client,
+            client: client, // On stocke l'objet client complet
             prestations: formData.prestations,
             totalHT: formData.totalHT,
             tva: formData.totalHT * 0.20,
@@ -597,9 +599,9 @@ async function handleInvoiceSubmission(event) {
         const logoPath = path.join(__dirname, 'logo_candice.png');
         const ribPath = path.join(__dirname, 'RIB.pdf');
 
-        // Préparer le message d'email
+        // Préparer le message d'email avec le bon client
         const emailBody = `
-Cher(e) ${client.nom},
+Cher(e) ${client.prenom ? client.prenom + ' ' : ''}${client.nom},
 
 Veuillez trouver ci-joint ma note d'honoraire d'un montant de ${invoice.totalTTC.toFixed(2)} € TTC, dont je vous remercie par avance pour le règlement.
 
@@ -624,7 +626,7 @@ Site internet : https://candicerovera-avocat.fr/`;
         loadData();
         updateCharts();
 
-        // Ouvrir la modale d'email
+        // Ouvrir la modale d'email avec les bonnes informations
         openEmailModal({
             to: client.email,
             subject: `Note d'honoraire - Maître Candice ROVERA`,
