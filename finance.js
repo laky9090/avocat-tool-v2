@@ -147,7 +147,8 @@ function getColumnKey(index) {
         3: 'description',
         4: 'totalHT',
         5: 'totalTTC',
-        6: 'actions'
+        6: 'status',
+        7: 'actions'
     };
     return columns[index];
 }
@@ -504,7 +505,8 @@ function saveInvoice(formData) {
         prestations: formData.prestations,
         totalHT: formData.totalHT,
         tva: formData.totalHT * TVA_RATE,
-        totalTTC: formData.totalHT * (1 + TVA_RATE)
+        totalTTC: formData.totalHT * (1 + TVA_RATE),
+        status: 'sent' // Ajouter le statut par défaut
     };
 
     invoices.push(invoice);
@@ -529,7 +531,6 @@ function updateInvoicesList() {
     tbody.innerHTML = '';
 
     invoices.forEach(invoice => {
-        // Récupérer la description de la première prestation
         const description = invoice.prestations && invoice.prestations[0] ? 
             invoice.prestations[0].description : '';
 
@@ -542,11 +543,27 @@ function updateInvoicesList() {
             <td>${formatMoney(invoice.totalHT)}</td>
             <td>${formatMoney(invoice.totalTTC)}</td>
             <td>
+                <select class="status-select" onchange="updateInvoiceStatus('${invoice.number}', this.value)">
+                    <option value="sent" ${invoice.status === 'sent' ? 'selected' : ''}>Envoyée</option>
+                    <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Payée</option>
+                </select>
+            </td>
+            <td>
                 <button onclick="deleteInvoice('${invoice.number}')" class="action-btn delete-btn" title="Supprimer">🗑️</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Ajouter cette nouvelle fonction pour gérer le changement de statut
+function updateInvoiceStatus(invoiceNumber, newStatus) {
+    const invoice = invoices.find(inv => inv.number === invoiceNumber);
+    if (invoice) {
+        invoice.status = newStatus;
+        saveInvoicesToFile();
+        updateCharts();
+    }
 }
 
 // Fonctions pour les actions

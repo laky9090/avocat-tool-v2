@@ -45,7 +45,8 @@
     ],
     "totalHT": 100,
     "tva": 20,
-    "totalTTC": 120
+    "totalTTC": 120,
+    "status": "paid"
   },
   {
     "number": "2025-0025",
@@ -93,6 +94,7 @@
     ],
     "totalHT": 500,
     "tva": 100,
-    "totalTTC": 600
+    "totalTTC": 600,
+    "status": "paid"
   }
 ]
