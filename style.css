@@ -783,12 +783,24 @@ calendar-nav button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 16px 24px; /* Augmenté le padding horizontal */
+    margin-bottom: 15px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+}
+
+.file-explorer-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    flex: 1; /* Pour prendre l'espace disponible */
+    padding-right: 24px; /* Ajouter de l'espace à droite du titre */
 }
 
 .file-explorer-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto; /* Pour pousser les boutons vers la droite */
 }
 
 .file-explorer-container {

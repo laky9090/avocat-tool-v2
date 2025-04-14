@@ -4,7 +4,7 @@ let invoices = [];
 let clients = [];
 
 const CABINET_INFO = {
-    nom: "Me Candice ROVERA",
+    nom: "Maître Candice ROVERA",
     titre: "Avocat au Barreau de Paris",
     adresse: "[Adresse du cabinet]",
     telephone: "[Numéro de téléphone]",
