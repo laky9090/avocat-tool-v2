@@ -169,16 +169,28 @@
             <h2>Envoyer la facture par email</h2>
             <form id="emailForm">
                 <div class="form-group">
-                    <label for="emailTo">Destinataire :</label>
-                    <input type="email" id="emailTo" required readonly>
+                    <label for="emailFrom">De :</label>
+                    <input type="email" id="emailFrom" value="candicerovera@gmail.com" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="emailTo">À :</label>
+                    <input type="email" id="emailTo" required>
+                </div>
+                <div class="form-group">
+                    <label for="emailCc">Cc :</label>
+                    <input type="email" id="emailCc">
                 </div>
                 <div class="form-group">
                     <label for="emailSubject">Objet :</label>
-                    <input type="text" id="emailSubject" value="Note d'honoraire - Maître Candice ROVERA" required>
+                    <input type="text" id="emailSubject" required>
                 </div>
                 <div class="form-group">
                     <label for="emailBody">Message :</label>
                     <textarea id="emailBody" rows="12" required></textarea>
+                </div>
+                <div class="form-group files-list">
+                    <label>Pièces jointes :</label>
+                    <ul id="attachmentsList"></ul>
                 </div>
                 <div class="button-group">
                     <button type="submit" class="primary-button">Envoyer</button>

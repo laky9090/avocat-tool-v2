@@ -219,6 +219,7 @@ body > *:not(.finance-dashboard) {
 /* Style pour la modale d'email */
 #emailModal .modal-content {
     max-width: 800px;
+    padding: 30px;
 }
 
 #emailModal textarea {
@@ -242,4 +243,36 @@ body > *:not(.finance-dashboard) {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+}
+
+#emailModal input[type="email"],
+#emailModal input[type="text"],
+#emailModal textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-background);
+    color: var(--text-primary);
+}
+
+#emailModal input[readonly] {
+    background-color: var(--background-secondary);
+    cursor: not-allowed;
+}
+
+#emailModal .files-list {
+    background-color: var(--background-secondary);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+#emailModal .files-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#emailModal .files-list li {
+    padding: 5px 0;
 }

@@ -643,9 +643,22 @@ Site internet : https://candicerovera-avocat.fr/`;
 
 function openEmailModal(emailData) {
     const modal = document.getElementById('emailModal');
+    
+    // Pré-remplir les champs
+    document.getElementById('emailFrom').value = 'candicerovera@gmail.com';
     document.getElementById('emailTo').value = emailData.to;
     document.getElementById('emailSubject').value = emailData.subject;
     document.getElementById('emailBody').value = emailData.body;
+
+    // Afficher les pièces jointes
+    const attachmentsList = document.getElementById('attachmentsList');
+    attachmentsList.innerHTML = emailData.attachments
+        .map(file => `<li>📎 ${path.basename(file)}</li>`)
+        .join('');
+
+    // Stocker les chemins des pièces jointes pour l'envoi
+    modal.dataset.attachments = JSON.stringify(emailData.attachments);
+
     modal.style.display = 'flex';
 }
 
@@ -653,22 +666,43 @@ function closeEmailModal() {
     document.getElementById('emailModal').style.display = 'none';
 }
 
-// Gestion de l'envoi d'email
+// Modifier la gestion de l'envoi d'email
 document.getElementById('emailForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = {
-        to: document.getElementById('emailTo').value,
-        subject: document.getElementById('emailSubject').value,
-        body: document.getElementById('emailBody').value
-    };
     
-    // Utilisation de l'API nodemailer ou de l'application mail par défaut
     try {
-        await sendEmail(email);
+        const modal = document.getElementById('emailModal');
+        const attachments = JSON.parse(modal.dataset.attachments);
+        
+        const emailData = {
+            from: document.getElementById('emailFrom').value,
+            to: document.getElementById('emailTo').value,
+            cc: document.getElementById('emailCc').value,
+            subject: document.getElementById('emailSubject').value,
+            body: document.getElementById('emailBody').value,
+            attachments: attachments
+        };
+
+        // Ouvrir le dossier contenant les pièces jointes
+        if (attachments.length > 0) {
+            const folderPath = path.dirname(attachments[0]);
+            await shell.openPath(folderPath);
+        }
+
+        // Construire l'URL Gmail pour composer un nouveau mail
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailData.to)}${
+            emailData.cc ? '&cc=' + encodeURIComponent(emailData.cc) : ''
+        }&su=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
+
+        // Ouvrir Gmail dans le navigateur par défaut
+        await shell.openExternal(gmailUrl);
+
         closeEmailModal();
-        alert('Email envoyé avec succès !');
+        alert('Gmail va s\'ouvrir avec votre message.\nVeuillez joindre les fichiers depuis le dossier qui vient de s\'ouvrir.');
+
     } catch (error) {
-        alert('Erreur lors de l\'envoi de l\'email : ' + error.message);
+        console.error('Erreur lors de l\'envoi:', error);
+        alert('Erreur lors de la préparation de l\'email : ' + error.message);
     }
 });
 
