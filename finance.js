@@ -16,7 +16,7 @@ const CABINET_INFO = {
 const fs = require('fs');
 const path = require('path');
 
-// Ajouter ces variables globales au début du fichier
+// Variables globales pour stocker les instances de graphiques
 let revenueChart = null;
 let dossiersChart = null;
 
@@ -220,12 +220,16 @@ function loadData() {
 
 // Modifier la fonction initializeCharts
 function initializeCharts(options) {
+    // Détruire les graphiques existants s'ils existent
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+    if (dossiersChart) {
+        dossiersChart.destroy();
+    }
+
     const revenueCtx = document.getElementById('revenueChart').getContext('2d');
     const dossiersCtx = document.getElementById('dossiersChart').getContext('2d');
-
-    // Set fixed dimensions
-    revenueCtx.canvas.style.height = '300px';
-    dossiersCtx.canvas.style.height = '300px';
 
     revenueChart = new Chart(revenueCtx, {
         type: 'line',
@@ -237,6 +241,24 @@ function initializeCharts(options) {
         type: 'pie',
         data: generateDossiersData(),
         options: options
+    });
+}
+
+// Fonction pour mettre à jour les graphiques
+function updateCharts() {
+    // Détruire et recréer les graphiques avec les nouvelles données
+    initializeCharts({
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+            duration: 0
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom'
+            }
+        }
     });
 }
 
@@ -535,7 +557,7 @@ async function handleInvoiceSubmission(event) {
         // Fermer la modal et réinitialiser
         closeModal();
         loadData();
-        initializeCharts();
+        updateCharts();
 
     } catch (error) {
         console.error('Erreur détaillée:', error);
