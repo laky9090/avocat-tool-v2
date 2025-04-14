@@ -119,22 +119,59 @@ header {
 /* Table des factures */
 #invoicesTable {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
 #invoicesTable th {
-    position: sticky;
-    top: 0;
-    background: var(--background-secondary);
-    z-index: 1;
-    padding: 15px 10px;
-    border-bottom: 2px solid var(--border-color);
+    background-color: var(--background-secondary);
+    padding: 12px;
+    text-align: left;
 }
 
-#invoicesTable td {
-    padding: 12px 10px;
+#invoicesTable th, #invoicesTable td {
+    padding: 12px;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* Alignement spécifique pour chaque colonne */
+#invoicesTable th:nth-child(1), 
+#invoicesTable td:nth-child(1) {
+    /* N° Facture */
+    width: 12%;
+    text-align: left;
+}
+
+#invoicesTable th:nth-child(2), 
+#invoicesTable td:nth-child(2) {
+    /* Client */
+    width: 20%;
+    text-align: left;
+}
+
+#invoicesTable th:nth-child(3), 
+#invoicesTable td:nth-child(3) {
+    /* Date */
+    width: 12%;
+    text-align: center;
+}
+
+#invoicesTable th:nth-child(4), 
+#invoicesTable td:nth-child(4),
+#invoicesTable th:nth-child(5), 
+#invoicesTable td:nth-child(5),
+#invoicesTable th:nth-child(6), 
+#invoicesTable td:nth-child(6) {
+    /* Montants */
+    width: 15%;
+    text-align: right;
+}
+
+#invoicesTable th:nth-child(7), 
+#invoicesTable td:nth-child(7) {
+    /* Actions */
+    width: 11%;
+    text-align: center;
 }
 
 /* Amélioration de la lisibilité du tableau */
