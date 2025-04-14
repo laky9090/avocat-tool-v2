@@ -1978,3 +1978,8 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('enregistrerBtn').onclick = () => {
     ajouterOuModifierClient();
 };
+
+// Ajouter après les autres initialisations
+document.getElementById('openFinanceBtn').addEventListener('click', () => {
+    window.location.href = 'finance.html';
+});

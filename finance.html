@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Financière - Me ROVERA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="finance.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <button id="themeToggle" class="theme-toggle">
+        <span id="themeIcon">🌞</span>
+        <span id="themeText">Mode sombre</span>
+    </button>
+
+    <header>
+        <h1>Cabinet Me Candice ROVERA</h1>
+        <div class="header-subtitle">Gestion Financière</div>
+        <button onclick="window.location.href='index.html'" class="nav-button">← Retour</button>
+    </header>
+
+    <div class="finance-dashboard">
+        <!-- Coordonnées du cabinet -->
+        <div class="cabinet-info">
+            <div class="lawyer-details">
+                <h3>Me Candice ROVERA</h3>
+                <p>Avocat au Barreau de Paris</p>
+                <p>SIRET : 98302483700020</p>
+                <p>TVA Intracommunautaire : FR13983024837</p>
+            </div>
+        </div>
+
+        <!-- Résumé financier -->
+        <div class="finance-summary">
+            <div class="stat-card">
+                <h3>Chiffre d'affaires HT</h3>
+                <div id="totalHT" class="stat-value">0 €</div>
+            </div>
+            <div class="stat-card">
+                <h3>TVA (20%)</h3>
+                <div id="totalTVA" class="stat-value">0 €</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total TTC</h3>
+                <div id="totalTTC" class="stat-value">0 €</div>
+            </div>
+        </div>
+
+        <!-- Graphiques -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>Évolution du CA mensuel</h3>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Répartition par type de dossier</h3>
+                <canvas id="dossiersChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gestion des factures -->
+        <div class="invoices-section">
+            <h2>Gestion des factures</h2>
+            <button id="createInvoiceBtn" class="primary-button">Créer une nouvelle facture</button>
+            
+            <!-- Liste des factures -->
+            <div class="invoices-list">
+                <table id="invoicesTable">
+                    <thead>
+                        <tr>
+                            <th>N° Facture</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Montant HT</th>
+                            <th>TVA</th>
+                            <th>Total TTC</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Template de facture -->
+        <div id="invoiceTemplate" style="display: none;">
+            <div class="invoice-header">
+                <div class="lawyer-info">
+                    <h2>Me Candice ROVERA</h2>
+                    <p>Avocat au Barreau de Paris</p>
+                    <p>[Adresse du cabinet]</p>
+                    <p>Tél: [Numéro de téléphone]</p>
+                    <p>Email: [Email professionnel]</p>
+                    <p>SIRET : 98302483700020</p>
+                    <p>TVA Intracommunautaire : FR13983024837</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour créer/modifier une facture -->
+    <div id="invoiceModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal">×</button>
+            <h2>Création de facture</h2>
+            <form id="invoiceForm">
+                <!-- En-tête de facture -->
+                <div class="form-group">
+                    <label>Client :</label>
+                    <select id="clientSelect" required></select>
+                </div>
+
+                <!-- Tableau des prestations -->
+                <div class="form-group">
+                    <table class="invoice-table">
+                        <thead>
+                            <tr>
+                                <th>Description de la prestation</th>
+                                <th>Montant HT</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prestationsContainer">
+                            <tr class="prestation-item">
+                                <td><input type="text" class="prestation-desc" placeholder="Description" required></td>
+                                <td><input type="number" class="prestation-amount" placeholder="0.00" step="0.01" required onchange="updateTotals()"></td>
+                                <td><button type="button" class="remove-row" onclick="removeRow(this)">×</button></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3">
+                                    <button type="button" class="add-row">+ Ajouter une ligne</button>
+                                </td>
+                            </tr>
+                            <tr class="totals">
+                                <td>Total HT</td>
+                                <td id="invoiceTotalHT">0.00 €</td>
+                                <td></td>
+                            </tr>
+                            <tr class="totals">
+                                <td>TVA (20%)</td>
+                                <td id="invoiceTVA">0.00 €</td>
+                                <td></td>
+                            </tr>
+                            <tr class="totals">
+                                <td>Total TTC</td>
+                                <td id="invoiceTotalTTC">0.00 €</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="primary-button">Générer et envoyer la facture</button>
+                    <button type="button" class="secondary-button" onclick="closeModal()">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="finance.js"></script>
+</body>
+</html>

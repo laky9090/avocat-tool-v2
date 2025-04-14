@@ -640,37 +640,6 @@ calendar-nav button {
     margin: 20px 0;
 }
 
-.stat-card {
-    background: var(--card-background);
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-icon {
-    font-size: 24px;
-    margin-bottom: 10px;
-}
-
-.stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #2980b9;
-    margin-bottom: 5px;
-    font-family: 'Segoe UI', sans-serif;
-}
-
-.stat-label {
-    color: #7f8c8d;
-    font-size: 14px;
-}
-
 /* Rappels Styling */
 .rappels-container {
     background: var(--card-background);
