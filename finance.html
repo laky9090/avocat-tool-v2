@@ -162,6 +162,32 @@
         </div>
     </div>
 
+    <!-- Modal pour l'envoi d'email -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeEmailModal()">×</button>
+            <h2>Envoyer la facture par email</h2>
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="emailTo">Destinataire :</label>
+                    <input type="email" id="emailTo" required readonly>
+                </div>
+                <div class="form-group">
+                    <label for="emailSubject">Objet :</label>
+                    <input type="text" id="emailSubject" value="Note d'honoraire - Maître Candice ROVERA" required>
+                </div>
+                <div class="form-group">
+                    <label for="emailBody">Message :</label>
+                    <textarea id="emailBody" rows="12" required></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="primary-button">Envoyer</button>
+                    <button type="button" class="secondary-button" onclick="closeEmailModal()">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="finance.js"></script>
 </body>
 </html>

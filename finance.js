@@ -597,7 +597,7 @@ async function handleInvoiceSubmission(event) {
         const logoPath = path.join(__dirname, 'logo_candice.png');
         const ribPath = path.join(__dirname, 'RIB.pdf');
 
-        // Créer le corps du message avec le chemin des fichiers
+        // Préparer le message d'email
         const emailBody = `
 Cher(e) ${client.nom},
 
@@ -617,24 +617,60 @@ Avocate au Barreau de Paris
 Toque C0199
 Site internet : https://candicerovera-avocat.fr/`;
 
-        // Ouvrir l'explorateur Windows au dossier contenant la facture
-        shell.showItemInFolder(pdfPath);
-
-        // Afficher un message plus détaillé
-        alert(`La facture a été générée avec succès dans le dossier :\n${clientFolder}\n\nPour envoyer la facture par email :\n1. Ouvrez votre logiciel de messagerie\n2. Créez un nouveau message à ${client.email}\n3. Copiez-collez le texte ci-dessous\n4. Joignez la facture depuis le dossier ouvert\n\n${emailBody}`);
-
-        // Sauvegarder et mettre à jour l'interface
+        // Sauvegarder et mettre à jour
         invoices.push(invoice);
         saveInvoicesToFile();
         closeModal();
         loadData();
         updateCharts();
 
+        // Ouvrir la modale d'email
+        openEmailModal({
+            to: client.email,
+            subject: `Note d'honoraire - Maître Candice ROVERA`,
+            body: emailBody,
+            attachments: [
+                pdfPath,
+                path.join(__dirname, 'RIB.pdf')
+            ]
+        });
+
     } catch (error) {
         console.error('Erreur détaillée:', error);
         alert(`Erreur: ${error.message}`);
     }
 }
+
+function openEmailModal(emailData) {
+    const modal = document.getElementById('emailModal');
+    document.getElementById('emailTo').value = emailData.to;
+    document.getElementById('emailSubject').value = emailData.subject;
+    document.getElementById('emailBody').value = emailData.body;
+    modal.style.display = 'flex';
+}
+
+function closeEmailModal() {
+    document.getElementById('emailModal').style.display = 'none';
+}
+
+// Gestion de l'envoi d'email
+document.getElementById('emailForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = {
+        to: document.getElementById('emailTo').value,
+        subject: document.getElementById('emailSubject').value,
+        body: document.getElementById('emailBody').value
+    };
+    
+    // Utilisation de l'API nodemailer ou de l'application mail par défaut
+    try {
+        await sendEmail(email);
+        closeEmailModal();
+        alert('Email envoyé avec succès !');
+    } catch (error) {
+        alert('Erreur lors de l\'envoi de l\'email : ' + error.message);
+    }
+});
 
 // Fonction pour générer le PDF de la facture
 async function generateInvoicePDF(invoice) {

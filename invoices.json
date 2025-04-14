@@ -46,5 +46,53 @@
     "totalHT": 400,
     "tva": 80,
     "totalTTC": 480
+  },
+  {
+    "number": "2025-0002",
+    "date": "2025-04-14T09:57:55.029Z",
+    "client": {
+      "numeroDossier": "2025-002",
+      "nom": "CHAUC",
+      "prenom": "Viard",
+      "adresse": "22 rue de la paix, Paris",
+      "telephone": "0753770320",
+      "email": "dhllaky2@gmail.com",
+      "profession": "Chef de projet informatique",
+      "tribunal": "Tribunal judiciaire de Versailles",
+      "type": "DCM",
+      "dateAudience": "2025-05-30",
+      "dateContact": "2025-04-10",
+      "dateEcheance": "2025-01-01",
+      "commentaire": "Merdique",
+      "nomAdverse": "Jean",
+      "prenomAdverse": "BIGARDY",
+      "adresseAdverse": "11 rue André, Nancy",
+      "telephoneAdverse": "0604115278",
+      "emailAdverse": "test1@gmail.com",
+      "professionAdverse": "Eboueur",
+      "aideJuridictionnelle": "oui",
+      "montantTotal": "1500",
+      "montantPaye": "100",
+      "tags": [
+        "Social"
+      ],
+      "notes": [
+        {
+          "content": "Transfert de dossier",
+          "date": "2025-04-12T10:35:00.164Z",
+          "id": 1744454100164
+        }
+      ],
+      "archived": false
+    },
+    "prestations": [
+      {
+        "description": "test",
+        "amount": 500
+      }
+    ],
+    "totalHT": 500,
+    "tva": 100,
+    "totalTTC": 600
   }
 ]

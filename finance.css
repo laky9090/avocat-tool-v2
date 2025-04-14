@@ -215,3 +215,31 @@ body > *:not(.finance-dashboard) {
     overscroll-behavior: none;
     touch-action: none;
 }
+
+/* Style pour la modale d'email */
+#emailModal .modal-content {
+    max-width: 800px;
+}
+
+#emailModal textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 10px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+#emailModal input {
+    width: 100%;
+    padding: 8px;
+}
+
+#emailModal .form-group {
+    margin-bottom: 15px;
+}
+
+#emailModal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
