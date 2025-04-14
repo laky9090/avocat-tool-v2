@@ -507,19 +507,26 @@ function populateClientSelect() {
 // Ajouter cette fonction après les autres fonctions
 function getFormData() {
     try {
+        // Récupérer l'ID du client sélectionné
         const clientId = document.getElementById('clientSelect').value;
         if (!clientId) {
             alert('Veuillez sélectionner un client');
             return null;
         }
 
+        // Trouver le client correspondant
+        const selectedClient = clients.find(c => c.numeroDossier === clientId);
+        if (!selectedClient) {
+            alert('Client non trouvé');
+            return null;
+        }
+
+        // Récupérer les prestations - Modification du sélecteur ici
         const prestations = [];
-        // Modifier le sélecteur pour cibler correctement les lignes de prestation
-        document.querySelectorAll('#prestationsContainer .prestation-item').forEach(row => {
+        document.querySelectorAll('.prestation-item').forEach(row => {
             const description = row.querySelector('.prestation-desc').value.trim();
             const amount = parseFloat(row.querySelector('.prestation-amount').value);
             
-            // Vérifier si la ligne est remplie
             if (description && !isNaN(amount) && amount > 0) {
                 prestations.push({
                     description: description,
@@ -528,10 +535,6 @@ function getFormData() {
             }
         });
 
-        // Debug
-        console.log('Prestations trouvées:', prestations);
-
-        // Ne vérifier que si le tableau est vide
         if (prestations.length === 0) {
             alert('Veuillez remplir au moins une prestation');
             return null;
@@ -540,7 +543,8 @@ function getFormData() {
         const totalHT = prestations.reduce((sum, p) => sum + p.amount, 0);
 
         return {
-            clientId,
+            clientId: selectedClient.numeroDossier,
+            client: selectedClient,
             prestations,
             totalHT,
             date: new Date()
@@ -557,16 +561,19 @@ async function handleInvoiceSubmission(event) {
     
     try {
         const formData = getFormData();
+        console.log('FormData reçu:', formData);
+        
         if (!formData) return;
 
-        // Récupérer le client sélectionné
-        const client = clients.find(c => c.numeroDossier === formData.clientId);
-        if (!client) {
-            throw new Error('Client non trouvé');
-        }
+        const selectedClient = formData.client;
+        console.log('Client sélectionné pour la facture:', selectedClient);
 
-        // Vérifier l'email
-        if (!client.email) {
+        // ... reste du code ...
+
+// Avant de créer l'email
+console.log('Préparation de l\'email pour:', selectedClient.nom, selectedClient.prenom);
+
+if (!selectedClient.email) {
             throw new Error('Email du client non renseigné');
         }
 
@@ -574,19 +581,20 @@ async function handleInvoiceSubmission(event) {
         const invoice = {
             number: invoiceNumber,
             date: new Date().toISOString(),
-            client: client, // On stocke l'objet client complet
+            client: selectedClient,
             prestations: formData.prestations,
             totalHT: formData.totalHT,
             tva: formData.totalHT * 0.20,
             totalTTC: formData.totalHT * 1.20
         };
 
-        // Générer le PDF et convertir ArrayBuffer en Buffer
+        // Générer le PDF
         const pdfArrayBuffer = await generateInvoicePDF(invoice);
         const pdfBuffer = Buffer.from(pdfArrayBuffer);
 
-        const baseFolder = client.archived ? 'Dossiers archivés' : 'Dossiers en cours';
-        const clientFolder = path.join(__dirname, baseFolder, `${client.nom}_${client.prenom}`, '2-Factures');
+        // Créer le dossier du client
+        const baseFolder = selectedClient.archived ? 'Dossiers archivés' : 'Dossiers en cours';
+        const clientFolder = path.join(__dirname, baseFolder, `${selectedClient.nom}_${selectedClient.prenom}`, '2-Factures');
         
         if (!fs.existsSync(clientFolder)) {
             fs.mkdirSync(clientFolder, { recursive: true });
@@ -595,13 +603,9 @@ async function handleInvoiceSubmission(event) {
         const pdfPath = path.join(clientFolder, `Facture_${invoiceNumber}.pdf`);
         fs.writeFileSync(pdfPath, pdfBuffer);
 
-        // Lire le logo
-        const logoPath = path.join(__dirname, 'logo_candice.png');
-        const ribPath = path.join(__dirname, 'RIB.pdf');
-
-        // Préparer le message d'email avec le bon client
+        // Préparer le message d'email avec le client sélectionné
         const emailBody = `
-Cher(e) ${client.prenom ? client.prenom + ' ' : ''}${client.nom},
+Cher(e) ${selectedClient.prenom ? selectedClient.prenom + ' ' : ''}${selectedClient.nom},
 
 Veuillez trouver ci-joint ma note d'honoraire d'un montant de ${invoice.totalTTC.toFixed(2)} € TTC, dont je vous remercie par avance pour le règlement.
 
@@ -626,9 +630,9 @@ Site internet : https://candicerovera-avocat.fr/`;
         loadData();
         updateCharts();
 
-        // Ouvrir la modale d'email avec les bonnes informations
+        // Ouvrir la modale d'email avec le bon client
         openEmailModal({
-            to: client.email,
+            to: selectedClient.email,
             subject: `Note d'honoraire - Maître Candice ROVERA`,
             body: emailBody,
             attachments: [
@@ -700,7 +704,6 @@ document.getElementById('emailForm').addEventListener('submit', async (e) => {
         await shell.openExternal(gmailUrl);
 
         closeEmailModal();
-        alert('Gmail va s\'ouvrir avec votre message.\nVeuillez joindre les fichiers depuis le dossier qui vient de s\'ouvrir.');
 
     } catch (error) {
         console.error('Erreur lors de l\'envoi:', error);

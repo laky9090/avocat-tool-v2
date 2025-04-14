@@ -35,76 +35,6 @@
     "archived": false
   },
   {
-    "numeroDossier": "2025-002",
-    "nom": "CHAUC",
-    "prenom": "Viard",
-    "adresse": "22 rue de la paix, Paris",
-    "telephone": "0753770320",
-    "email": "dhllaky2@gmail.com",
-    "profession": "Chef de projet informatique",
-    "tribunal": "Tribunal judiciaire de Versailles",
-    "type": "DCM",
-    "dateAudience": "2025-05-30",
-    "dateContact": "2025-04-10",
-    "dateEcheance": "2025-01-01",
-    "commentaire": "Merdique",
-    "nomAdverse": "Jean",
-    "prenomAdverse": "BIGARDY",
-    "adresseAdverse": "11 rue André, Nancy",
-    "telephoneAdverse": "0604115278",
-    "emailAdverse": "test1@gmail.com",
-    "professionAdverse": "Eboueur",
-    "aideJuridictionnelle": "oui",
-    "montantTotal": "1500",
-    "montantPaye": "100",
-    "tags": [
-      "Social"
-    ],
-    "notes": [
-      {
-        "content": "Transfert de dossier",
-        "date": "2025-04-12T10:35:00.164Z",
-        "id": 1744454100164
-      }
-    ],
-    "archived": false
-  },
-  {
-    "numeroDossier": "2025-002",
-    "nom": "PINOT",
-    "prenom": "Albert",
-    "adresse": "22 rue de la paix, Paris",
-    "telephone": "0753770323",
-    "email": "dhllaky2@gmail.com",
-    "profession": "Chef de projet informatique",
-    "tribunal": "Tribunal judiciaire de Versailles",
-    "type": "Divorce bref délai",
-    "dateAudience": "2025-05-30",
-    "dateContact": "2025-04-10",
-    "dateEcheance": "2025-01-01",
-    "commentaire": "Merdique",
-    "nomAdverse": "Jean-Luc",
-    "prenomAdverse": "BIGARD",
-    "adresseAdverse": "14 rue André, Nancy",
-    "telephoneAdverse": "0604115279",
-    "emailAdverse": "test2@gmail.com",
-    "professionAdverse": "Eboueur",
-    "aideJuridictionnelle": "oui",
-    "montantTotal": "1500",
-    "montantPaye": "100",
-    "tags": [
-      "Urgent"
-    ],
-    "notes": [
-      {
-        "content": "Transfert de dossier",
-        "date": "2025-04-12T10:35:00.164Z",
-        "id": 1744454100164
-      }
-    ],
-    "archived": false
-  },
-  {
     "numeroDossier": "2025-003",
     "nom": "CHAUCAPIC",
     "prenom": "Putase",
@@ -168,41 +98,6 @@
         "content": "Note de test",
         "date": "2025-04-12T17:47:02.982Z",
         "id": 1744480022982
-      }
-    ],
-    "archived": true
-  },
-  {
-    "numeroDossier": "2025-005",
-    "nom": "TEST-PZTQ6B",
-    "prenom": "Client",
-    "adresse": "123 rue de Test, 75000 Paris",
-    "telephone": "0612345678",
-    "email": "test1744481441062@test.com",
-    "profession": "Test",
-    "tribunal": "Tribunal judiciaire de Paris",
-    "type": "Requête en délégation d'autorité parentale",
-    "dateAudience": "2025-04-19",
-    "dateContact": "2025-04-12",
-    "dateEcheance": "2025-05-12",
-    "commentaire": "Fiche de test créée automatiquement",
-    "nomAdverse": "ADVERSE",
-    "prenomAdverse": "Test",
-    "adresseAdverse": "456 rue de Test, 75000 Paris",
-    "telephoneAdverse": "0687654321",
-    "emailAdverse": "adverse1744481441062@test.com",
-    "professionAdverse": "Test",
-    "aideJuridictionnelle": "non",
-    "montantTotal": "1000",
-    "montantPaye": "0",
-    "tags": [
-      "Test"
-    ],
-    "notes": [
-      {
-        "content": "Note de test",
-        "date": "2025-04-12T18:10:41.062Z",
-        "id": 1744481441062
       }
     ],
     "archived": true
