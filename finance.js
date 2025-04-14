@@ -601,8 +601,10 @@ function updateInvoicesList() {
     tbody.innerHTML = '';
 
     invoices.forEach(invoice => {
-        const description = invoice.prestations && invoice.prestations[0] ? 
-            invoice.prestations[0].description : '';
+        // Concaténer toutes les descriptions des prestations
+        const description = invoice.prestations 
+            ? invoice.prestations.map(p => p.description).join(' • ')
+            : '';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
