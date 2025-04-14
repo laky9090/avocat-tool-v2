@@ -1983,3 +1983,7 @@ document.getElementById('enregistrerBtn').onclick = () => {
 document.getElementById('openFinanceBtn').addEventListener('click', () => {
     window.location.href = 'finance.html';
 });
+
+document.getElementById('refreshPageBtn').addEventListener('click', () => {
+    window.location.reload();
+});

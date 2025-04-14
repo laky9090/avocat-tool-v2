@@ -1150,5 +1150,53 @@
     "totalHT": 100,
     "tva": 20,
     "totalTTC": 120
+  },
+  {
+    "number": "2025-0025",
+    "date": "2025-04-14T16:03:28.895Z",
+    "client": {
+      "numeroDossier": "2025-003",
+      "nom": "CHAUCAPIC",
+      "prenom": "Putase",
+      "adresse": "402 rue de la paix, Paris",
+      "telephone": "0753770325",
+      "email": "dhllaky4@gmail.com",
+      "profession": "Chef de projet plouf",
+      "tribunal": "Tribunal judiciaire d'Auxerres",
+      "type": "Appel - Divorce",
+      "dateAudience": "",
+      "dateContact": "",
+      "dateEcheance": "",
+      "commentaire": "Nullissime",
+      "nomAdverse": "Jean-Marie",
+      "prenomAdverse": "SALAUD",
+      "adresseAdverse": "55 rue André, Nancy",
+      "telephoneAdverse": "0604115280",
+      "emailAdverse": "test4@gmail.com",
+      "professionAdverse": "Architecte",
+      "aideJuridictionnelle": "oui",
+      "montantTotal": "1500",
+      "montantPaye": "0",
+      "tags": [
+        "Urgent"
+      ],
+      "notes": [
+        {
+          "content": "Relationationnellement stable",
+          "date": "2025-04-12T10:39:45.656Z",
+          "id": 1744454385656
+        }
+      ],
+      "archived": false
+    },
+    "prestations": [
+      {
+        "description": "test",
+        "amount": 100
+      }
+    ],
+    "totalHT": 100,
+    "tva": 20,
+    "totalTTC": 120
   }
 ]

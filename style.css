@@ -987,3 +987,29 @@ calendar-nav button {
 .theme-toggle:hover {
     opacity: 0.9;
 }
+
+/* Theme Buttons */
+.theme-buttons {
+    display: flex;
+    gap: 8px;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+.theme-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-button:hover {
+    background-color: var(--hover-background);
+}

@@ -6,10 +6,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <button id="themeToggle" class="theme-toggle">
-    <span id="themeIcon">🌞</span>
-    <span id="themeText">Mode sombre</span>
-  </button>
+  <div class="theme-buttons">
+    <button id="refreshPageBtn" class="theme-button">
+        <span id="refreshIcon">🔄</span>
+        <span>Actualiser</span>
+    </button>
+    <button id="themeToggle" class="theme-button">
+        <span id="themeIcon">🌞</span>
+        <span id="themeText">Mode sombre</span>
+    </button>
+  </div>
   <div id="loader" class="hidden">Chargement...</div>
   <header>
     <h1>Maître Candice ROVERA</h1>
@@ -185,7 +191,6 @@
         <h3>Explorateur de dossiers</h3>
         <div class="file-explorer-actions">
           <button id="newFolderBtn">📁 Nouveau dossier</button>
-          <button id="refreshBtn">🔄 Actualiser</button>
           <button id="openFinanceBtn" class="action-button">
             Gestion financière
           </button>
