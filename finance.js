@@ -17,6 +17,10 @@ const fs = require('fs');
 const path = require('path');
 const { shell } = require('electron');
 
+// Ajouter ces variables globales au début du fichier
+let draggedColumn = null;
+let originalIndex = null;
+
 // Ajouter après les constantes globales
 function getClientName(clientId) {
     try {
@@ -235,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     populateClientSelect();
     initializeSortableColumns();
+    initializeDraggableColumns();
 });
 
 function initializeTheme() {
@@ -940,4 +945,71 @@ function setupEventListeners() {
     if (addRowBtn) {
         addRowBtn.addEventListener('click', addRow);
     }
+}
+
+function initializeDraggableColumns() {
+    const headers = document.querySelectorAll('#invoicesTable th');
+    
+    headers.forEach((header, index) => {
+        if (index < headers.length - 1) { // Exclure la colonne Actions
+            header.draggable = true;
+            
+            header.addEventListener('dragstart', (e) => {
+                draggedColumn = header;
+                originalIndex = Array.from(headers).indexOf(header);
+                header.classList.add('dragging');
+            });
+
+            header.addEventListener('dragend', () => {
+                header.classList.remove('dragging');
+                draggedColumn = null;
+                originalIndex = null;
+            });
+
+            header.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedColumn && draggedColumn !== header) {
+                    const currentIndex = Array.from(headers).indexOf(header);
+                    if (currentIndex !== originalIndex) {
+                        swapColumns(originalIndex, currentIndex);
+                        originalIndex = currentIndex;
+                    }
+                }
+            });
+        }
+    });
+}
+
+function swapColumns(fromIndex, toIndex) {
+    const table = document.getElementById('invoicesTable');
+    const rows = Array.from(table.rows);
+
+    rows.forEach(row => {
+        const fromCell = row.cells[fromIndex];
+        const toCell = row.cells[toIndex];
+        
+        // Créer une copie temporaire du contenu
+        const tempContent = fromCell.innerHTML;
+        
+        // Échanger les contenus
+        fromCell.innerHTML = toCell.innerHTML;
+        toCell.innerHTML = tempContent;
+    });
+
+    // Mettre à jour l'ordre des colonnes dans la configuration
+    updateColumnOrder(fromIndex, toIndex);
+}
+
+function updateColumnOrder(fromIndex, toIndex) {
+    // Mettre à jour l'ordre des colonnes pour le tri
+    const columns = {
+        0: 'number',
+        1: 'client',
+        2: 'date',
+        3: 'description',
+        4: 'totalTTC'
+    };
+
+    // Sauvegarder le nouvel ordre dans le localStorage
+    localStorage.setItem('columnOrder', JSON.stringify(columns));
 }

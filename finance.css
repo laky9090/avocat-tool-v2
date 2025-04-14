@@ -123,6 +123,32 @@ header {
     margin-top: 20px;
 }
 
+/* Styles pour les colonnes draggables */
+#invoicesTable th {
+    user-select: none;
+}
+
+#invoicesTable th:not(:last-child) {
+    cursor: move;
+}
+
+#invoicesTable th.dragging {
+    opacity: 0.5;
+    background-color: var(--hover-background);
+}
+
+#invoicesTable th.drag-over {
+    border-left: 2px solid var(--primary-color);
+}
+
+/* Indication visuelle pendant le drag */
+#invoicesTable th:not(:last-child)::before {
+    content: '⋮';
+    margin-right: 8px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
 /* Styles pour les en-têtes de colonnes triables */
 #invoicesTable th:not(:last-child) {
     cursor: pointer;
