@@ -436,22 +436,53 @@ function saveInvoicesToFile() {
 }
 
 function updateInvoicesList() {
-    const tbody = document.getElementById('invoicesList');
-    tbody.innerHTML = invoices.map(invoice => `
-        <tr>
+    const tbody = document.querySelector('#invoicesTable tbody');
+    tbody.innerHTML = '';
+
+    invoices.forEach((invoice, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
             <td>${invoice.number}</td>
-            <td>${getClientName(invoice.clientId)}</td>
+            <td>${invoice.client.nom} ${invoice.client.prenom}</td>
             <td>${formatDate(invoice.date)}</td>
             <td>${formatMoney(invoice.totalHT)}</td>
             <td>${formatMoney(invoice.tva)}</td>
             <td>${formatMoney(invoice.totalTTC)}</td>
             <td>
-                <button onclick="editInvoice('${invoice.number}')">✏️</button>
-                <button onclick="printInvoice('${invoice.number}')">🖨️</button>
-                <button onclick="deleteInvoice('${invoice.number}')">🗑️</button>
+                <button onclick="viewInvoice('${invoice.number}')" class="action-btn view-btn" title="Voir">👁️</button>
+                <button onclick="downloadInvoice('${invoice.number}')" class="action-btn download-btn" title="Télécharger">📥</button>
+                <button onclick="deleteInvoice('${invoice.number}')" class="action-btn delete-btn" title="Supprimer">🗑️</button>
             </td>
-        </tr>
-    `).join('');
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Fonctions pour les actions
+function viewInvoice(invoiceNumber) {
+    const invoice = invoices.find(inv => inv.number === invoiceNumber);
+    if (invoice) {
+        generateInvoicePDF(invoice, true); // Le second paramètre indique d'ouvrir le PDF
+    }
+}
+
+function downloadInvoice(invoiceNumber) {
+    const invoice = invoices.find(inv => inv.number === invoiceNumber);
+    if (invoice) {
+        generateInvoicePDF(invoice, false); // Le second paramètre indique de télécharger le PDF
+    }
+}
+
+function deleteInvoice(invoiceNumber) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+        const index = invoices.findIndex(inv => inv.number === invoiceNumber);
+        if (index !== -1) {
+            invoices.splice(index, 1);
+            saveInvoicesToFile();
+            updateInvoicesList();
+            updateCharts();
+        }
+    }
 }
 
 // Modifier la fonction populateClientSelect
