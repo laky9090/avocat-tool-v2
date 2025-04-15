@@ -482,21 +482,36 @@ function getMonthlyRevenue() {
 }
 
 // Modifier la fonction generateInvoiceNumber pour gérer le cas où invoices est undefined
-function generateInvoiceNumber() {
-    const date = new Date();
-    const year = date.getFullYear();
-    
-    // S'assurer que invoices est un tableau
-    if (!Array.isArray(invoices)) {
-        invoices = [];
+function generateInvoiceNumber(clientId) {
+    if (!clientId) {
+        console.error('ID client manquant pour la génération du numéro de facture');
+        return null;
     }
 
-    // Filtrer et trier les factures de l'année en cours
-    const currentYearInvoices = invoices.filter(inv => inv && inv.number && inv.number.startsWith(`${year}`));
-    const lastInvoice = currentYearInvoices.sort((a, b) => b.number.localeCompare(a.number))[0];
-
-    const lastNumber = lastInvoice ? parseInt(lastInvoice.number.split('-')[1]) : 0;
-    return `${year}-${(lastNumber + 1).toString().padStart(4, '0')}`;
+    try {
+        // Vérifier que invoices existe et est un tableau
+        if (!Array.isArray(invoices)) {
+            invoices = [];
+        }
+        
+        // Filtrer les factures de ce client uniquement
+        const clientInvoices = invoices.filter(inv => 
+            inv?.client?.numeroDossier === clientId
+        );
+        
+        // Si c'est la première facture, commencer à 01
+        if (clientInvoices.length === 0) {
+            return `${clientId}-01`;
+        }
+        
+        // SOLUTION SIMPLE: Incrémenter selon le nombre de factures existantes
+        const nextNum = (clientInvoices.length + 1).toString().padStart(2, '0');
+        return `${clientId}-${nextNum}`;
+        
+    } catch (error) {
+        console.error('Erreur lors de la génération du numéro:', error);
+        return null;
+    }
 }
 
 function createInvoice() {
@@ -656,7 +671,10 @@ function downloadInvoice(invoiceNumber) {
 
 function deleteInvoice(invoiceNumber) {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-        const index = invoices.findIndex(inv => inv.number === invoiceNumber);
+        // Conversion pour gérer les cas où invoiceNumber est 'null' (en tant que chaîne)
+        const searchValue = invoiceNumber === 'null' ? null : invoiceNumber;
+        const index = invoices.findIndex(inv => inv.number === searchValue);
+        
         if (index !== -1) {
             invoices.splice(index, 1);
             saveInvoicesToFile();
@@ -781,16 +799,12 @@ async function handleInvoiceSubmission(event) {
         const selectedClient = formData.client;
         console.log('Client sélectionné pour la facture:', selectedClient);
 
-        // ... reste du code ...
-
-// Avant de créer l'email
-console.log('Préparation de l\'email pour:', selectedClient.nom, selectedClient.prenom);
-
-if (!selectedClient.email) {
-            throw new Error('Email du client non renseigné');
+        // Générer le numéro avec l'ID client
+        const invoiceNumber = generateInvoiceNumber(selectedClient.numeroDossier);
+        if (!invoiceNumber) {
+            throw new Error('Impossible de générer un numéro de facture');
         }
 
-        const invoiceNumber = generateInvoiceNumber();
         const invoice = {
             number: invoiceNumber,
             date: new Date().toISOString(),
@@ -800,6 +814,15 @@ if (!selectedClient.email) {
             tva: formData.totalHT * 0.20,
             totalTTC: formData.totalHT * 1.20
         };
+
+        // ... reste du code ...
+
+// Avant de créer l'email
+console.log('Préparation de l\'email pour:', selectedClient.nom, selectedClient.prenom);
+
+if (!selectedClient.email) {
+            throw new Error('Email du client non renseigné');
+        }
 
         // Générer le PDF
         const pdfArrayBuffer = await generateInvoicePDF(invoice);
@@ -1130,4 +1153,21 @@ function updateFinancialStats() {
     document.getElementById('totalHT').textContent = formatMoney(currentYearHT);
     document.getElementById('totalTVA').textContent = formatMoney(totalTVA);
     document.getElementById('totalTTC').textContent = formatMoney(totalTTC);
+}
+
+function removeNullInvoices() {
+    const initialCount = invoices.length;
+    
+    // Filtrer pour garder uniquement les factures valides
+    invoices = invoices.filter(invoice => invoice.number !== null);
+    
+    const removedCount = initialCount - invoices.length;
+    
+    if (removedCount > 0) {
+        saveInvoicesToFile();
+        updateInvoicesList();
+        updateFinancialStats();
+        updateCharts();
+        alert(`${removedCount} facture(s) invalides ont été supprimées.`);
+    }
 }
