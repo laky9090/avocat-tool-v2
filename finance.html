@@ -174,51 +174,69 @@
         </div>
     </div>
 
-    <!-- Modal pour l'envoi d'email -->
+    <div style="margin-top: 20px;">
+        <!-- Espace réservé pour des boutons futurs si besoin -->
+    </div>
+
+    <!-- Ajouter à la fin avant la fermeture du body -->
+
+    <!-- Gardez uniquement cette modale à la fin du document -->
     <div id="emailModal" class="modal">
         <div class="modal-content">
-            <button class="close-modal" onclick="closeEmailModal()">×</button>
-            <h2>Envoyer la facture par email</h2>
+            <button class="close-modal" onclick="document.getElementById('emailModal').style.display='none'">×</button>
+            <h2>Envoi de facture par email</h2>
             <form id="emailForm">
+                <input type="hidden" id="invoiceNumberForEmail">
+                
                 <div class="form-group">
                     <label for="emailFrom">De :</label>
-                    <input type="email" id="emailFrom" value="candicerovera@gmail.com" readonly>
+                    <input type="email" id="emailFrom" value="dhllaky@gmail.com" readonly>
                 </div>
+                
                 <div class="form-group">
                     <label for="emailTo">À :</label>
                     <input type="email" id="emailTo" required>
                 </div>
-                <div class="form-group">
-                    <label for="emailCc">Cc :</label>
-                    <input type="email" id="emailCc">
-                </div>
+                
                 <div class="form-group">
                     <label for="emailSubject">Objet :</label>
-                    <input type="text" id="emailSubject" required>
+                    <input type="text" id="emailSubject" value="Facture de Me Candice ROVERA">
                 </div>
+                
                 <div class="form-group">
-                    <label for="emailBody">Message :</label>
-                    <textarea id="emailBody" rows="12" required></textarea>
+                    <label for="emailMessage">Message :</label>
+                    <textarea id="emailMessage" rows="8">Bonjour,
+
+Veuillez trouver ci-joint votre facture.
+
+Cordialement,
+Me Candice ROVERA
+Avocat au Barreau de Paris</textarea>
                 </div>
-                <div class="form-group files-list">
-                    <label>Pièces jointes :</label>
-                    <ul id="attachmentsList"></ul>
+                
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="attachPDF" checked>
+                    <label for="attachPDF">Joindre la facture en PDF</label>
                 </div>
-                <div class="button-group">
-                    <button type="submit" class="primary-button">Envoyer</button>
-                    <button type="button" class="secondary-button" onclick="closeEmailModal()">Annuler</button>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="document.getElementById('emailModal').style.display='none'">Annuler</button>
+                    <button type="submit" class="btn-primary">Envoyer</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div style="margin-top: 20px;">
-        <!-- Espace réservé pour des boutons futurs si besoin -->
-    </div>
-
     <footer>
         Maître Candice ROVERA - Avocat au Barreau de Paris
     </footer>
+
+    <!-- Ajouter avant les autres scripts pour s'assurer que la config est chargée en premier -->
+
+    <script src="js/config.js"></script>
+    <script src="js/email-config.js"></script>
+    <script src="js/utils.js"></script>
+    <!-- Autres scripts... -->
 
     <!-- Ajouter juste avant les autres scripts -->
     <script>
@@ -232,11 +250,12 @@
 
     <!-- Ordre de chargement correct -->
     <script src="js/utils.js"></script>
-    <script src="js/path-manager.js"></script>  <!-- Nouveau fichier à chargeur en premier -->
+    <script src="js/path-manager.js"></script>
     <script src="js/window-manager.js"></script>
     <script src="js/modal-manager.js"></script>
     <script src="js/client-manager.js"></script>
     <script src="js/invoice-manager.js"></script>
+    <script src="js/email-manager.js"></script> <!-- Nouveau fichier -->
     <script src="js/chart-manager.js"></script>
     <script src="js/finance-core.js"></script>
     <script>

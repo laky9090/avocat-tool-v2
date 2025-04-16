@@ -362,7 +362,7 @@ function updateInvoicesList() {
                 </select>
             </td>
             <td style="text-align: center;">
-                <button class="icon-btn view-btn" title="Voir la facture" onclick="viewInvoice('${invoice.number}')">👁️</button>
+                <button class="icon-btn email-btn" title="Envoyer par email" onclick="showEmailModal('${invoice.number}')">📧</button>
                 <button class="icon-btn delete-btn" title="Supprimer la facture" onclick="deleteInvoice('${invoice.number}')">🗑️</button>
             </td>
         `;
