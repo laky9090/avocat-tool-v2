@@ -302,16 +302,33 @@ function updateInvoicesList() {
         const totalHT = invoice.totalHT || 0;
         const totalTTC = invoice.totalTTC || totalHT * 1.2;
         
+        // Extraire une description à partir de la première prestation
+        let description = "Pas de description";
+        if (invoice.prestations && invoice.prestations.length > 0) {
+            description = invoice.prestations[0].description;
+            // Si la description est trop longue, la tronquer
+            if (description.length > 40) {
+                description = description.substring(0, 40) + '...';
+            }
+        }
+        
         // Créer le contenu de la ligne
         row.innerHTML = `
             <td>${invoice.number}</td>
             <td>${invoice.client ? (invoice.client.nom + ' ' + invoice.client.prenom) : 'Client inconnu'}</td>
+            <td>${description}</td>
             <td>${formattedDate}</td>
             <td>${totalHT.toFixed(2)} €</td>
             <td>${totalTTC.toFixed(2)} €</td>
+            <td>
+                <select class="status-select" onchange="updateInvoiceStatus('${invoice.number}', this.value)">
+                    <option value="sent" ${invoice.status === 'sent' ? 'selected' : ''}>Envoyée</option>
+                    <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Payée</option>
+                </select>
+            </td>
             <td style="text-align: center;">
-                <button class="btn btn-sm btn-primary" onclick="viewInvoice('${invoice.number}')">Voir</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteInvoice('${invoice.number}')">Supprimer</button>
+                <button class="icon-btn view-btn" title="Voir la facture" onclick="viewInvoice('${invoice.number}')">👁️</button>
+                <button class="icon-btn delete-btn" title="Supprimer la facture" onclick="deleteInvoice('${invoice.number}')">🗑️</button>
             </td>
         `;
         
@@ -818,3 +835,31 @@ document.addEventListener('DOMContentLoaded', function() {
         ensureChartsAreLoaded();
     }, 1000);
 });
+
+// Ajouter cette fonction à la fin du fichier
+
+// Fonction pour mettre à jour le statut d'une facture
+function updateInvoiceStatus(invoiceNumber, newStatus) {
+    console.log(`Mise à jour du statut de la facture ${invoiceNumber} à ${newStatus}`);
+    
+    // Trouver la facture dans la liste
+    const invoiceIndex = window.invoices.findIndex(invoice => invoice.number === invoiceNumber);
+    
+    if (invoiceIndex === -1) {
+        console.error(`Facture ${invoiceNumber} non trouvée`);
+        return;
+    }
+    
+    // Mettre à jour le statut
+    window.invoices[invoiceIndex].status = newStatus;
+    
+    // Sauvegarder les modifications
+    saveInvoicesToFile();
+    
+    // Notification optionnelle
+    const statusText = newStatus === 'paid' ? 'Payée' : 'Envoyée';
+    console.log(`Statut de la facture ${invoiceNumber} mis à jour: ${statusText}`);
+}
+
+// Exposer la fonction globalement
+window.updateInvoiceStatus = updateInvoiceStatus;

@@ -217,17 +217,19 @@ header {
     width: 18%;
 }
 
+/* Colonne Description */
 #invoicesTable th:nth-child(3), 
 #invoicesTable td:nth-child(3) {
+    /* Description */
+    width: 22%;
+}
+
+/* Colonne Date */
+#invoicesTable th:nth-child(4), 
+#invoicesTable td:nth-child(4) {
     /* Date */
     width: 10%;
     text-align: center;
-}
-
-#invoicesTable th:nth-child(4), 
-#invoicesTable td:nth-child(4) {
-    /* Description */
-    width: 22%;
 }
 
 #invoicesTable th:nth-child(5), 
@@ -487,4 +489,36 @@ body > *:not(.finance-dashboard) {
 
 .status-select[value="paid"] {
     color: #4CAF50;
+}
+
+/* Styles pour les boutons avec icônes */
+.icon-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    margin: 0 3px;
+}
+
+.icon-btn:hover {
+    transform: scale(1.15);
+}
+
+.view-btn {
+    color: #0066cc;
+}
+
+.view-btn:hover {
+    background-color: rgba(0, 102, 204, 0.1);
+}
+
+.delete-btn {
+    color: #cc0000;
+}
+
+.delete-btn:hover {
+    background-color: rgba(204, 0, 0, 0.1);
 }
