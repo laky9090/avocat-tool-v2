@@ -263,9 +263,11 @@ function updateInvoicesList() {
     const tableBody = document.querySelector('#invoicesTable tbody');
     if (!tableBody) {
         console.error('Tableau des factures non trouvé dans le DOM');
-        alert('Erreur: Le tableau des factures n\'a pas pu être trouvé');
         return;
     }
+    
+    // Vider le tableau
+    tableBody.innerHTML = '';
     
     // Vérifier que window.invoices existe et est un tableau
     if (!window.invoices || !Array.isArray(window.invoices)) {
@@ -274,9 +276,6 @@ function updateInvoicesList() {
     }
     
     console.log(`Affichage de ${window.invoices.length} factures`);
-    
-    // Vider le tableau
-    tableBody.innerHTML = '';
     
     // Pas de factures à afficher
     if (window.invoices.length === 0) {
@@ -310,7 +309,7 @@ function updateInvoicesList() {
             <td>${formattedDate}</td>
             <td>${totalHT.toFixed(2)} €</td>
             <td>${totalTTC.toFixed(2)} €</td>
-            <td>
+            <td style="text-align: center;">
                 <button class="btn btn-sm btn-primary" onclick="viewInvoice('${invoice.number}')">Voir</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteInvoice('${invoice.number}')">Supprimer</button>
             </td>
