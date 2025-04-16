@@ -50,20 +50,17 @@
         </div>
 
         <!-- Graphiques -->
-        <div class="charts-container">
-            <!-- Premier graphique -->
-            <div class="chart-section">
+        <div class="charts-container" style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <!-- Premier graphique (à gauche) -->
+            <div class="chart-section" style="flex: 1; min-width: 45%;">
                 <h3>Evolution du CA mensuel</h3>
                 <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
             
-            <!-- Espace de séparation -->
-            <div style="margin-top: 40px;"></div>
-            
-            <!-- Deuxième graphique -->
-            <div class="chart-section">
+            <!-- Deuxième graphique (à droite) -->
+            <div class="chart-section" style="flex: 1; min-width: 45%;">
                 <h3>Répartition par type de dossier</h3>
                 <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
                     <canvas id="dossiersChart"></canvas>
@@ -445,4 +442,3 @@
     </script>
 </body>
 </html>
-``` 
