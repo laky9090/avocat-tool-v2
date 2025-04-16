@@ -81,13 +81,13 @@
                 <table id="invoicesTable">
                     <thead>
                         <tr>
-                            <th>N° Facture</th>
-                            <th>Client</th>
-                            <th>Description</th>
-                            <th>Date</th>
-                            <th>Montant HT</th>
-                            <th>Total TTC</th>
-                            <th>Statut</th>
+                            <th class="sortable" data-sort="number">N° Facture</th>
+                            <th class="sortable" data-sort="client">Client</th>
+                            <th class="sortable" data-sort="description">Description</th>
+                            <th class="sortable" data-sort="date">Date</th>
+                            <th class="sortable" data-sort="totalHT">Montant HT</th>
+                            <th class="sortable" data-sort="totalTTC">Total TTC</th>
+                            <th class="sortable" data-sort="status">Statut</th>
                             <th style="text-align: center;">Actions</th>
                         </tr>
                     </thead>
@@ -280,6 +280,12 @@
             }
         }, 800); // Délai légèrement plus long pour s'assurer que tout est chargé
         
+        // Initialiser le tri par colonne
+        if (typeof initSortableTable === 'function') {
+            console.log('Initialisation du tri par colonne');
+            initSortableTable();
+        }
+        
         // Attacher manuellement l'événement au bouton
         const createBtn = document.getElementById('createInvoiceBtn');
         if (createBtn) {
@@ -442,4 +448,3 @@
     </script>
 </body>
 </html>
-``` 

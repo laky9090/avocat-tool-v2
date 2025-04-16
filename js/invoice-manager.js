@@ -280,14 +280,49 @@ function updateInvoicesList() {
     // Pas de factures à afficher
     if (window.invoices.length === 0) {
         const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = '<td colspan="6" class="text-center">Aucune facture disponible</td>';
+        emptyRow.innerHTML = '<td colspan="8" class="text-center">Aucune facture disponible</td>';
         tableBody.appendChild(emptyRow);
         return;
     }
     
-    // Trier les factures par date (la plus récente d'abord)
+    // Trier les factures selon la colonne et la direction actuelles
     const sortedInvoices = [...window.invoices].sort((a, b) => {
-        return new Date(b.date) - new Date(a.date);
+        let comparison = 0;
+        
+        switch (window.currentSortColumn) {
+            case 'number':
+                comparison = a.number.localeCompare(b.number);
+                break;
+            case 'client':
+                const clientA = a.client ? (a.client.nom + ' ' + a.client.prenom) : '';
+                const clientB = b.client ? (b.client.nom + ' ' + b.client.prenom) : '';
+                comparison = clientA.localeCompare(clientB);
+                break;
+            case 'description':
+                const descA = a.prestations && a.prestations.length > 0 ? a.prestations[0].description : '';
+                const descB = b.prestations && b.prestations.length > 0 ? b.prestations[0].description : '';
+                comparison = descA.localeCompare(descB);
+                break;
+            case 'date':
+                comparison = new Date(a.date) - new Date(b.date);
+                break;
+            case 'totalHT':
+                comparison = parseFloat(a.totalHT || 0) - parseFloat(b.totalHT || 0);
+                break;
+            case 'totalTTC':
+                const ttcA = parseFloat(a.totalTTC || a.totalHT * 1.2 || 0);
+                const ttcB = parseFloat(b.totalTTC || b.totalHT * 1.2 || 0);
+                comparison = ttcA - ttcB;
+                break;
+            case 'status':
+                comparison = (a.status || '').localeCompare(b.status || '');
+                break;
+            default:
+                comparison = new Date(b.date) - new Date(a.date); // Tri par défaut: date décroissante
+        }
+        
+        // Inverser l'ordre si le tri est descendant
+        return window.currentSortDirection === 'asc' ? comparison : -comparison;
     });
     
     // Ajouter chaque facture au tableau
@@ -809,7 +844,10 @@ function ensureChartsAreLoaded() {
 
 // Modifier le gestionnaire DOMContentLoaded pour l'inclure
 document.addEventListener('DOMContentLoaded', function() {
-    // ... code existant ...
+    // Initialiser le tri par colonne
+    initSortableTable();
+    
+    // Autres initialisation existantes...
     
     // Initialisation des graphiques après un délai plus long
     setTimeout(function() {
@@ -863,3 +901,40 @@ function updateInvoiceStatus(invoiceNumber, newStatus) {
 
 // Exposer la fonction globalement
 window.updateInvoiceStatus = updateInvoiceStatus;
+
+// Ajouter à la fin du fichier
+
+// Variables globales pour le tri
+window.currentSortColumn = 'date'; // Par défaut, tri par date
+window.currentSortDirection = 'desc'; // Par défaut, ordre décroissant
+
+// Initialiser les événements de tri
+function initSortableTable() {
+    const headers = document.querySelectorAll('#invoicesTable th.sortable');
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.getAttribute('data-sort');
+            
+            // Changer la direction si on clique sur la même colonne
+            if (sortBy === window.currentSortColumn) {
+                window.currentSortDirection = window.currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                window.currentSortColumn = sortBy;
+                window.currentSortDirection = 'asc'; // Par défaut, nouveau tri en ordre ascendant
+            }
+            
+            // Mettre à jour les classes sur les en-têtes
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            this.classList.add(window.currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+            
+            // Mettre à jour la liste avec le nouveau tri
+            updateInvoicesList();
+        });
+    });
+}
+
+// Exposer globalement
+window.initSortableTable = initSortableTable;

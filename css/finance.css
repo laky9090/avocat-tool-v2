@@ -522,3 +522,33 @@ body > *:not(.finance-dashboard) {
 .delete-btn:hover {
     background-color: rgba(204, 0, 0, 0.1);
 }
+
+/* Styles pour les en-têtes triables */
+th.sortable {
+    cursor: pointer;
+    position: relative;
+    padding-right: 18px; /* Espace pour l'icône */
+}
+
+th.sortable:after {
+    content: '↕️';
+    position: absolute;
+    right: 5px;
+    opacity: 0.3;
+    font-size: 0.8em;
+}
+
+th.sortable.sort-asc:after {
+    content: '↑';
+    opacity: 1;
+}
+
+th.sortable.sort-desc:after {
+    content: '↓';
+    opacity: 1;
+}
+
+/* Animation lors du changement de tri */
+#invoicesTable tbody tr {
+    transition: background-color 0.2s ease;
+}
