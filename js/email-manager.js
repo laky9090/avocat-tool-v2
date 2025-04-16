@@ -21,7 +21,33 @@ function showEmailModal(invoiceNumber) {
     }
     
     // Personnaliser l'objet de l'email
-    document.getElementById('emailSubject').value = `Facture ${invoiceNumber} - Me Candice ROVERA`;
+    const clientPrenom = invoice.client && invoice.client.prenom ? invoice.client.prenom : '';
+    const clientNom = invoice.client && invoice.client.nom ? invoice.client.nom : '';
+    document.getElementById('emailSubject').value = `Note d'honoraire - ${clientNom} ${clientPrenom} - Maître Candice ROVERA`;
+    
+    // Créer le message avec le format spécifié
+    const totalTTC = invoice.totalTTC || (invoice.totalHT * 1.2);
+    
+    const emailMessage = `Cher(e) ${clientPrenom} ${clientNom},
+
+Veuillez trouver ci-joint ma note d'honoraire d'un montant de ${totalTTC.toFixed(2)} € TTC, dont je vous remercie par avance pour le règlement.
+
+Vous trouverez également ci-joint mon RIB.
+
+Vous en souhaitant bonne réception,
+Je reste à votre disposition,
+Bien à vous,
+
+Maître Candice ROVERA
+Avocate au Barreau de Paris
+124 Boulevard de Strasbourg
+75010 PARIS
+06.07.50.43.81
+Toque C0199
+Site internet : https://candicerovera-avocat.fr/`;
+
+    // Définir le message dans le formulaire
+    document.getElementById('emailMessage').value = emailMessage;
     
     // Afficher la modal
     document.getElementById('emailModal').style.display = 'flex';
