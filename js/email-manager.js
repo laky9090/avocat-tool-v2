@@ -195,12 +195,19 @@ async function sendInvoiceEmail(event) {
                     alert('Email envoyé avec succès !');
                     
                     // Fermer la modal
-                    document.getElementById('emailModal').style.display = 'none';
+                    closeEmailModal();
                     
                     // Mettre à jour le statut de la facture à "sent"
                     if (typeof updateInvoiceStatus === 'function') {
                         updateInvoiceStatus(invoiceNumber, 'sent');
                     }
+                    
+                    // Forcer le rafraîchissement de la fenêtre comme pour la suppression
+                    setTimeout(() => {
+                        if (typeof forceWindowRefresh === 'function') {
+                            forceWindowRefresh();
+                        }
+                    }, 200);
                 } else {
                     alert(`Erreur lors de l'envoi de l'email : ${response.error}`);
                 }
@@ -226,6 +233,40 @@ async function sendInvoiceEmail(event) {
     }
 }
 
+// Fonction améliorée pour fermer la modal d'email et restaurer l'état de l'application
+function closeEmailModal() {
+    // Fermer la modal
+    const emailModal = document.getElementById('emailModal');
+    if (emailModal) {
+        emailModal.style.display = 'none';
+    }
+    
+    // Réinitialiser les champs du formulaire
+    const emailForm = document.getElementById('emailForm');
+    if (emailForm) {
+        emailForm.reset();
+    }
+    
+    // Restaurer le focus sur le document principal et débloquer l'interface
+    document.body.click();
+    
+    // Éliminer tout overlay qui pourrait rester
+    const overlays = document.querySelectorAll('.modal-backdrop');
+    overlays.forEach(overlay => overlay.remove());
+    
+    // S'assurer que le body n'est pas verrouillé
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    
+    // Forcer un redraw pour s'assurer que l'interface est réactive
+    setTimeout(() => {
+        const forceRedraw = document.body.offsetHeight;
+    }, 10);
+    
+    console.log('Modal email fermée et interface restaurée');
+}
+
 // Initialiser les événements
 function initEmailManager() {
     const emailForm = document.getElementById('emailForm');
@@ -239,6 +280,7 @@ window.showEmailModal = showEmailModal;
 window.generateInvoicePDF = generateInvoicePDF;
 window.sendInvoiceEmail = sendInvoiceEmail;
 window.initEmailManager = initEmailManager;
+window.closeEmailModal = closeEmailModal;
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', initEmailManager);

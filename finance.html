@@ -183,7 +183,7 @@
     <!-- Gardez uniquement cette modale à la fin du document -->
     <div id="emailModal" class="modal">
         <div class="modal-content">
-            <button class="close-modal" onclick="document.getElementById('emailModal').style.display='none'">×</button>
+            <button class="close-modal" onclick="closeEmailModal()">×</button>
             <h2>Envoi de facture par email</h2>
             <form id="emailForm">
                 <input type="hidden" id="invoiceNumberForEmail">
@@ -220,7 +220,7 @@ Avocat au Barreau de Paris</textarea>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="btn-cancel" onclick="document.getElementById('emailModal').style.display='none'">Annuler</button>
+                    <button type="button" class="btn-cancel" onclick="closeEmailModal()">Annuler</button>
                     <button type="submit" class="btn-primary">Envoyer</button>
                 </div>
             </form>
