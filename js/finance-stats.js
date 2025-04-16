@@ -10,6 +10,8 @@ function updateInvoiceStats() {
         return;
     }
     
+    console.log(`Analyse de ${window.invoices.length} factures pour les statistiques`);
+    
     // Initialiser les compteurs
     let sentCount = 0;
     let paidCount = 0;
@@ -20,6 +22,9 @@ function updateInvoiceStats() {
     
     // Parcourir toutes les factures
     window.invoices.forEach(invoice => {
+        // Log pour le débogage
+        console.log(`Facture ${invoice.number}, statut: ${invoice.status}, HT: ${invoice.totalHT}, TTC: ${invoice.totalTTC || (invoice.totalHT * 1.2)}`);
+        
         // Calculer les montants
         const totalHT = parseFloat(invoice.totalHT || 0);
         const totalTTC = parseFloat(invoice.totalTTC || totalHT * 1.2 || 0);
@@ -42,6 +47,8 @@ function updateInvoiceStats() {
         }
     });
     
+    console.log(`Résultats: ${sentCount} envoyées, ${paidCount} payées, Total HT envoyé: ${sentHT}, Total TTC envoyé: ${sentTTC}`);
+    
     // Formater les montants pour l'affichage (avec séparateur de milliers)
     const formatAmount = amount => {
         return amount.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' €';
@@ -60,6 +67,8 @@ function updateInvoiceStats() {
 
 // Fonction pour initialiser les statistiques
 function initInvoiceStats() {
+    console.log('Initialisation des statistiques...');
+    
     // Charger les statistiques initiales
     updateInvoiceStats();
     

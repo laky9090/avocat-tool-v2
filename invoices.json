@@ -93,7 +93,7 @@
     ],
     "totalHT": 120,
     "totalTTC": 144,
-    "status": "sent"
+    "status": "paid"
   },
   {
     "number": "2025-001-02",
@@ -141,7 +141,7 @@
     ],
     "totalHT": 100,
     "totalTTC": 120,
-    "status": "sent"
+    "status": "paid"
   },
   {
     "number": "2025-003-02",

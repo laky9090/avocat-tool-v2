@@ -107,19 +107,13 @@ function deleteInvoice(invoiceNumber) {
             // Supprimer la facture
             window.invoices.splice(index, 1);
             saveInvoicesToFile();
-            
-            // Mettre à jour l'interface
             updateInvoicesList();
-            updateFinancialStats();
-            updateCharts();
             
-            // Ajouter cette ligne après la mise à jour:
+            // Déclencher l'événement et mettre à jour les statistiques
+            document.dispatchEvent(new CustomEvent('invoicesUpdated'));
             if (typeof updateInvoiceStats === 'function') {
                 updateInvoiceStats();
             }
-            
-            // Ou utiliser un événement personnalisé:
-            document.dispatchEvent(new CustomEvent('invoicesUpdated'));
             
             alert('Facture supprimée avec succès');
             
@@ -207,13 +201,11 @@ function saveInvoicesToFile() {
         
         console.log(`${window.invoices.length} factures sauvegardées dans ${invoicesPath}`);
         
-        // Ajouter cette ligne après la sauvegarde:
+        // Déclencher l'événement et mettre à jour les statistiques
+        document.dispatchEvent(new CustomEvent('invoicesUpdated'));
         if (typeof updateInvoiceStats === 'function') {
             updateInvoiceStats();
         }
-        
-        // Ou utiliser un événement personnalisé:
-        document.dispatchEvent(new CustomEvent('invoicesUpdated'));
         
         return true;
     } catch (error) {
@@ -266,6 +258,14 @@ function loadInvoices() {
         if (typeof updateInvoicesList === 'function') {
             updateInvoicesList();
         }
+        
+        // Mettre à jour les statistiques
+        if (typeof updateInvoiceStats === 'function') {
+            updateInvoiceStats();
+        }
+        
+        // Déclencher l'événement
+        document.dispatchEvent(new CustomEvent('invoicesUpdated'));
     } catch (error) {
         console.error('Erreur lors du chargement des factures:', error);
         window.invoices = [];
@@ -911,13 +911,13 @@ function updateInvoiceStatus(invoiceNumber, newStatus) {
     // Sauvegarder les modifications
     saveInvoicesToFile();
     
-    // Ajouter cette ligne après la mise à jour:
+    // Déclencher l'événement de mise à jour des factures
+    document.dispatchEvent(new CustomEvent('invoicesUpdated'));
+    
+    // Mettre à jour directement les statistiques si la fonction existe
     if (typeof updateInvoiceStats === 'function') {
         updateInvoiceStats();
     }
-    
-    // Ou utiliser un événement personnalisé:
-    document.dispatchEvent(new CustomEvent('invoicesUpdated'));
     
     // Notification optionnelle
     const statusText = newStatus === 'paid' ? 'Payée' : 'Envoyée';

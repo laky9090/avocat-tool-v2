@@ -345,6 +345,14 @@ Avocate au Barreau de Paris</textarea>
                 updateInvoicesList();
             }
             
+            // IMPORTANT: Forcer la mise à jour des statistiques
+            if (typeof updateInvoiceStats === 'function') {
+                console.log('Mise à jour des statistiques financières');
+                updateInvoiceStats();
+            } else {
+                console.error("Fonction updateInvoiceStats non disponible");
+            }
+            
             // AJOUT: Mettre à jour également les statistiques et graphiques
             if (typeof updateFinancialStats === 'function') {
                 console.log('Mise à jour des statistiques financières');
@@ -355,7 +363,7 @@ Avocate au Barreau de Paris</textarea>
                 console.log('Mise à jour des graphiques');
                 updateCharts();
             }
-        }, 800); // Délai légèrement plus long pour s'assurer que tout est chargé
+        }, 1000); // Augmenter légèrement le délai
         
         // Initialiser le tri par colonne
         if (typeof initSortableTable === 'function') {
@@ -525,3 +533,4 @@ Avocate au Barreau de Paris</textarea>
     </script>
 </body>
 </html>
+``` 
