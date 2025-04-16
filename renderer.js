@@ -1949,8 +1949,11 @@ function initializeFileExplorer() {
             }
         });
 
-        // Afficher le contenu du dossier racine par défaut
-        renderFileList(__dirname);
+        // Supprimer ou commenter cette ligne pour ne pas afficher le contenu au démarrage
+        // renderFileList(__dirname);
+        
+        // À la place, vider la liste de fichiers et afficher un message d'instruction
+        fileList.innerHTML = '<div class="file-explorer-instructions">Cliquez sur un dossier pour afficher son contenu</div>';
     }
 
     // Initialisation

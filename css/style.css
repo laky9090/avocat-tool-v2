@@ -1013,3 +1013,10 @@ calendar-nav button {
 .theme-button:hover {
     background-color: var(--hover-background);
 }
+
+.file-explorer-instructions {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
