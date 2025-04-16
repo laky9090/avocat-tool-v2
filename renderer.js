@@ -158,6 +158,63 @@ function initializeTheme() {
     }
 }
 
+// Ajouter cette fonction dans votre fichier renderer.js
+
+// Gestion de l'affichage conditionnel pour le rôle selon le type de dossier
+function initTypeRoleSelect() {
+  const typeSelect = document.getElementById('type');
+  const roleContainer = document.getElementById('roleContainer');
+  const roleLabel = document.getElementById('roleLabel');
+  const roleSelect = document.getElementById('role');
+  
+  // Options pour première instance
+  const optionsPremiereInstance = [
+    { value: 'En demande', text: 'En demande' },
+    { value: 'En défense', text: 'En défense' }
+  ];
+  
+  // Options pour appel
+  const optionsAppel = [
+    { value: 'Appelant(e)', text: 'Appelant(e)' },
+    { value: 'Intimé(e)', text: 'Intimé(e)' }
+  ];
+  
+  typeSelect.addEventListener('change', function() {
+    const selectedValue = this.value;
+    
+    // Vider le select
+    roleSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+    
+    // Afficher et configurer selon le type sélectionné
+    if (selectedValue.startsWith('Première instance')) {
+      // Configurer pour première instance
+      roleLabel.textContent = 'Position :';
+      optionsPremiereInstance.forEach(option => {
+        const optEl = document.createElement('option');
+        optEl.value = option.value;
+        optEl.textContent = option.text;
+        roleSelect.appendChild(optEl);
+      });
+      roleContainer.style.display = 'block';
+    } 
+    else if (selectedValue.startsWith('Appel')) {
+      // Configurer pour appel
+      roleLabel.textContent = 'Position :';
+      optionsAppel.forEach(option => {
+        const optEl = document.createElement('option');
+        optEl.value = option.value;
+        optEl.textContent = option.text;
+        roleSelect.appendChild(optEl);
+      });
+      roleContainer.style.display = 'block';
+    } 
+    else {
+      // Cacher si aucun type pertinent n'est sélectionné
+      roleContainer.style.display = 'none';
+    }
+  });
+}
+
 // Amélioration de la validation du formulaire
 function validateForm() {
     document.querySelectorAll('.erreur-message').forEach(el => el.remove());
@@ -229,7 +286,7 @@ function creerArborescenceClient(client) {
     }
 }
 
-// Modifier la fonction ajouterOuModifierClient pour inclure les tags
+// Modifier la fonction ajouterOuModifierClient pour inclure les tags et le rôle
 function ajouterOuModifierClient() {
     try {
         // Effacer les anciens messages d'erreur
@@ -252,6 +309,7 @@ function ajouterOuModifierClient() {
             profession: document.getElementById('profession').value.trim(),
             tribunal: document.getElementById('tribunal').value,
             type: document.getElementById('type').value,
+            role: document.getElementById('role').value, // Nouvelle propriété
             dateAudience: document.getElementById('dateAudience').value,
             dateContact: document.getElementById('dateContact').value,
             dateEcheance: document.getElementById('dateEcheance').value,
@@ -478,6 +536,8 @@ function afficherClients(clients) {
       <p>Email : ${client.email || ''}</p>
       <p>Profession : ${client.profession || ''}</p>
       <p>Tribunal compétent : ${client.tribunal || '–'}</p>
+      <p>Type : ${client.type || '–'}</p>
+      <p>Rôle : ${client.role || '–'}</p>
       <p>Date d'audience : ${formatDateFr(client.dateAudience)}</p>
       <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
       <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
@@ -555,6 +615,7 @@ function afficherClients(clients) {
             document.getElementById('tribunal').value = client.tribunal;
         }
         document.getElementById('type').value = client.type;
+        document.getElementById('role').value = client.role; // Nouveau champ
         document.getElementById('dateAudience').value = client.dateAudience;
         document.getElementById('dateContact').value = client.dateContact;
         document.getElementById('dateEcheance').value = client.dateEcheance;
@@ -621,6 +682,7 @@ function afficherClients(clients) {
         document.getElementById('profession').value = client.profession;
         document.getElementById('tribunal').value = client.tribunal;
         document.getElementById('type').value = client.type;
+        document.getElementById('role').value = ''; // Vide pour le nouveau client
         document.getElementById('dateAudience').value = '';  // Vide car nouvelle audience
         document.getElementById('dateContact').value = '';   // Vide car nouveau contact
         document.getElementById('dateEcheance').value = '';  // Vide car nouvelle date
@@ -1026,6 +1088,7 @@ function checkFormChanges() {
         profession: document.getElementById('profession').value,
         tribunal: document.getElementById('tribunal').value,
         type: document.getElementById('type').value,
+        role: document.getElementById('role').value, // Nouveau champ
         dateAudience: document.getElementById('dateAudience').value,
         dateContact: document.getElementById('dateContact').value,
         dateEcheance: document.getElementById('dateEcheance').value,
@@ -1091,6 +1154,7 @@ function annulerModification() {
     document.getElementById('profession').value = '';
     if (document.getElementById('tribunal')) document.getElementById('tribunal').value = '';
     document.getElementById('type').value = '';
+    document.getElementById('role').value = ''; // Nouveau champ
     document.getElementById('dateAudience').value = '';
     document.getElementById('dateContact').value = '';
     document.getElementById('dateEcheance').value = '';
@@ -1134,6 +1198,7 @@ function afficherFicheClient(client) {
     <p>Profession : ${client.profession || ''}</p>
     <p>Tribunal compétent : ${client.tribunal || '–'}</p>
     <p>Type de dossier : ${client.type}</p>
+    <p>Rôle : ${client.role || '–'}</p>
     <p>Date d'audience : ${formatDateFr(client.dateAudience)}</p>
     <p>Date d'entrée du dossier : ${formatDateFr(client.dateEcheance)}</p>
     <p>Dernier contact : ${formatDateFr(client.dateContact)}</p>
@@ -1165,7 +1230,7 @@ function filtrerClients() {
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
     const resultat = data.filter(client =>
-      `${client.nom} ${client.prenom || ''} ${client.type} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.prenomAdverse || ''} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
+      `${client.nom} ${client.prenom || ''} ${client.type} ${client.role || ''} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.prenomAdverse || ''} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
     );
     afficherClients(resultat);
   } catch (error) {
@@ -1390,6 +1455,7 @@ function exporterFichePDF(client) {
     // Informations du dossier
     doc.fontSize(12);
     doc.text(`Type de dossier : ${type}`);
+    doc.text(`Rôle : ${role || '–'}`); // Ajout du rôle
     doc.text(`Date d'audience : ${formatDateFr(dateAudience)}`);
     doc.text(`Date de dernier contact : ${formatDateFr(dateContact)}`);
     // Modification ici
@@ -1972,6 +2038,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     initializeTags();
     initializeTheme();
+    initTypeRoleSelect();
 });
 
 // Modifier le gestionnaire du bouton Enregistrer

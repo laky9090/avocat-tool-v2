@@ -8,7 +8,8 @@
     "email": "dhllaky@gmail.com",
     "profession": "Chef de projet",
     "tribunal": "Tribunal judiciaire de Paris",
-    "type": "Ordonnance de protection",
+    "type": "Première instance - Ordonnance de protection",
+    "role": "En demande",
     "dateAudience": "2025-04-22",
     "dateContact": "2025-04-12",
     "dateEcheance": "2025-03-15",
@@ -23,7 +24,7 @@
     "montantTotal": "3000",
     "montantPaye": "",
     "tags": [
-      "À relancer"
+      "Urgent"
     ],
     "notes": [
       {
@@ -44,6 +45,41 @@
     "profession": "Chef de projet plouf",
     "tribunal": "Tribunal judiciaire d'Auxerres",
     "type": "Appel - Divorce",
+    "role": "Appelant(e)",
+    "dateAudience": "2025-05-24",
+    "dateContact": "2025-04-16",
+    "dateEcheance": "2025-02-20",
+    "commentaire": "Nullissime",
+    "nomAdverse": "Jean-Marie",
+    "prenomAdverse": "SALAUD",
+    "adresseAdverse": "55 rue André, Nancy",
+    "telephoneAdverse": "0604115280",
+    "emailAdverse": "test4@gmail.com",
+    "professionAdverse": "Architecte",
+    "aideJuridictionnelle": "oui",
+    "montantTotal": "1500",
+    "montantPaye": "0",
+    "tags": [],
+    "notes": [
+      {
+        "content": "Relationationnellement stable",
+        "date": "2025-04-12T10:39:45.656Z",
+        "id": 1744454385656
+      }
+    ],
+    "archived": false
+  },
+  {
+    "numeroDossier": "2025-003",
+    "nom": "NOMOE",
+    "prenom": "Tchupia",
+    "adresse": "402 rue de la paix, Paris",
+    "telephone": "0753770325",
+    "email": "dhllaky4@gmail.com",
+    "profession": "Chef de projet plouf",
+    "tribunal": "Tribunal judiciaire d'Auxerres",
+    "type": "Appel - Divorce bref délai",
+    "role": "Appelant(e)",
     "dateAudience": "",
     "dateContact": "",
     "dateEcheance": "",
@@ -58,81 +94,49 @@
     "montantTotal": "1500",
     "montantPaye": "0",
     "tags": [
-      "Urgent"
+      "Pénal"
     ],
     "notes": [
       {
-        "content": "Relationationnellement stable",
-        "date": "2025-04-12T10:39:45.656Z",
-        "id": 1744454385656
-      }
-    ],
-    "archived": false
-  },
-  {
-    "numeroDossier": "2025-004",
-    "nom": "TEST-I58TQ",
-    "prenom": "Client",
-    "adresse": "123 rue de Test, 75000 Paris",
-    "telephone": "0612345678",
-    "email": "test1744480022982@test.com",
-    "profession": "Test",
-    "tribunal": "Tribunal judiciaire de Paris",
-    "type": "Appel - Ordonnance de protection",
-    "dateAudience": "2025-04-19",
-    "dateContact": "2025-04-12",
-    "dateEcheance": "2025-05-12",
-    "commentaire": "Fiche de test créée automatiquement",
-    "nomAdverse": "ADVERSE",
-    "prenomAdverse": "Test",
-    "adresseAdverse": "456 rue de Test, 75000 Paris",
-    "telephoneAdverse": "0687654321",
-    "emailAdverse": "adverse1744480022982@test.com",
-    "professionAdverse": "Test",
-    "aideJuridictionnelle": "non",
-    "montantTotal": "1000",
-    "montantPaye": "0",
-    "tags": [],
-    "notes": [
-      {
-        "content": "Note de test",
-        "date": "2025-04-12T17:47:02.982Z",
-        "id": 1744480022982
+        "content": "Rien",
+        "date": "2025-04-16T20:52:32.571Z",
+        "id": 1744836752571
       }
     ],
     "archived": true
   },
   {
-    "numeroDossier": "2025-006",
-    "nom": "TEST-XNQ0PE",
-    "prenom": "Client",
-    "adresse": "123 rue de Test, 75000 Paris",
-    "telephone": "0612345678",
-    "email": "test1744481625516@test.com",
-    "profession": "Test",
-    "tribunal": "Tribunal judiciaire de Paris",
-    "type": "Divorce bref délai",
-    "dateAudience": "2025-04-19",
-    "dateContact": "2025-04-12",
-    "dateEcheance": "2025-05-12",
-    "commentaire": "Fiche de test créée automatiquement",
-    "nomAdverse": "ADVERSE",
-    "prenomAdverse": "Test",
-    "adresseAdverse": "456 rue de Test, 75000 Paris",
-    "telephoneAdverse": "0687654321",
-    "emailAdverse": "adverse1744481625516@test.com",
-    "professionAdverse": "Test",
-    "aideJuridictionnelle": "non",
-    "montantTotal": "1000",
+    "numeroDossier": "2025-003",
+    "nom": "JUIFON",
+    "prenom": "Minion",
+    "adresse": "402 rue de la paix, Paris",
+    "telephone": "0753770325",
+    "email": "dhllaky4@gmail.com",
+    "profession": "Chef de projet plouf",
+    "tribunal": "Tribunal judiciaire d'Auxerres",
+    "type": "Appel - Bref délai",
+    "role": "Intimé(e)",
+    "dateAudience": "",
+    "dateContact": "",
+    "dateEcheance": "",
+    "commentaire": "Nullissime",
+    "nomAdverse": "Jean-Marie",
+    "prenomAdverse": "SALAUD",
+    "adresseAdverse": "55 rue André, Nancy",
+    "telephoneAdverse": "0604115280",
+    "emailAdverse": "test4@gmail.com",
+    "professionAdverse": "Architecte",
+    "aideJuridictionnelle": "oui",
+    "montantTotal": "1500",
     "montantPaye": "0",
     "tags": [
-      "Test"
+      "Pénal"
     ],
     "notes": [
       {
-        "content": "Note de test",
-        "date": "2025-04-12T18:13:45.516Z",
-        "id": 1744481625516
+        "content": "Rien de fou",
+        "date": "2025-04-16T20:53:14.763Z",
+        "id": 1744836794763
       }
     ],
     "archived": true

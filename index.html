@@ -92,6 +92,15 @@
           <option value="Appel - Bref délai">Appel - Bref délai</option>
         </select>
 
+        <!-- Nouvelle liste déroulante conditionnelle -->
+        <div id="roleContainer" style="display: none;">
+          <label id="roleLabel">Position :</label>
+          <select id="role">
+            <option value="">-- Sélectionner --</option>
+            <!-- Les options seront remplies dynamiquement par JavaScript -->
+          </select>
+        </div>
+
         <label>Date d’audience :</label>
         <input type="date" id="dateAudience">
         <label>Date de dernier contact :</label>
