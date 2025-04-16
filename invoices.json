@@ -96,56 +96,6 @@
     "status": "sent"
   },
   {
-    "number": "2025-004-01",
-    "client": {
-      "numeroDossier": "2025-004",
-      "nom": "TEST-I58TQ",
-      "prenom": "Client",
-      "adresse": "123 rue de Test, 75000 Paris",
-      "telephone": "0612345678",
-      "email": "test1744480022982@test.com",
-      "profession": "Test",
-      "tribunal": "Tribunal judiciaire de Paris",
-      "type": "Appel - Ordonnance de protection",
-      "dateAudience": "2025-04-19",
-      "dateContact": "2025-04-12",
-      "dateEcheance": "2025-05-12",
-      "commentaire": "Fiche de test créée automatiquement",
-      "nomAdverse": "ADVERSE",
-      "prenomAdverse": "Test",
-      "adresseAdverse": "456 rue de Test, 75000 Paris",
-      "telephoneAdverse": "0687654321",
-      "emailAdverse": "adverse1744480022982@test.com",
-      "professionAdverse": "Test",
-      "aideJuridictionnelle": "non",
-      "montantTotal": "1000",
-      "montantPaye": "0",
-      "tags": [],
-      "notes": [
-        {
-          "content": "Note de test",
-          "date": "2025-04-12T17:47:02.982Z",
-          "id": 1744480022982
-        }
-      ],
-      "archived": true
-    },
-    "date": "2025-04-16T13:47:50.572Z",
-    "prestations": [
-      {
-        "description": "dqsdqd",
-        "amount": 245
-      },
-      {
-        "description": "ddddd",
-        "amount": 3560
-      }
-    ],
-    "totalHT": 3805,
-    "totalTTC": 4566,
-    "status": "sent"
-  },
-  {
     "number": "2025-001-02",
     "client": {
       "numeroDossier": "2025-001",

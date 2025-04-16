@@ -113,6 +113,14 @@ function deleteInvoice(invoiceNumber) {
             updateFinancialStats();
             updateCharts();
             
+            // Ajouter cette ligne après la mise à jour:
+            if (typeof updateInvoiceStats === 'function') {
+                updateInvoiceStats();
+            }
+            
+            // Ou utiliser un événement personnalisé:
+            document.dispatchEvent(new CustomEvent('invoicesUpdated'));
+            
             alert('Facture supprimée avec succès');
             
             // Forcer le rafraîchissement de la fenêtre
@@ -198,6 +206,15 @@ function saveInvoicesToFile() {
         fs.renameSync(tempPath, invoicesPath);
         
         console.log(`${window.invoices.length} factures sauvegardées dans ${invoicesPath}`);
+        
+        // Ajouter cette ligne après la sauvegarde:
+        if (typeof updateInvoiceStats === 'function') {
+            updateInvoiceStats();
+        }
+        
+        // Ou utiliser un événement personnalisé:
+        document.dispatchEvent(new CustomEvent('invoicesUpdated'));
+        
         return true;
     } catch (error) {
         console.error('ERREUR: Sauvegarde des factures échouée:', error);
@@ -893,6 +910,14 @@ function updateInvoiceStatus(invoiceNumber, newStatus) {
     
     // Sauvegarder les modifications
     saveInvoicesToFile();
+    
+    // Ajouter cette ligne après la mise à jour:
+    if (typeof updateInvoiceStats === 'function') {
+        updateInvoiceStats();
+    }
+    
+    // Ou utiliser un événement personnalisé:
+    document.dispatchEvent(new CustomEvent('invoicesUpdated'));
     
     // Notification optionnelle
     const statusText = newStatus === 'paid' ? 'Payée' : 'Envoyée';

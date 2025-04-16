@@ -74,7 +74,7 @@ async function generateInvoicePDF(invoiceNumber) {
         doc.text('Me Candice ROVERA', 20, 20);
         
         doc.setFontSize(12);
-        doc.text('Avocat au Barreau de Paris', 20, 30);
+        doc.text('Avocate au Barreau de Paris', 20, 30); // "Avocat" → "Avocate"
         doc.text('SIRET : 98302483700020', 20, 35);
         doc.text('TVA Intracommunautaire : FR13983024837', 20, 40);
         
@@ -139,7 +139,7 @@ async function generateInvoicePDF(invoiceNumber) {
         // Pied de page
         y = 250;
         doc.setFontSize(10);
-        doc.text('Me Candice ROVERA - Avocat au Barreau de Paris', 105, y, { align: 'center' });
+        doc.text('Me Candice ROVERA - Avocate au Barreau de Paris', 105, y, { align: 'center' }); // "Avocat" → "Avocate"
         
         // Retourner le PDF généré
         return doc.output('blob');
@@ -173,11 +173,11 @@ async function sendInvoiceEmail(event) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Envoi en cours...';
         
-        // Préparer les données pour l'email
-        let attachmentData = null;
-        
+        // Préparer les pièces jointes
+        let attachments = [];
+
+        // Ajouter la facture si demandé
         if (attachPDF) {
-            // Générer le PDF de la facture
             const pdfBlob = await generateInvoicePDF(invoiceNumber);
             if (pdfBlob) {
                 // Convertir le Blob en base64
@@ -187,14 +187,54 @@ async function sendInvoiceEmail(event) {
                     reader.readAsDataURL(pdfBlob);
                 });
                 
-                attachmentData = {
+                attachments.push({
                     filename: `Facture_${invoiceNumber}.pdf`,
                     content: pdfBase64,
                     encoding: 'base64'
-                };
+                });
             }
         }
-        
+
+        // Ajouter le RIB
+        try {
+            const fs = window.require('fs');
+            const path = window.require('path');
+            
+            // Récupérer le chemin du RIB depuis la configuration
+            const ribPath = window.emailConfig && window.emailConfig.ribConfig ? 
+                window.emailConfig.ribConfig.path : 
+                "assets/rib/rib-candice-rovera.pdf";
+            
+            const ribFilename = window.emailConfig && window.emailConfig.ribConfig ? 
+                window.emailConfig.ribConfig.filename : 
+                "RIB_Candice_ROVERA.pdf";
+            
+            // Chemin absolu du RIB
+            const absoluteRibPath = path.join(__dirname, ribPath);
+            
+            // Vérifier si le fichier existe
+            if (fs.existsSync(absoluteRibPath)) {
+                // Lire le fichier RIB
+                const ribContent = fs.readFileSync(absoluteRibPath);
+                
+                // Convertir en base64
+                const ribBase64 = Buffer.from(ribContent).toString('base64');
+                
+                // Ajouter à la liste des pièces jointes
+                attachments.push({
+                    filename: ribFilename,
+                    content: ribBase64,
+                    encoding: 'base64'
+                });
+                
+                console.log('RIB ajouté à l\'email');
+            } else {
+                console.warn('Fichier RIB non trouvé à l\'emplacement:', absoluteRibPath);
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'ajout du RIB:', error);
+        }
+
         // Récupérer les données de configuration
         const fromEmail = window.emailConfig ? window.emailConfig.email : document.getElementById('emailFrom').value;
         const appPassword = window.emailConfig ? window.emailConfig.appPassword : '';
@@ -206,7 +246,7 @@ async function sendInvoiceEmail(event) {
             subject: subject,
             text: message,
             password: appPassword,
-            attachments: attachPDF && attachmentData ? [attachmentData] : []
+            attachments: attachments
         };
         
         // Envoyer l'email via le backend
@@ -293,6 +333,119 @@ function closeEmailModal() {
     console.log('Modal email fermée et interface restaurée');
 }
 
+// Fonction pour ouvrir la modale de gestion du RIB
+function openRibSettings() {
+    const ribConfig = window.emailConfig && window.emailConfig.ribConfig ? 
+        window.emailConfig.ribConfig : 
+        { path: "RIB non configuré", filename: "" };
+    
+    document.getElementById('currentRibPath').textContent = ribConfig.path;
+    document.getElementById('ribSettingsModal').style.display = 'flex';
+}
+
+// Fonction pour prévisualiser le RIB actuel
+function previewRib() {
+    try {
+        const fs = window.require('fs');
+        const path = window.require('path');
+        const { shell } = window.require('electron');
+        
+        const ribPath = window.emailConfig && window.emailConfig.ribConfig ? 
+            window.emailConfig.ribConfig.path : 
+            "assets/rib/rib-candice-rovera.pdf";
+        
+        const absoluteRibPath = path.join(__dirname, ribPath);
+        
+        if (fs.existsSync(absoluteRibPath)) {
+            shell.openPath(absoluteRibPath);
+        } else {
+            alert('Fichier RIB non trouvé à l\'emplacement: ' + absoluteRibPath);
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'aperçu du RIB:', error);
+        alert('Erreur: ' + error.message);
+    }
+}
+
+// Fonction pour mettre à jour le RIB
+async function updateRib() {
+    try {
+        const fileInput = document.getElementById('newRibFile');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Veuillez sélectionner un fichier');
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        const fs = window.require('fs');
+        const path = window.require('path');
+        
+        // Créer le dossier assets/rib s'il n'existe pas
+        const ribDir = path.join(__dirname, 'assets', 'rib');
+        if (!fs.existsSync(path.join(__dirname, 'assets'))) {
+            fs.mkdirSync(path.join(__dirname, 'assets'));
+        }
+        if (!fs.existsSync(ribDir)) {
+            fs.mkdirSync(ribDir);
+        }
+        
+        // Déterminer l'extension du fichier
+        const fileExt = path.extname(file.name);
+        const newFileName = 'rib-candice-rovera' + fileExt;
+        const newFilePath = path.join(ribDir, newFileName);
+        
+        // Lire le fichier et le copier
+        const content = await readFileAsBuffer(file);
+        fs.writeFileSync(newFilePath, content);
+        
+        // Mettre à jour la configuration
+        const relPath = path.join('assets', 'rib', newFileName).replace(/\\/g, '/');
+        window.emailConfig.ribConfig = {
+            path: relPath,
+            filename: `RIB_Candice_ROVERA${fileExt}`
+        };
+        
+        // Sauvegarder la configuration
+        saveEmailConfig();
+        
+        alert('RIB mis à jour avec succès!');
+        document.getElementById('ribSettingsModal').style.display = 'none';
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du RIB:', error);
+        alert('Erreur: ' + error.message);
+    }
+}
+
+// Fonction pour lire un fichier
+function readFileAsBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(Buffer.from(reader.result));
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Fonction pour sauvegarder la configuration
+function saveEmailConfig() {
+    try {
+        const fs = window.require('fs');
+        const path = window.require('path');
+        
+        const configPath = path.join(__dirname, 'js', 'email-config.js');
+        const configContent = `// Configuration pour l'envoi d'emails
+window.emailConfig = ${JSON.stringify(window.emailConfig, null, 2)};
+
+console.log("Configuration email chargée");`;
+        
+        fs.writeFileSync(configPath, configContent);
+        console.log('Configuration email sauvegardée');
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la configuration:', error);
+    }
+}
+
 // Initialiser les événements
 function initEmailManager() {
     const emailForm = document.getElementById('emailForm');
@@ -307,6 +460,9 @@ window.generateInvoicePDF = generateInvoicePDF;
 window.sendInvoiceEmail = sendInvoiceEmail;
 window.initEmailManager = initEmailManager;
 window.closeEmailModal = closeEmailModal;
+window.openRibSettings = openRibSettings;
+window.previewRib = previewRib;
+window.updateRib = updateRib;
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', initEmailManager);

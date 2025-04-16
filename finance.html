@@ -23,13 +23,45 @@
     </header>
 
     <div class="finance-dashboard">
+        <!-- Section statistiques -->
+        <div class="stats-section">
+            <h2>Statistiques factures</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-title">Factures envoyées</div>
+                    <div class="stat-value" id="invoicesSentCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Factures payées</div>
+                    <div class="stat-value" id="invoicesPaidCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total HT envoyé</div>
+                    <div class="stat-value" id="invoicesSentHT">0,00 €</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total TTC envoyé</div>
+                    <div class="stat-value" id="invoicesSentTTC">0,00 €</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total HT payé</div>
+                    <div class="stat-value" id="invoicesPaidHT">0,00 €</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Total TTC payé</div>
+                    <div class="stat-value" id="invoicesPaidTTC">0,00 €</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Coordonnées du cabinet -->
         <div class="cabinet-info">
             <div class="lawyer-details">
                 <h3>Maître Candice ROVERA</h3>
-                <p>Avocat au Barreau de Paris</p>
+                <p>Avocate au Barreau de Paris</p>
                 <p>SIRET : 98302483700020</p>
                 <p>TVA Intracommunautaire : FR13983024837</p>
+                <button class="secondary-button" onclick="openRibSettings()">Gérer le RIB</button>
             </div>
         </div>
 
@@ -101,7 +133,7 @@
             <div class="invoice-header">
                 <div class="lawyer-info">
                     <h2>Maître Candice ROVERA</h2>
-                    <p>Avocat au Barreau de Paris</p>
+                    <p>Avocate au Barreau de Paris</p>
                     <p>[Adresse du cabinet]</p>
                     <p>Tél: [Numéro de téléphone]</p>
                     <p>Email: [Email professionnel]</p>
@@ -178,7 +210,32 @@
         <!-- Espace réservé pour des boutons futurs si besoin -->
     </div>
 
-    <!-- Ajouter à la fin avant la fermeture du body -->
+    <!-- Ajouter une nouvelle modale pour gérer le RIB -->
+
+    <div id="ribSettingsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="document.getElementById('ribSettingsModal').style.display='none'">×</button>
+            <h2>Gestion du RIB</h2>
+            
+            <div class="form-group">
+                <label>RIB actuel:</label>
+                <div id="currentRibInfo">
+                    <span id="currentRibPath"></span>
+                    <button type="button" class="secondary-button" onclick="previewRib()">Aperçu</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="newRibFile">Changer le RIB:</label>
+                <input type="file" id="newRibFile" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="primary-button" onclick="updateRib()">Enregistrer</button>
+                <button type="button" class="secondary-button" onclick="document.getElementById('ribSettingsModal').style.display='none'">Annuler</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Gardez uniquement cette modale à la fin du document -->
     <div id="emailModal" class="modal">
@@ -211,7 +268,7 @@ Veuillez trouver ci-joint votre facture.
 
 Cordialement,
 Me Candice ROVERA
-Avocat au Barreau de Paris</textarea>
+Avocate au Barreau de Paris</textarea>
                 </div>
                 
                 <div class="form-group checkbox-group">
@@ -228,7 +285,7 @@ Avocat au Barreau de Paris</textarea>
     </div>
 
     <footer>
-        Maître Candice ROVERA - Avocat au Barreau de Paris
+        Maître Candice ROVERA - Avocate au Barreau de Paris
     </footer>
 
     <!-- Ajouter avant les autres scripts pour s'assurer que la config est chargée en premier -->
@@ -255,8 +312,9 @@ Avocat au Barreau de Paris</textarea>
     <script src="js/modal-manager.js"></script>
     <script src="js/client-manager.js"></script>
     <script src="js/invoice-manager.js"></script>
-    <script src="js/email-manager.js"></script> <!-- Nouveau fichier -->
+    <script src="js/email-manager.js"></script>
     <script src="js/chart-manager.js"></script>
+    <script src="js/finance-stats.js"></script> <!-- Nouveau fichier -->
     <script src="js/finance-core.js"></script>
     <script>
     // Script de démarrage pour s'assurer que tout fonctionne
