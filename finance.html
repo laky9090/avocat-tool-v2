@@ -51,21 +51,28 @@
 
         <!-- Graphiques -->
         <div class="charts-container">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
-                        <h3>Evolution du CA mensuel</h3>
-                        <canvas id="revenueChart"></canvas>
-                    </div>
+            <!-- Premier graphique -->
+            <div class="chart-section">
+                <h3>Evolution du CA mensuel</h3>
+                <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
+                    <canvas id="revenueChart"></canvas>
                 </div>
-                <div class="col-md-6">
-                    <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
-                        <h3>Répartition par type de dossier</h3>
-                        <canvas id="dossiersChart"></canvas>
-                    </div>
+            </div>
+            
+            <!-- Espace de séparation -->
+            <div style="margin-top: 40px;"></div>
+            
+            <!-- Deuxième graphique -->
+            <div class="chart-section">
+                <h3>Répartition par type de dossier</h3>
+                <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
+                    <canvas id="dossiersChart"></canvas>
                 </div>
             </div>
         </div>
+
+        <!-- Espace de séparation avant la section des factures -->
+        <div style="margin-top: 40px;"></div>
 
         <!-- Gestion des factures -->
         <div class="invoices-section">
@@ -211,35 +218,6 @@
     <div style="margin-top: 20px;">
         <!-- Espace réservé pour des boutons futurs si besoin -->
     </div>
-
-    <!-- Ajouter ce bouton pour réparer le système -->
-    <div style="margin-top: 10px; margin-bottom: 20px;">
-        <button onclick="repairInvoiceSystem()" class="btn btn-warning">
-            🔧 Réparer le système de factures
-        </button>
-    </div>
-
-    <!-- Ajouter ce bouton pour tester la sauvegarde/chargement -->
-    <div style="margin-top: 10px;">
-        <button onclick="testFileIO()" class="btn btn-secondary">
-            Tester sauvegarde/chargement
-        </button>
-    </div>
-
-    <!-- Ajouter ce bouton pour un test rapide -->
-    <button onclick="testSaveLoad()" class="btn btn-info">
-      🧪 Test direct sauvegarde/chargement
-    </button>
-
-    <!-- À placer juste après vos autres boutons de test -->
-    <button onclick="window.testStorage()" class="btn btn-success">
-      🔍 Tester système de stockage hybride
-    </button>
-
-    <!-- À ajouter dans la section des boutons -->
-    <button onclick="diagnoseAndRepairInvoiceSystem()" class="btn btn-warning">
-      🩺 Diagnostic et réparation
-    </button>
 
     <footer>
         Maître Candice ROVERA - Avocat au Barreau de Paris
@@ -467,3 +445,4 @@
     </script>
 </body>
 </html>
+``` 
