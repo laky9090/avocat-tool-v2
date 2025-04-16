@@ -685,25 +685,42 @@ function deleteInvoice(invoiceNumber) {
     }
 }
 
-// Modifier la fonction populateClientSelect
+// Remplacez la fonction populateClientSelect dans client-manager.js
 function populateClientSelect() {
+    console.log('Démarrage de populateClientSelect()');
     const select = document.getElementById('clientSelect');
     if (!select) {
-        console.error('Element select non trouvé');
+        console.error('Element select non trouvé - la modale n\'est peut-être pas dans le DOM');
         return;
     }
 
-    select.innerHTML = '<option value="">Sélectionner un client</option>';
+    // Vider la liste
+    select.innerHTML = '';
 
-    if (!Array.isArray(clients) || clients.length === 0) {
-        console.error('Aucun client disponible');
+    if (!Array.isArray(window.clients) || window.clients.length === 0) {
+        console.error('Aucun client disponible dans window.clients');
+        const option = document.createElement('option');
+        option.value = "";
+        option.textContent = "Aucun client disponible";
+        option.disabled = true;
+        option.selected = true;
+        select.appendChild(option);
         return;
     }
 
-    console.log(`Préparation de ${clients.length} clients pour la liste`);
-
-    const sortedClients = [...clients].sort((a, b) => a.nom.localeCompare(b.nom));
+    // Trier les clients par nom
+    const sortedClients = [...window.clients].sort((a, b) => a.nom.localeCompare(b.nom));
+    console.log(`Tri effectué, ${sortedClients.length} clients à afficher`);
     
+    // Ajouter une option par défaut
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "-- Sélectionner un client --";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    select.appendChild(defaultOption);
+    
+    // Grouper par statut (archivé ou non)
     const currentGroup = document.createElement('optgroup');
     currentGroup.label = 'Dossiers en cours';
     
@@ -713,8 +730,9 @@ function populateClientSelect() {
     let currentCount = 0;
     let archivedCount = 0;
 
+    // Ajouter chaque client
     sortedClients.forEach(client => {
-        if (client?.numeroDossier && client?.nom) {
+        if (client && client.numeroDossier && client.nom) {
             const option = document.createElement('option');
             option.value = client.numeroDossier;
             option.textContent = `${client.nom} ${client.prenom || ''} (${client.numeroDossier})`;
@@ -726,13 +744,16 @@ function populateClientSelect() {
                 currentGroup.appendChild(option);
                 currentCount++;
             }
+        } else {
+            console.warn('Client invalide ignoré:', client);
         }
     });
 
+    // Ajouter les groupes au select s'ils contiennent des options
     if (currentCount > 0) select.appendChild(currentGroup);
     if (archivedCount > 0) select.appendChild(archivedGroup);
 
-    console.log(`Liste peuplée avec ${currentCount} dossiers en cours et ${archivedCount} dossiers archivés`);
+    console.log(`Liste peuplée: ${currentCount} dossiers en cours, ${archivedCount} archivés`);
 }
 
 // Ajouter cette fonction après les autres fonctions

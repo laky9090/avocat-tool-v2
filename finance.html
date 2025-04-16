@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Maître Candice ROVERA - Gestion Financière</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="finance.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/finance.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -51,13 +51,19 @@
 
         <!-- Graphiques -->
         <div class="charts-container">
-            <div class="chart-card">
-                <h3>Évolution du CA mensuel</h3>
-                <canvas id="revenueChart"></canvas>
-            </div>
-            <div class="chart-card">
-                <h3>Répartition par type de dossier</h3>
-                <canvas id="dossiersChart"></canvas>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                        <h3>Evolution du CA mensuel</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                        <h3>Répartition par type de dossier</h3>
+                        <canvas id="dossiersChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -202,11 +208,262 @@
         </div>
     </div>
 
+    <div style="margin-top: 20px;">
+        <!-- Espace réservé pour des boutons futurs si besoin -->
+    </div>
+
+    <!-- Ajouter ce bouton pour réparer le système -->
+    <div style="margin-top: 10px; margin-bottom: 20px;">
+        <button onclick="repairInvoiceSystem()" class="btn btn-warning">
+            🔧 Réparer le système de factures
+        </button>
+    </div>
+
+    <!-- Ajouter ce bouton pour tester la sauvegarde/chargement -->
+    <div style="margin-top: 10px;">
+        <button onclick="testFileIO()" class="btn btn-secondary">
+            Tester sauvegarde/chargement
+        </button>
+    </div>
+
+    <!-- Ajouter ce bouton pour un test rapide -->
+    <button onclick="testSaveLoad()" class="btn btn-info">
+      🧪 Test direct sauvegarde/chargement
+    </button>
+
+    <!-- À placer juste après vos autres boutons de test -->
+    <button onclick="window.testStorage()" class="btn btn-success">
+      🔍 Tester système de stockage hybride
+    </button>
+
+    <!-- À ajouter dans la section des boutons -->
+    <button onclick="diagnoseAndRepairInvoiceSystem()" class="btn btn-warning">
+      🩺 Diagnostic et réparation
+    </button>
+
     <footer>
         Maître Candice ROVERA - Avocat au Barreau de Paris
     </footer>
 
-    <script src="finance.js"></script>
+    <!-- Ajouter juste avant les autres scripts -->
+    <script>
+    // Préparer le module remote
+    try {
+        window.require = require;
+    } catch (e) {
+        console.warn('Module require non disponible. Mode navigateur détecté.');
+    }
+    </script>
+
+    <!-- Ordre de chargement correct -->
+    <script src="js/utils.js"></script>
+    <script src="js/path-manager.js"></script>  <!-- Nouveau fichier à chargeur en premier -->
+    <script src="js/window-manager.js"></script>
+    <script src="js/modal-manager.js"></script>
+    <script src="js/client-manager.js"></script>
+    <script src="js/invoice-manager.js"></script>
+    <script src="js/chart-manager.js"></script>
+    <script src="js/finance-core.js"></script>
+    <script>
+    // Script de démarrage pour s'assurer que tout fonctionne
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page finance chargée - script de secours');
+        
+        // Vérifier que les variables globales sont définies
+        window.clients = window.clients || [];
+        window.invoices = window.invoices || [];
+        
+        // AJOUT CRUCIAL: Charger les factures au démarrage
+        if (typeof loadInvoices === 'function') {
+            console.log('Chargement automatique des factures...');
+            loadInvoices();
+        } else {
+            console.error('Fonction loadInvoices non disponible!');
+        }
+        
+        // S'assurer que les clients sont chargés
+        if (typeof loadClients === 'function') {
+            loadClients();
+        }
+        
+        // AJOUT: Mettre à jour l'interface après un court délai
+        setTimeout(function() {
+            if (typeof updateInvoicesList === 'function') {
+                console.log('Mise à jour de la liste des factures après chargement');
+                updateInvoicesList();
+            }
+            
+            // AJOUT: Mettre à jour également les statistiques et graphiques
+            if (typeof updateFinancialStats === 'function') {
+                console.log('Mise à jour des statistiques financières');
+                updateFinancialStats();
+            }
+            
+            if (typeof updateCharts === 'function') {
+                console.log('Mise à jour des graphiques');
+                updateCharts();
+            }
+        }, 800); // Délai légèrement plus long pour s'assurer que tout est chargé
+        
+        // Attacher manuellement l'événement au bouton
+        const createBtn = document.getElementById('createInvoiceBtn');
+        if (createBtn) {
+            console.log('Bouton trouvé, attachement de l\'événement');
+            createBtn.addEventListener('click', function() {
+                console.log('Bouton cliqué');
+                // Appeler la fonction de création de facture
+                if (typeof openInvoiceModal === 'function') {
+                    openInvoiceModal();
+                } else if (typeof recreateInvoiceModal === 'function') {
+                    recreateInvoiceModal();
+                    const modal = document.getElementById('invoiceModal');
+                    if (modal) modal.style.display = 'flex';
+                } else {
+                    console.error('Aucune fonction de création de facture trouvée');
+                    alert('Fonction de création de facture non disponible. Veuillez recharger la page.');
+                }
+            });
+        } else {
+            console.error('Bouton createInvoiceBtn non trouvé dans le DOM');
+        }
+    });
+
+    // Fonction de test pour le système de fichiers
+    function testFileIO() {
+        console.log('=== TEST DU SYSTÈME DE FICHIERS ===');
+        
+        try {
+            const fs = window.fs;
+            const path = window.path;
+            
+            if (!fs || !path) {
+                console.error('Modules fs ou path non disponibles');
+                alert('Modules fs ou path non disponibles');
+                return;
+            }
+            
+            // Lister les fichiers à la racine
+            const rootPath = path.join(__dirname);
+            console.log('Chemin racine:', rootPath);
+            
+            const files = fs.readdirSync(rootPath);
+            console.log('Fichiers à la racine:', files);
+            
+            // Tenter d'écrire un fichier de test
+            const testPath = path.join(rootPath, 'test-io.json');
+            fs.writeFileSync(testPath, JSON.stringify({test: 'données de test', timestamp: new Date().toISOString()}));
+            console.log('Fichier test-io.json créé avec succès');
+            
+            // Vérifier que le fichier invoices.json existe
+            const invoicesPath = window.invoicesPath;
+            if (fs.existsSync(invoicesPath)) {
+                console.log('Le fichier invoices.json existe au chemin:', invoicesPath);
+                // Lire son contenu
+                const content = fs.readFileSync(invoicesPath, 'utf8');
+                console.log('Taille du contenu:', content ? content.length : 0);
+                
+                if (content) {
+                    try {
+                        const data = JSON.parse(content);
+                        console.log(`Le fichier contient ${data.length} factures`);
+                        
+                        // Essayer de sauvegarder le même contenu
+                        fs.writeFileSync(invoicesPath, JSON.stringify(data, null, 2));
+                        console.log('Réécriture réussie');
+                        
+                        alert(`Test réussi! ${data.length} factures lues et sauvegardées.`);
+                    } catch (e) {
+                        console.error('Erreur lors du parsing JSON:', e);
+                        alert('Erreur lors du parsing JSON: ' + e.message);
+                    }
+                } else {
+                    console.log('Le fichier existe mais est vide');
+                    fs.writeFileSync(invoicesPath, '[]');
+                    alert('Le fichier invoices.json était vide. Un tableau vide a été créé.');
+                }
+            } else {
+                console.log('Le fichier invoices.json n\'existe pas, création...');
+                fs.writeFileSync(invoicesPath, '[]');
+                alert('Le fichier invoices.json a été créé avec un tableau vide.');
+            }
+        } catch (error) {
+            console.error('Erreur lors du test:', error);
+            alert('Erreur: ' + error.message);
+        }
+    }
+
+    function testSaveLoad() {
+      try {
+        // 1. Créer facture test
+        const testInvoice = {number: 'TEST-' + Date.now(), date: new Date().toISOString()};
+        
+        // 2. Sauvegarder
+        window.invoices = [testInvoice];
+        const saveOk = saveInvoicesToFile();
+        
+        // 3. Recharger
+        window.invoices = [];
+        loadInvoices();
+        
+        // 4. Vérifier
+        const found = window.invoices.find(i => i.number === testInvoice.number);
+        
+        alert(found ? 'Test réussi! Sauvegarde fonctionnelle.' : 'Échec du test!');
+        
+        // Nettoyer
+        window.invoices = window.invoices.filter(i => !i.number.startsWith('TEST-'));
+        saveInvoicesToFile();
+      } catch (e) {
+        alert('Erreur: ' + e.message);
+      }
+    }
+
+    // Ajouter cette fonction dans finance.html ou dans invoice-manager.js
+    function diagnoseAndRepairInvoiceSystem() {
+      console.log('=== DIAGNOSTIC ET RÉPARATION DU SYSTÈME DE FACTURES ===');
+      
+      try {
+        // 1. Vérifier le fichier
+        const fs = require('fs');
+        const invoicesPath = window.invoicesPath;
+        
+        console.log('Chemin du fichier:', invoicesPath);
+        
+        if (fs.existsSync(invoicesPath)) {
+          console.log('Fichier trouvé');
+          
+          // Lire le contenu
+          const content = fs.readFileSync(invoicesPath, 'utf8');
+          console.log(`Taille du contenu: ${content.length} caractères`);
+          
+          // Parser le JSON
+          try {
+            const data = JSON.parse(content);
+            console.log(`Le fichier contient ${data.length} factures`);
+            
+            // 2. Comparer avec les factures en mémoire
+            console.log(`Factures en mémoire: ${window.invoices ? window.invoices.length : 'undefined'}`);
+            
+            // 3. Forcer le chargement depuis le fichier
+            window.invoices = data;
+            
+            // 4. Mettre à jour l'interface
+            if (typeof updateInvoicesList === 'function') {
+              updateInvoicesList();
+            }
+            
+            alert(`Réparation terminée! ${data.length} factures chargées.`);
+          } catch (e) {
+            console.error('Erreur de parsing:', e);
+            alert('Erreur de parsing JSON: ' + e.message);
+          }
+        } else {
+          alert('Fichier non trouvé: ' + invoicesPath);
+        }
+      } catch (e) {
+        alert('Erreur: ' + e.message);
+      }
+    }
+    </script>
 </body>
 </html>
-``` 

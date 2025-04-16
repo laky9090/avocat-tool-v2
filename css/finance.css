@@ -260,13 +260,18 @@ header {
 
 /* Style pour les statuts */
 .status-sent {
-    color: #2196F3;
+    color: #17a2b8;
     font-weight: 500;
 }
 
 .status-paid {
-    color: #4CAF50;
-    font-weight: 500;
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-pending {
+    color: #ffc107;
+    font-weight: bold;
 }
 
 /* S'assurer que les cellules gardent leur padding */
@@ -303,6 +308,20 @@ header {
 /* Hover effect */
 .action-btn.delete-btn:hover {
     background-color: var(--hover-background);
+}
+
+/* Style pour les boutons d'action */
+.action-btn {
+    cursor: pointer;
+    margin: 0 3px;
+    padding: 3px 8px;
+    border: none;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+}
+
+.action-btn:hover {
+    background-color: #e9ecef;
 }
 
 /* Formulaires */

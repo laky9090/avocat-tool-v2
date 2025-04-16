@@ -5,33 +5,30 @@ const remoteMain = require('@electron/remote/main');
 // Désactiver l'accélération GPU
 app.disableHardwareAcceleration();
 
-remoteMain.initialize();
+// Activer le module remote
+remoteMain.initialize(); // Garder uniquement cette initialisation
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1000,
+  // Créer la fenêtre du navigateur
+  mainWindow = new BrowserWindow({
+    width: 1200,
     height: 800,
-    icon: path.join(__dirname, 'icon.ico'),
-    autoHideMenuBar: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      enableRemoteModule: true,
-      webgl: false // Désactiver WebGL
-      // Supprimer offscreen: true qui cause l'écran blanc
-    },
-    // Options de fenêtre
-    scrollBounce: false,
-    enableLargerThanScreen: false
+      enableRemoteModule: true
+    }
   });
-
+  
+  // Charger le fichier index.html de l'application
+  mainWindow.loadFile('index.html');
+  
   // Désactiver le zoom
-  win.webContents.setZoomFactor(1);
-  win.webContents.setVisualZoomLevelLimits(1, 1);
+  mainWindow.webContents.setZoomFactor(1);
+  mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
 
-  win.loadFile('index.html');
-  win.maximize();
-  remoteMain.enable(win.webContents);
+  mainWindow.maximize();
+  remoteMain.enable(mainWindow.webContents);
 }
 
 app.whenReady().then(createWindow);
