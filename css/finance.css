@@ -527,25 +527,30 @@ body > *:not(.finance-dashboard) {
 th.sortable {
     cursor: pointer;
     position: relative;
-    padding-right: 18px; /* Espace pour l'icône */
+    white-space: nowrap; /* Empêche le retour à la ligne */
 }
 
 th.sortable:after {
     content: '↕️';
-    position: absolute;
-    right: 5px;
+    display: inline-block;
+    margin-left: 10px; /* Augmenter la marge entre le texte et l'icône */
     opacity: 0.3;
     font-size: 0.8em;
+    vertical-align: middle;
+    width: 12px; /* Fixer la largeur de l'icône pour éviter les décalages */
+    text-align: center; /* Centrer l'icône dans son espace fixe */
 }
 
 th.sortable.sort-asc:after {
     content: '↑';
     opacity: 1;
+    margin-left: 10px; /* Maintenir la même marge dans tous les états */
 }
 
 th.sortable.sort-desc:after {
     content: '↓';
     opacity: 1;
+    margin-left: 10px; /* Maintenir la même marge dans tous les états */
 }
 
 /* Animation lors du changement de tri */
