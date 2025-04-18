@@ -488,3 +488,52 @@ tr.deleting {
     animation: fadeOut 0.3s forwards;
 }
 
+/* Ajouter/modifier ces styles pour l'édition in-line */
+
+.task-description, .task-date, .task-comment {
+    cursor: text; /* Indique que le champ est cliquable/éditable */
+}
+
+.description-input, .date-input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Style spécifique pour l'input date */
+.date-input {
+    width: 140px; /* Limite la largeur pour un meilleur rendu */
+}
+
+/* Effet de survol pour indiquer les zones cliquables */
+.task-description:hover, .task-date:hover, .task-comment:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* Ajouter des indices visuels pour les champs éditables */
+
+.task-description:hover::after, 
+.task-date:hover::after, 
+.task-comment:hover::after {
+    content: "✎";
+    position: absolute;
+    right: 5px;
+    color: #aaa;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.task-description, .task-date, .task-comment {
+    position: relative; /* Pour positionner l'icône d'édition */
+}
+
+/* Surbrillance au survol */
+.task-description:hover .description-text,
+.task-date:hover .date-text,
+.task-comment:hover .comment-text {
+    text-decoration: underline dotted #999;
+}
+

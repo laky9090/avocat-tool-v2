@@ -246,8 +246,12 @@ function renderTaskGroups() {
             row.dataset.taskId = task.id;
             
             row.innerHTML = `
-                <td class="task-description">${task.description}</td>
-                <td class="task-date">${formatDate(task.dueDate)}</td>
+                <td class="task-description" data-task-id="${task.id}">
+                    <span class="description-text">${task.description}</span>
+                </td>
+                <td class="task-date" data-task-id="${task.id}">
+                    <span class="date-text">${formatDate(task.dueDate)}</span>
+                </td>
                 <td class="task-status">
                     <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" 
                         ${task.completed ? 'checked' : ''}>
@@ -256,15 +260,10 @@ function renderTaskGroups() {
                     <span class="comment-text">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
                 </td>
                 <td class="task-actions">
-                    <button class="action-btn edit-task-btn" data-task-id="${task.id}" title="Modifier">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M12.146 1.146a2 2 0 0 1 2.828 0L15.5 1.672a2 2 0 0 1 0 2.828l-9.5 9.5a2 2 0 0 1-1.414.586H2a1 1 0 0 1-1-1v-2.586a2 2 0 0 1 .586-1.414l9.5-9.5zM3 14h2.086a1 1 0 0 0 .707-.293l9.5-9.5a1 1 0 0 0 0-1.414L14.5 2a1 1 0 0 0-1.414 0l-9.5 9.5A1 1 0 0 0 3 12.086V14z"/>
-                        </svg>
-                    </button>
                     <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
                         </svg>
                     </button>
                 </td>
@@ -332,6 +331,94 @@ function renderTaskGroups() {
         });
     });
 
+    // Ajouter les gestionnaires pour l'édition in-line de la description
+    document.querySelectorAll('.task-description').forEach(cell => {
+        cell.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            const textElement = this.querySelector('.description-text');
+            const currentText = textElement.textContent;
+            
+            // Ne pas transformer en champ d'édition si déjà en cours d'édition
+            if (this.querySelector('.description-input')) {
+                return;
+            }
+            
+            // Créer un champ de saisie
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'description-input';
+            input.value = currentText;
+            
+            // Remplacer le texte par le champ de saisie
+            this.innerHTML = '';
+            this.appendChild(input);
+            
+            // Focus sur le champ et sélectionner le texte
+            input.focus();
+            input.select();
+            
+            // Gestionnaire pour sauvegarder lorsqu'on appuie sur Entrée
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveDescription(taskId, this.value, cell);
+                }
+            });
+            
+            // Gestionnaire pour sauvegarder lors de la perte de focus
+            input.addEventListener('blur', function() {
+                saveDescription(taskId, this.value, cell);
+            });
+        });
+    });
+
+    // Ajouter les gestionnaires pour l'édition in-line de la date
+    document.querySelectorAll('.task-date').forEach(cell => {
+        cell.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            const textElement = this.querySelector('.date-text');
+            const currentText = textElement.textContent;
+            
+            // Ne pas transformer en champ d'édition si déjà en cours d'édition
+            if (this.querySelector('.date-input')) {
+                return;
+            }
+            
+            // Convertir la date affichée (DD/MM/YYYY) en format YYYY-MM-DD pour l'input
+            let dateValue = '';
+            if (currentText && currentText !== '—') {
+                try {
+                    const [day, month, year] = currentText.split('/');
+                    dateValue = `${year}-${month}-${day}`;
+                } catch (e) {
+                    console.error('Erreur de conversion de date:', e);
+                }
+            }
+            
+            // Créer un champ de saisie de date
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.className = 'date-input';
+            input.value = dateValue;
+            
+            // Remplacer le texte par le champ de saisie
+            this.innerHTML = '';
+            this.appendChild(input);
+            
+            // Focus sur le champ
+            input.focus();
+            
+            // Gestionnaire pour sauvegarder lors de la perte de focus
+            input.addEventListener('blur', function() {
+                saveDate(taskId, this.value, cell);
+            });
+            
+            // Gestionnaire pour sauvegarder lors du changement
+            input.addEventListener('change', function() {
+                saveDate(taskId, this.value, cell);
+            });
+        });
+    });
+
     // IMPORTANT: Ajouter ces gestionnaires explicitement pour les boutons d'action
     document.querySelectorAll('.edit-task-btn').forEach(button => {
         button.addEventListener('click', function(e) {
@@ -385,6 +472,56 @@ function saveComment(taskId, commentText, commentCell) {
         
         // Créer un champ de saisie et le reste du code...
         // (code similaire à celui dans renderTaskGroups)
+    });
+}
+
+// Fonction pour sauvegarder une description
+function saveDescription(taskId, descriptionText, descriptionCell) {
+    // Validation simple: ne pas accepter une description vide
+    if (!descriptionText.trim()) {
+        alert('La description ne peut pas être vide.');
+        
+        // Recréer le champ d'édition pour permettre une nouvelle saisie
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'description-input';
+        input.value = '';
+        
+        descriptionCell.innerHTML = '';
+        descriptionCell.appendChild(input);
+        input.focus();
+        
+        return;
+    }
+    
+    console.log(`Description sauvegardée pour la tâche ${taskId}: ${descriptionText}`);
+    
+    // Recréer la structure de la description
+    descriptionCell.innerHTML = `
+        <span class="description-text">${descriptionText}</span>
+    `;
+    
+    // Réattacher le gestionnaire d'événement
+    descriptionCell.addEventListener('click', function() {
+        // Code d'édition similaire à ci-dessus
+    });
+}
+
+// Fonction pour sauvegarder une date
+function saveDate(taskId, dateValue, dateCell) {
+    console.log(`Date sauvegardée pour la tâche ${taskId}: ${dateValue}`);
+    
+    // Formatter la date pour l'affichage
+    const displayDate = dateValue ? formatDate(dateValue) : '—';
+    
+    // Recréer la structure de la date
+    dateCell.innerHTML = `
+        <span class="date-text">${displayDate}</span>
+    `;
+    
+    // Réattacher le gestionnaire d'événement
+    dateCell.addEventListener('click', function() {
+        // Code d'édition similaire à ci-dessus
     });
 }
 
