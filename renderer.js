@@ -215,6 +215,56 @@ function initTypeRoleSelect() {
   });
 }
 
+// Ajoutez cette fonction avant renderFileList dans votre code
+
+/**
+ * Charge le contenu d'un répertoire
+ * @param {string} dirPath - Chemin du répertoire à charger
+ * @returns {Array} Liste des fichiers et dossiers
+ */
+function loadDirectory(dirPath) {
+    try {
+        // Vérifie si le chemin existe
+        if (!fs.existsSync(dirPath)) {
+            console.error('Répertoire non trouvé:', dirPath);
+            return [];
+        }
+        
+        // Liste des fichiers et dossiers
+        const items = [];
+        
+        // Lire le contenu du répertoire
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        
+        // Trier : d'abord les dossiers, puis les fichiers (par ordre alphabétique)
+        const sortedEntries = entries.sort((a, b) => {
+            // Si a est un dossier et b ne l'est pas, a vient en premier
+            if (a.isDirectory() && !b.isDirectory()) return -1;
+            // Si b est un dossier et a ne l'est pas, b vient en premier
+            if (!b.isDirectory() && a.isDirectory()) return 1;
+            // Sinon, tri alphabétique
+            return a.name.localeCompare(b.name);
+        });
+        
+        // Traiter chaque entrée
+        for (const entry of sortedEntries) {
+            const entryPath = path.join(dirPath, entry.name);
+            
+            // Ajouter l'élément à la liste
+            items.push({
+                name: entry.name,
+                path: entryPath,
+                type: entry.isDirectory() ? 'folder' : 'file'
+            });
+        }
+        
+        return items;
+    } catch (error) {
+        console.error('Erreur lors du chargement du répertoire:', error);
+        return [];
+    }
+}
+
 // Amélioration de la validation du formulaire
 function validateForm() {
     document.querySelectorAll('.erreur-message').forEach(el => el.remove());
@@ -499,6 +549,256 @@ function chargerClient(client) {
         if (client.tags && client.tags.includes(tagItem.textContent.trim())) {
             tagItem.classList.add('selected');
         }
+    });
+}
+
+// Remplacer la fonction renderFileList dans la fonction initializeFileExplorer
+
+function renderFileList(dirPath) {
+    fileList.innerHTML = '';
+    const items = loadDirectory(dirPath);
+    
+    // Ajouter une barre d'outils en haut de la liste de fichiers
+    const toolbarDiv = document.createElement('div');
+    toolbarDiv.className = 'file-toolbar';
+    toolbarDiv.innerHTML = `
+        <div>
+            <button id="selectAllBtn" class="toolbar-btn">Tout sélectionner</button>
+            <button id="unselectAllBtn" class="toolbar-btn">Désélectionner tout</button>
+        </div>
+        <div>
+            <button id="deleteSelectedBtn" class="toolbar-btn danger" disabled>
+                <span id="selectedCount">(0)</span> Supprimer la sélection
+            </button>
+        </div>
+    `;
+    fileList.appendChild(toolbarDiv);
+    
+    // Variable pour stocker les éléments sélectionnés
+    const selectedItems = new Set();
+    
+    // Ajouter le conteneur des fichiers
+    const filesContainer = document.createElement('div');
+    filesContainer.className = 'files-container';
+    fileList.appendChild(filesContainer);
+    
+    // Fonction pour mettre à jour le bouton de suppression
+    function updateDeleteButton() {
+        const deleteBtn = document.getElementById('deleteSelectedBtn');
+        const countSpan = document.getElementById('selectedCount');
+        if (deleteBtn && countSpan) {
+            const count = selectedItems.size;
+            deleteBtn.disabled = count === 0;
+            countSpan.textContent = `(${count})`;
+        }
+    }
+    
+    // Gérer la sélection/déselection de tous les fichiers
+    document.getElementById('selectAllBtn').onclick = () => {
+        // Utiliser filesContainer au lieu de document pour limiter la portée
+        filesContainer.querySelectorAll('.file-item, .folder-item').forEach(item => {
+            // Ajouter la classe selected
+            item.classList.add('selected');
+            
+            // Cocher la case à cocher
+            const checkbox = item.querySelector('.item-checkbox');
+            if (checkbox) checkbox.checked = true;
+            
+            // Ajouter au Set des éléments sélectionnés
+            const itemPath = item.getAttribute('data-path');
+            if (itemPath) selectedItems.add(itemPath);
+        });
+        updateDeleteButton();
+    };
+
+    document.getElementById('unselectAllBtn').onclick = () => {
+        // Utiliser filesContainer au lieu de document pour limiter la portée
+        filesContainer.querySelectorAll('.file-item, .folder-item').forEach(item => {
+            // Enlever la classe selected
+            item.classList.remove('selected');
+            
+            // Décocher la case à cocher
+            const checkbox = item.querySelector('.item-checkbox');
+            if (checkbox) checkbox.checked = false;
+        });
+        selectedItems.clear();
+        updateDeleteButton();
+    };
+    
+    // Gérer la suppression des éléments sélectionnés
+    document.getElementById('deleteSelectedBtn').onclick = () => {
+        if (selectedItems.size === 0) return;
+        
+        if (confirm(`Êtes-vous sûr de vouloir supprimer ${selectedItems.size} élément(s) ?`)) {
+            let successCount = 0;
+            let errorCount = 0;
+            
+            selectedItems.forEach(itemPath => {
+                try {
+                    const item = items.find(i => i.path === itemPath);
+                    if (item) {
+                        if (item.type === 'folder') {
+                            fs.rmdirSync(itemPath, { recursive: true });
+                        } else {
+                            fs.unlinkSync(itemPath);
+                        }
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error(`Erreur lors de la suppression de ${itemPath}:`, error);
+                    errorCount++;
+                }
+            });
+            
+            // Afficher un résumé
+            if (errorCount > 0) {
+                alert(`${successCount} élément(s) supprimé(s), ${errorCount} erreur(s).`);
+            } else {
+                alert(`${successCount} élément(s) supprimé(s) avec succès.`);
+            }
+            
+            // Rafraîchir l'affichage
+            renderFileList(dirPath);
+        }
+    };
+    
+    // Afficher les fichiers et dossiers
+    items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = item.type === 'folder' ? 'folder-item' : 'file-item';
+        itemDiv.draggable = true;
+        itemDiv.setAttribute('data-path', item.path);
+        itemDiv.innerHTML = `
+            <span class="item-select">
+                <input type="checkbox" class="item-checkbox" />
+            </span>
+            <span class="${item.type}-icon">${item.type === 'folder' ? '📁' : '📄'}</span>
+            <span class="${item.type}-name">${item.name}</span>
+        `;
+        
+        // Gérer la sélection par case à cocher
+        const checkbox = itemDiv.querySelector('.item-checkbox');
+        checkbox.onclick = (e) => {
+            e.stopPropagation();
+            if (checkbox.checked) {
+                itemDiv.classList.add('selected');
+                selectedItems.add(item.path);
+            } else {
+                itemDiv.classList.remove('selected');
+                selectedItems.delete(item.path);
+            }
+            updateDeleteButton();
+        };
+        
+        // Double-clic pour ouvrir
+        itemDiv.ondblclick = () => {
+            if (item.type === 'folder') {
+                renderFileList(item.path);
+            } else {
+                shell.openPath(item.path);
+            }
+        };
+        
+        // Clic simple pour sélectionner
+        itemDiv.onclick = (e) => {
+            // Ne pas gérer le clic si on a cliqué sur la case à cocher
+            if (e.target === checkbox) return;
+            
+            // Gestion de la sélection multiple avec Ctrl
+            if (e.ctrlKey) {
+                itemDiv.classList.toggle('selected');
+                if (itemDiv.classList.contains('selected')) {
+                    checkbox.checked = true;
+                    selectedItems.add(item.path);
+                } else {
+                    checkbox.checked = false;
+                    selectedItems.delete(item.path);
+                }
+            } else {
+                // Clic simple = sélectionne uniquement cet élément
+                document.querySelectorAll('.file-item, .folder-item').forEach(i => {
+                    i.classList.remove('selected');
+                    i.querySelector('.item-checkbox').checked = false;
+                });
+                selectedItems.clear();
+                
+                itemDiv.classList.add('selected');
+                checkbox.checked = true;
+                selectedItems.add(item.path);
+            }
+            
+            updateDeleteButton();
+        };
+
+        // Menu contextuel (clic droit)
+        itemDiv.oncontextmenu = (e) => {
+            e.preventDefault();
+            
+            // Supprimer tout menu contextuel existant
+            const existingMenu = document.querySelector('.context-menu');
+            if (existingMenu) {
+                document.body.removeChild(existingMenu);
+            }
+            
+            const contextMenu = document.createElement('div');
+            contextMenu.className = 'context-menu';
+            contextMenu.style.position = 'fixed';
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.top = `${e.clientY}px`;
+            
+            const menuItems = [
+                {
+                    text: 'Ouvrir',
+                    action: () => {
+                        if (item.type === 'folder') {
+                            renderFileList(item.path);
+                        } else {
+                            shell.openPath(item.path);
+                        }
+                        document.body.removeChild(contextMenu);
+                    }
+                },
+                {
+                    text: 'Supprimer',
+                    action: () => {
+                        if (confirm(`Êtes-vous sûr de vouloir supprimer "${item.name}" ?`)) {
+                            try {
+                                if (item.type === 'folder') {
+                                    fs.rmdirSync(item.path, { recursive: true });
+                                } else {
+                                    fs.unlinkSync(item.path);
+                                }
+                                renderFileList(dirPath);
+                            } catch (error) {
+                                alert('Erreur lors de la suppression');
+                            }
+                        }
+                        document.body.removeChild(contextMenu);
+                    }
+                }
+            ];
+
+            menuItems.forEach(menuItem => {
+                const button = document.createElement('button');
+                button.textContent = menuItem.text;
+                button.onclick = menuItem.action;
+                contextMenu.appendChild(button);
+            });
+
+            document.body.appendChild(contextMenu);
+
+            // Fermer le menu au clic ailleurs
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!contextMenu.contains(e.target)) {
+                        document.body.removeChild(contextMenu);
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 0);
+        };
+        
+        filesContainer.appendChild(itemDiv);
     });
 }
 
@@ -1266,25 +1566,6 @@ function appliquerTri() {
   }
 }
 
-// Imprimer tous les dossiers clients
-function imprimerTousLesClients() {
-  try {
-    const clients = fs.existsSync(cheminFichier)
-      ? JSON.parse(fs.readFileSync(cheminFichier))
-      : [];
-    let contenu = `<html><head><title>Dossiers</title></head><body><h1>Liste des clients</h1>`;
-    clients.forEach(c => {
-      contenu += `<p><strong>${c.nom} ${c.prenom || ''}</strong> - ${c.type} - Audience : ${formatDateFr(c.dateAudience)} - Date d'entrée du dossier : ${formatDateFr(c.dateEcheance)} - Contact : ${formatDateFr(c.dateContact)}</p>`;
-    });
-    contenu += `<script>window.onload = () => window.print();<\/script></body></html>`;
-    const fenetre = window.open('', '_blank');
-    fenetre.document.write(contenu);
-    fenetre.document.close();
-  } catch (error) {
-    console.error("Erreur dans imprimerTousLesClients:", error);
-  }
-}
-
 // Joindre un fichier à un client
 async function joindreFichier(client) {
   try {
@@ -1784,101 +2065,6 @@ function initializeFileExplorer() {
 
             parentElement.appendChild(folderDiv);
             parentElement.appendChild(contentDiv);
-        });
-    }
-
-    function renderFileList(dirPath) {
-        fileList.innerHTML = '';
-        const items = loadDirectory(dirPath);
-        
-        items.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = item.type === 'folder' ? 'folder-item' : 'file-item';
-            itemDiv.draggable = true;
-            itemDiv.innerHTML = `
-                <span class="${item.type}-icon">${item.type === 'folder' ? '📁' : '📄'}</span>
-                <span class="${item.type}-name">${item.name}</span>
-            `;
-            
-            // Double-clic pour ouvrir
-            itemDiv.ondblclick = () => {
-                if (item.type === 'folder') {
-                    renderFileList(item.path);
-                } else {
-                    shell.openPath(item.path);
-                }
-            };
-
-            // Menu contextuel (clic droit)
-            itemDiv.oncontextmenu = (e) => {
-                e.preventDefault();
-                
-                // Supprimer tout menu contextuel existant
-                const existingMenu = document.querySelector('.context-menu');
-                if (existingMenu) {
-                    document.body.removeChild(existingMenu);
-                }
-                
-                const contextMenu = document.createElement('div');
-                contextMenu.className = 'context-menu';
-                contextMenu.style.position = 'fixed';
-                contextMenu.style.left = `${e.clientX}px`;
-                contextMenu.style.top = `${e.clientY}px`;
-                
-                const menuItems = [
-                    {
-                        text: 'Ouvrir',
-                        action: () => {
-                            if (item.type === 'folder') {
-                                renderFileList(item.path);
-                            } else {
-                                shell.openPath(item.path);
-                            }
-                            document.body.removeChild(contextMenu);
-                        }
-                    },
-
-                    {
-                        text: 'Supprimer',
-                        action: () => {
-                            if (confirm(`Êtes-vous sûr de vouloir supprimer "${item.name}" ?`)) {
-                                try {
-                                    if (item.type === 'folder') {
-                                        fs.rmdirSync(item.path, { recursive: true });
-                                    } else {
-                                        fs.unlinkSync(item.path);
-                                    }
-                                    renderFileList(dirPath);
-                                } catch (error) {
-                                    alert('Erreur lors de la suppression');
-                                }
-                            }
-                            document.body.removeChild(contextMenu);
-                        }
-                    }
-                ];
-
-                menuItems.forEach(menuItem => {
-                    const button = document.createElement('button');
-                    button.textContent = menuItem.text;
-                    button.onclick = menuItem.action;
-                    contextMenu.appendChild(button);
-                });
-
-                document.body.appendChild(contextMenu);
-
-                // Fermer le menu au clic ailleurs
-                setTimeout(() => {
-                    document.addEventListener('click', function closeMenu(e) {
-                        if (!contextMenu.contains(e.target)) {
-                            document.body.removeChild(contextMenu);
-                            document.removeEventListener('click', closeMenu);
-                        }
-                    });
-                }, 0);
-            };
-            
-            fileList.appendChild(itemDiv);
         });
     }
 
