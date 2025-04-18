@@ -32,39 +32,46 @@ function createWindow() {
   remoteMain.enable(mainWindow.webContents);
 }
 
-// Dans la configuration des gestionnaires d'événements IPC
+// Gestionnaire d'événement pour l'envoi d'emails
 ipcMain.on('send-email', async (event, emailData) => {
   try {
-    // Récupérer les paramètres d'authentification depuis un fichier de configuration sécurisé
-    // ou depuis les variables d'environnement dans un environnement de production
-    const emailUser = process.env.EMAIL_USER || emailData.from;
-    const emailPass = process.env.EMAIL_PASSWORD; // En production, utiliser une variable d'environnement
+    console.log('Demande d\'envoi d\'email reçue');
     
-    if (!emailPass) {
-      console.log('Utilisation du mot de passe d\'application fourni dans emailData');
-      // En développement, l'application frontend peut fournir le mot de passe
-    }
-    
-    // Créer le transporteur pour l'envoi d'emails
+    // Créer un transporteur SMTP avec Gmail
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: emailUser,
-        pass: emailPass || emailData.password // Récupérer le mot de passe soit de l'env soit des données envoyées
+        user: emailData.from,
+        pass: emailData.password // Mot de passe d'application Google
       }
     });
     
-    // Supprimer le mot de passe des données transmises pour la sécurité
-    delete emailData.password;
+    // Options de l'email
+    const mailOptions = {
+      from: emailData.from,
+      to: emailData.to,
+      subject: emailData.subject,
+      text: emailData.text,
+      attachments: emailData.attachments || []
+    };
     
     // Envoyer l'email
-    await transporter.sendMail(emailData);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email envoyé:', info.messageId);
     
-    // Répondre au renderer avec succès
-    event.reply('email-sent', { success: true });
+    // Répondre au renderer process
+    event.reply('email-sent', {
+      success: true,
+      messageId: info.messageId
+    });
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email:', error);
-    event.reply('email-sent', { success: false, error: error.message });
+    
+    // Répondre avec l'erreur
+    event.reply('email-sent', {
+      success: false,
+      error: error.message
+    });
   }
 });
 

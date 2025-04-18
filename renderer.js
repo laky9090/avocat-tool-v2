@@ -731,9 +731,7 @@ function afficherClients(clients) {
     btnEmail.innerHTML = '📧 Email';
     btnEmail.onclick = () => {
         if (client.email) {
-            const subject = `${client.numeroDossier} - ${client.nom} / ${client.nomAdverse || 'Sans adversaire'}`;
-            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(client.email)}&su=${encodeURIComponent(subject)}`;
-            shell.openExternal(gmailUrl);
+            showClientEmailModal(client);
         } else {
             alert('Aucune adresse email renseignée pour ce client');
         }
@@ -1188,7 +1186,7 @@ function annulerModification() {
 // Afficher la fiche détaillée d'un client
 function afficherFicheClient(client) {
   const fiche = document.getElementById('fiche-detaillee');
-  fiche.innerHTML = `
+  let html = `
     <h3>Fiche détaillée</h3>
     <p><strong>Client</strong></p>
     <p>Nom complet : ${client.nom} ${client.prenom || ''}</p>
@@ -1216,8 +1214,16 @@ function afficherFicheClient(client) {
     <p>Email : ${client.emailAdverse || ''}</p>
     <p>Profession : ${client.professionAdverse || ''}</p>
     <p>Aide juridictionnelle : ${client.aideJuridictionnelle || 'non'}</p>
-    <button onclick="document.getElementById('fiche-detaillee').style.display='none'">Fermer</button>
-  `;
+    <div class="fiche-actions">
+      <button onclick="document.getElementById('fiche-detaillee').style.display='none'" class="btn-secondary">Fermer</button>`;
+      
+  // Ajouter le bouton Email si le client a une adresse email
+  if (client.email) {
+    html += `<button onclick="showClientEmailModal(${JSON.stringify(client).replace(/"/g, '&quot;')})" class="btn-primary">📧 Email</button>`;
+  }
+  
+  html += `</div>`;
+  fiche.innerHTML = html;
   fiche.style.display = 'block';
 }
 

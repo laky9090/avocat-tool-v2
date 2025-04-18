@@ -189,6 +189,9 @@
           <option value="dateContact">Date de dernier contact</option>
         </select>
         <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
+        <button onclick="showEmailConfigModal()" class="settings-button">
+            ✉️ Configurer l'email
+        </button>
       </div>
       <ul id="listeClients"></ul>
       <div id="fiche-detaillee" style="display:none;"></div>
@@ -213,10 +216,84 @@
 
   </div>
 
+  <!-- Dans votre modale d'email, ajouter ce champ caché -->
+  <input type="hidden" id="clientIdForEmail">
+
+  <!-- Modal pour l'envoi d'email -->
+  <div id="emailModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeEmailModal()">×</button>
+      <h2>Envoi d'email</h2>
+      <form id="emailForm" onsubmit="sendInvoiceEmail(event)">
+        <input type="hidden" id="invoiceNumberForEmail">
+        <input type="hidden" id="clientIdForEmail">
+        
+        <div class="form-group">
+          <label for="emailTo">À :</label>
+          <input type="email" id="emailTo" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="emailSubject">Objet :</label>
+          <input type="text" id="emailSubject" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="emailMessage">Message :</label>
+          <textarea id="emailMessage" rows="10" required></textarea>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="attachPDF" checked>
+          <label for="attachPDF">Joindre un document</label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeEmailModal()">Annuler</button>
+          <button type="submit" class="btn-primary">Envoyer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal pour la configuration d'email -->
+  <div id="emailConfigModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeEmailConfigModal()">×</button>
+      <h2>Configuration d'email</h2>
+      <form id="emailConfigForm" onsubmit="saveEmailConfiguration(event)">
+        <div class="form-group">
+          <label for="configEmail">Adresse email Gmail:</label>
+          <input type="email" id="configEmail" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="configAppPassword">Mot de passe d'application:</label>
+          <input type="password" id="configAppPassword" required>
+          <p class="help-text">
+            <small>Ce n'est pas votre mot de passe Gmail habituel. Vous devez générer un mot de passe d'application dans les paramètres de sécurité de votre compte Google.</small>
+            <a href="#" onclick="openGoogleAppPasswordPage()">Voir comment faire</a>
+          </p>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer>
     Maître Candice ROVERA - Avocate au Barreau de Paris
   </footer>
 
+  <!-- À la fin du document, juste avant la fermeture de body -->
+
+  <!-- D'abord charger la configuration -->
+  <script src="js/email-config.js"></script>
+  <!-- Ensuite charger le gestionnaire d'email qui utilise cette configuration -->
+  <script src="js/email-manager.js"></script>
+  <!-- Finalement, charger le reste des scripts -->
   <script src="renderer.js"></script>
 </body>
 </html>

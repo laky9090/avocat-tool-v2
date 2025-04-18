@@ -1,3 +1,36 @@
+// Ajouter au début du fichier
+
+// Vérifier si la configuration d'email existe déjà
+if (!window.emailConfig) {
+    console.log('Configuration d\'email non trouvée, tentative de chargement depuis le fichier...');
+    
+    // Essayer de charger la configuration depuis le fichier
+    try {
+        if (window.require) {
+            const fs = window.require('fs');
+            const path = window.require('path');
+            const configPath = path.join(__dirname, 'js', 'email-config.js');
+            
+            if (fs.existsSync(configPath)) {
+                console.log('Fichier de configuration trouvé, initialisation...');
+                // La configuration sera chargée par le script lui-même
+                // Nous n'avons pas besoin de faire autre chose ici
+                // Le fichier email-config.js définit window.emailConfig
+            } else {
+                console.warn('Fichier de configuration non trouvé:', configPath);
+                window.emailConfig = {}; // Créer un objet vide pour éviter les erreurs
+            }
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement de la configuration d\'email:', error);
+        window.emailConfig = {}; // Créer un objet vide pour éviter les erreurs
+    }
+}
+
+// Vérifier que la configuration est bien chargée
+console.log('État de la configuration d\'email:', 
+    window.emailConfig && window.emailConfig.email ? 'OK' : 'Incomplète');
+
 // Nouveau fichier pour gérer l'envoi d'emails
 
 // Fonction pour afficher la modal d'envoi d'email
@@ -154,16 +187,20 @@ async function sendInvoiceEmail(event) {
     event.preventDefault();
     
     try {
+        // Déterminer si c'est un email de facture ou de client
+        const invoiceNumber = document.getElementById('invoiceNumberForEmail')?.value;
+        const clientId = document.getElementById('clientIdForEmail')?.value;
+        const isClientEmail = !invoiceNumber && clientId;
+        
         // Récupérer les valeurs du formulaire
-        const invoiceNumber = document.getElementById('invoiceNumberForEmail').value;
         const toEmail = document.getElementById('emailTo').value;
         const subject = document.getElementById('emailSubject').value;
         const message = document.getElementById('emailMessage').value;
         const attachPDF = document.getElementById('attachPDF').checked;
         
         // Vérifier les champs requis
-        if (!invoiceNumber || !toEmail) {
-            alert('Veuillez remplir tous les champs requis');
+        if (!toEmail) {
+            alert('Veuillez remplir l\'adresse email');
             return;
         }
         
@@ -176,8 +213,9 @@ async function sendInvoiceEmail(event) {
         // Préparer les pièces jointes
         let attachments = [];
 
-        // Ajouter la facture si demandé
-        if (attachPDF) {
+        // Gestion des pièces jointes selon le type (facture ou client)
+        if (!isClientEmail && attachPDF) {
+            // Code existant pour les factures
             const pdfBlob = await generateInvoicePDF(invoiceNumber);
             if (pdfBlob) {
                 // Convertir le Blob en base64
@@ -193,9 +231,42 @@ async function sendInvoiceEmail(event) {
                     encoding: 'base64'
                 });
             }
+        } 
+        else if (isClientEmail && attachPDF) {
+            // Nouveau code pour les clients: permettre de sélectionner un fichier
+            try {
+                const { dialog } = window.require('@electron/remote');
+                const result = await dialog.showOpenDialog({
+                    properties: ['openFile'],
+                    filters: [
+                        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'jpg', 'png'] }
+                    ],
+                    title: 'Sélectionner un document à joindre'
+                });
+                
+                if (!result.canceled && result.filePaths.length > 0) {
+                    const fs = window.require('fs');
+                    const path = window.require('path');
+                    const filePath = result.filePaths[0];
+                    const fileName = path.basename(filePath);
+                    
+                    // Lire le fichier
+                    const fileContent = fs.readFileSync(filePath);
+                    const fileBase64 = Buffer.from(fileContent).toString('base64');
+                    
+                    attachments.push({
+                        filename: fileName,
+                        content: fileBase64,
+                        encoding: 'base64'
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur lors de la sélection du fichier:', error);
+                alert("Erreur lors de la sélection du fichier: " + error.message);
+            }
         }
 
-        // Ajouter le RIB
+        // Ajouter le RIB pour tous les emails (factures et clients)
         try {
             const fs = window.require('fs');
             const path = window.require('path');
@@ -236,8 +307,25 @@ async function sendInvoiceEmail(event) {
         }
 
         // Récupérer les données de configuration
-        const fromEmail = window.emailConfig ? window.emailConfig.email : document.getElementById('emailFrom').value;
+        const fromEmail = window.emailConfig ? window.emailConfig.email : document.getElementById('emailFrom')?.value;
         const appPassword = window.emailConfig ? window.emailConfig.appPassword : '';
+
+        // Vérifier si les données d'envoi d'email sont configurées
+        if (!fromEmail || !appPassword) {
+            const configurer = confirm(
+                'La configuration d\'email n\'est pas complète ou n\'a pas été chargée correctement.\n\n' +
+                'Voulez-vous configurer votre email maintenant?\n\n' +
+                'Note: Normalement, cette configuration est sauvegardée et ne doit être faite qu\'une seule fois.'
+            );
+            
+            if (configurer) {
+                showEmailConfigModal();
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
 
         // Préparer les données de l'email
         const emailData = {
@@ -249,6 +337,8 @@ async function sendInvoiceEmail(event) {
             attachments: attachments
         };
         
+        console.log('Préparation à l\'envoi de l\'email:', { to: emailData.to, subject: emailData.subject, attachmentsCount: emailData.attachments.length });
+        
         // Envoyer l'email via le backend
         // Pour Electron, nous utilisons l'IPC pour communiquer avec le processus principal
         if (window.require) {
@@ -256,19 +346,27 @@ async function sendInvoiceEmail(event) {
             
             ipcRenderer.send('send-email', emailData);
             
+            console.log('Événement send-email envoyé au processus principal avec les données:', {
+                to: emailData.to,
+                subject: emailData.subject,
+                attachmentsCount: emailData.attachments.length
+            });
+            
             ipcRenderer.once('email-sent', (event, response) => {
+                console.log('Réponse du processus principal:', response);
+                
                 if (response.success) {
                     alert('Email envoyé avec succès !');
                     
                     // Fermer la modal
                     closeEmailModal();
                     
-                    // Mettre à jour le statut de la facture à "sent"
-                    if (typeof updateInvoiceStatus === 'function') {
+                    // Pour les factures: mettre à jour le statut à "sent"
+                    if (!isClientEmail && typeof updateInvoiceStatus === 'function') {
                         updateInvoiceStatus(invoiceNumber, 'sent');
                     }
                     
-                    // Forcer le rafraîchissement de la fenêtre comme pour la suppression
+                    // Forcer le rafraîchissement de la fenêtre 
                     setTimeout(() => {
                         if (typeof forceWindowRefresh === 'function') {
                             forceWindowRefresh();
@@ -294,8 +392,10 @@ async function sendInvoiceEmail(event) {
         
         // Restaurer le bouton
         const submitBtn = event.target.querySelector('button[type="submit"]');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Envoyer';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Envoyer';
+        }
     }
 }
 
@@ -446,11 +546,161 @@ console.log("Configuration email chargée");`;
     }
 }
 
+// Fonction pour afficher la modal d'envoi d'email pour un client
+function showClientEmailModal(client) {
+    console.log("Préparation d'email pour le client:", client.nom);
+    
+    // Créer un champ caché pour l'ID du client s'il n'existe pas
+    if (!document.getElementById('clientIdForEmail')) {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.id = 'clientIdForEmail';
+        document.getElementById('emailForm').appendChild(hiddenField);
+    }
+    
+    // Stocker l'ID du client
+    document.getElementById('clientIdForEmail').value = client.id || '';
+    
+    // S'assurer que le champ de numéro de facture est vide
+    if (document.getElementById('invoiceNumberForEmail')) {
+        document.getElementById('invoiceNumberForEmail').value = '';
+    }
+    
+    // Préremplir l'adresse email du client
+    const emailInput = document.getElementById('emailTo');
+    if (emailInput) {
+        emailInput.value = client.email || '';
+    }
+    
+    // Personnaliser l'objet de l'email
+    const emailSubject = document.getElementById('emailSubject');
+    if (emailSubject) {
+        emailSubject.value = `${client.numeroDossier || ''} - ${client.nom} ${client.prenom || ''} - Maître Candice ROVERA`;
+    }
+    
+    // Créer le contenu du message
+    let audienceDate = '';
+    if (client.dateAudience) {
+        try {
+            const date = new Date(client.dateAudience);
+            audienceDate = date.toLocaleDateString('fr-FR');
+        } catch (error) {
+            audienceDate = client.dateAudience;
+        }
+    }
+    
+    const emailMessage = `Cher(e) ${client.prenom || ''} ${client.nom},
+
+${client.type && client.role ? `Dans le cadre de la procédure ${client.type} où vous êtes ${client.role}, j'ai le plaisir de vous contacter.` : 'J\'ai le plaisir de vous contacter concernant votre dossier.'}
+${client.dateAudience ? `Je vous rappelle que l'audience est prévue le ${audienceDate}.` : ''}
+
+Vous en souhaitant bonne réception,
+Je reste à votre disposition,
+Bien à vous,
+
+Maître Candice ROVERA
+Avocate au Barreau de Paris
+124 Boulevard de Strasbourg
+75010 PARIS
+06.07.50.43.81
+Toque C0199
+Site internet : https://candicerovera-avocat.fr/`;
+
+    // Mettre le message dans le formulaire
+    const emailMessageField = document.getElementById('emailMessage');
+    if (emailMessageField) {
+        emailMessageField.value = emailMessage;
+    }
+    
+    // Décocher la case pour les pièces jointes
+    const attachPDF = document.getElementById('attachPDF');
+    if (attachPDF) {
+        attachPDF.checked = false;
+    }
+    
+    // Afficher la modal
+    const emailModal = document.getElementById('emailModal');
+    if (emailModal) {
+        emailModal.style.display = 'flex';
+    } else {
+        console.error("Modal d'email non trouvée dans le DOM");
+    }
+}
+
+// Fonction pour afficher la modale de configuration d'email
+function showEmailConfigModal() {
+    // Pré-remplir avec les valeurs existantes si disponibles
+    if (window.emailConfig) {
+        if (window.emailConfig.email) {
+            document.getElementById('configEmail').value = window.emailConfig.email;
+        }
+        if (window.emailConfig.appPassword) {
+            document.getElementById('configAppPassword').value = window.emailConfig.appPassword;
+        }
+    }
+    
+    // Afficher la modale
+    document.getElementById('emailConfigModal').style.display = 'flex';
+}
+
+// Fonction pour fermer la modale de configuration
+function closeEmailConfigModal() {
+    document.getElementById('emailConfigModal').style.display = 'none';
+}
+
+// Fonction pour enregistrer la configuration d'email
+function saveEmailConfiguration(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('configEmail').value;
+    const appPassword = document.getElementById('configAppPassword').value;
+    
+    // Vérifier que les champs sont remplis
+    if (!email || !appPassword) {
+        alert('Veuillez remplir tous les champs');
+        return;
+    }
+    
+    // Créer ou mettre à jour la configuration
+    if (!window.emailConfig) {
+        window.emailConfig = {};
+    }
+    
+    window.emailConfig.email = email;
+    window.emailConfig.appPassword = appPassword;
+    
+    // Sauvegarder la configuration
+    saveEmailConfig();
+    
+    alert('Configuration email enregistrée avec succès!');
+    closeEmailConfigModal();
+}
+
+// Fonction pour ouvrir la page Google de création des mots de passe d'application
+function openGoogleAppPasswordPage() {
+    if (window.require) {
+        const { shell } = window.require('electron');
+        shell.openExternal('https://myaccount.google.com/apppasswords');
+    } else {
+        window.open('https://myaccount.google.com/apppasswords', '_blank');
+    }
+}
+
 // Initialiser les événements
 function initEmailManager() {
     const emailForm = document.getElementById('emailForm');
     if (emailForm) {
         emailForm.addEventListener('submit', sendInvoiceEmail);
+    }
+    
+    // Vérifier si la configuration d'email existe
+    if (!window.emailConfig || !window.emailConfig.email || !window.emailConfig.appPassword) {
+        console.warn('Configuration d\'email incomplète');
+        
+        // Ne pas afficher automatiquement la modale de configuration
+        // L'utilisateur peut la configurer quand il en a besoin via le bouton
+    } else {
+        console.log('Configuration d\'email chargée:', window.emailConfig.email);
     }
 }
 
@@ -463,6 +713,14 @@ window.closeEmailModal = closeEmailModal;
 window.openRibSettings = openRibSettings;
 window.previewRib = previewRib;
 window.updateRib = updateRib;
+window.showClientEmailModal = showClientEmailModal;
+window.showEmailConfigModal = showEmailConfigModal;
+window.closeEmailConfigModal = closeEmailConfigModal;
+window.saveEmailConfiguration = saveEmailConfiguration;
+window.openGoogleAppPasswordPage = openGoogleAppPasswordPage;
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', initEmailManager);
+
+// Exposer la fonction showClientEmailModal globalement
+window.showClientEmailModal = showClientEmailModal;
