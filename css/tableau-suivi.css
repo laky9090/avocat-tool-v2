@@ -157,7 +157,7 @@
 }
 
 .task-description {
-    width: 40%; /* Réduit de 60% à 40% */
+    width: 35%; /* Réduction pour faire place à la colonne Actions */
     font-weight: 500;
 }
 
@@ -172,34 +172,24 @@
     text-align: center;
 }
 
-.task-comment {
-    width: 30%;
-}
+/* Modifier les styles pour la colonne commentaire */
 
-.comment-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.task-comment {
+    width: 25%;
+    cursor: text; /* Indique que le champ est cliquable/éditable */
 }
 
 .comment-text {
-    flex-grow: 1;
+    display: inline-block;
+    width: 100%;
+    min-height: 1.2em;
     font-style: italic;
     color: #666;
 }
 
-.edit-comment-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #999;
-    font-size: 0.9em;
-    padding: 2px 5px;
-    visibility: hidden;
-}
-
-.task-comment:hover .edit-comment-btn {
-    visibility: visible;
+.comment-placeholder {
+    color: #aaa;
+    font-style: italic;
 }
 
 .comment-input {
@@ -207,6 +197,9 @@
     padding: 5px;
     border: 1px solid #ddd;
     border-radius: 3px;
+    font-style: italic;
+    font-family: inherit;
+    font-size: inherit;
 }
 
 .task-checkbox {
@@ -262,11 +255,15 @@
     }
     
     .task-description {
-        width: 75%; /* Garder la même largeur */
+        width: 60%; /* Augmenter pour mobile */
     }
     
     .task-status {
-        width: 25%; /* Garder la même largeur */
+        width: 20%; /* Augmenter pour mobile */
+    }
+    
+    .task-actions {
+        width: 20%; /* Garder visible sur mobile */
     }
 }
 
@@ -371,5 +368,123 @@
     color: #555;
     font-size: 0.9em;
     border-radius: 0 4px 4px 0;
+}
+
+/* Ajouter ces styles pour la colonne Actions */
+
+.task-actions-header {
+    width: 10%;
+    text-align: center;
+}
+
+.task-actions {
+    width: 10%;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #777;
+    padding: 4px;
+    margin: 0 2px;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.edit-task-btn:hover {
+    color: var(--primary-color, #3498db);
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.delete-task-btn:hover {
+    color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+/* Style pour l'overlay d'édition */
+.task-edit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.edit-task-form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    width: 400px;
+    max-width: 90%;
+}
+
+.edit-form-header {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--primary-color, #3498db);
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.edit-form-field {
+    margin-bottom: 15px;
+}
+
+.edit-form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.edit-form-field input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.edit-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-cancel, .btn-save {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-cancel {
+    background-color: #f1f1f1;
+    color: #333;
+}
+
+.btn-save {
+    background-color: var(--primary-color, #3498db);
+    color: white;
+}
+
+/* Animation de suppression */
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; height: 0; padding: 0; margin: 0; border: 0; }
+}
+
+tr.deleting {
+    animation: fadeOut 0.3s forwards;
 }
 

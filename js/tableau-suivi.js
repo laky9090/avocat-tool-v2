@@ -212,10 +212,10 @@ function renderTaskGroups() {
         const thead = document.createElement('thead');
         thead.innerHTML = `
             <tr>
-                <th class="client-name-header" colspan="4">${clientName}</th>
+                <th class="client-name-header" colspan="5">${clientName}</th>
             </tr>
             <tr>
-                <th colspan="4" class="progress-header">
+                <th colspan="5" class="progress-header">
                     <div class="progress-container">
                         <div class="progress-bar" style="width: ${progressPercentage}%"></div>
                         <span class="progress-text">${progressPercentage}% d'avancement</span>
@@ -227,6 +227,7 @@ function renderTaskGroups() {
                 <th class="task-date">Date</th>
                 <th class="task-status">Statut</th>
                 <th class="task-comment">Commentaire</th>
+                <th class="task-actions-header">Actions</th>
             </tr>
         `;
         table.appendChild(thead);
@@ -241,6 +242,9 @@ function renderTaskGroups() {
                 row.classList.add('task-completed');
             }
             
+            // IMPORTANT: Ajouter data-task-id à la ligne elle-même pour faciliter la sélection
+            row.dataset.taskId = task.id;
+            
             row.innerHTML = `
                 <td class="task-description">${task.description}</td>
                 <td class="task-date">${formatDate(task.dueDate)}</td>
@@ -248,13 +252,21 @@ function renderTaskGroups() {
                     <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" 
                         ${task.completed ? 'checked' : ''}>
                 </td>
-                <td class="task-comment">
-                    <div class="comment-container">
-                        <span class="comment-text">${task.comment || ''}</span>
-                        <button class="edit-comment-btn" data-task-id="${task.id}">
-                            <i class="fas fa-pencil-alt"></i>✏️
-                        </button>
-                    </div>
+                <td class="task-comment" data-task-id="${task.id}">
+                    <span class="comment-text">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
+                </td>
+                <td class="task-actions">
+                    <button class="action-btn edit-task-btn" data-task-id="${task.id}" title="Modifier">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M12.146 1.146a2 2 0 0 1 2.828 0L15.5 1.672a2 2 0 0 1 0 2.828l-9.5 9.5a2 2 0 0 1-1.414.586H2a1 1 0 0 1-1-1v-2.586a2 2 0 0 1 .586-1.414l9.5-9.5zM3 14h2.086a1 1 0 0 0 .707-.293l9.5-9.5a1 1 0 0 0 0-1.414L14.5 2a1 1 0 0 0-1.414 0l-9.5 9.5A1 1 0 0 0 3 12.086V14z"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        </svg>
+                    </button>
                 </td>
             `;
             
@@ -276,29 +288,31 @@ function renderTaskGroups() {
             const row = this.closest('tr');
             row.classList.toggle('task-completed', isChecked);
             
-            // Mettre à jour la barre de progression (à implémenter plus tard pour les tâches réelles)
-            // Pour l'instant, nous ne faisons que mettre à jour l'apparence
+            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'}`);
         });
     });
 
-    // Ajouter les gestionnaires pour les boutons d'édition des commentaires
-    document.querySelectorAll('.edit-comment-btn').forEach(button => {
-        button.addEventListener('click', function() {
+    // Ajouter les gestionnaires pour l'édition de commentaires
+    document.querySelectorAll('.task-comment').forEach(commentCell => {
+        commentCell.addEventListener('click', function() {
             const taskId = this.dataset.taskId;
-            const commentCell = this.closest('.task-comment');
-            const commentText = commentCell.querySelector('.comment-text');
-            const currentComment = commentText.textContent || '';
+            const commentText = this.querySelector('.comment-text');
+            const currentText = commentText.textContent;
+            
+            // Ne pas transformer en champ d'édition si le texte est déjà en cours d'édition
+            if (this.querySelector('.comment-input')) {
+                return;
+            }
             
             // Créer un champ de saisie
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'comment-input';
-            input.value = currentComment;
+            input.value = currentText === 'Cliquez pour ajouter un commentaire' ? '' : currentText;
             
             // Remplacer le texte par le champ de saisie
-            const commentContainer = commentCell.querySelector('.comment-container');
-            commentContainer.innerHTML = '';
-            commentContainer.appendChild(input);
+            this.innerHTML = '';
+            this.appendChild(input);
             
             // Focus sur le champ et sélectionner le texte
             input.focus();
@@ -317,33 +331,60 @@ function renderTaskGroups() {
             });
         });
     });
-    
+
+    // IMPORTANT: Ajouter ces gestionnaires explicitement pour les boutons d'action
+    document.querySelectorAll('.edit-task-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            // Empêcher la propagation de l'événement
+            e.stopPropagation();
+            
+            const taskId = this.dataset.taskId;
+            console.log(`Bouton modifier cliqué pour la tâche ${taskId}`);
+            editTask(taskId);
+        });
+    });
+
+    document.querySelectorAll('.delete-task-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            // Empêcher la propagation de l'événement
+            e.stopPropagation();
+            
+            const taskId = this.dataset.taskId;
+            console.log(`Bouton supprimer cliqué pour la tâche ${taskId}`);
+            deleteTask(taskId);
+        });
+    });
+
+    console.log('Tous les gestionnaires d\'événements ont été ajoutés');
+
     console.log('Rendu terminé');
 }
 
 // Fonction pour sauvegarder un commentaire
 function saveComment(taskId, commentText, commentCell) {
-    // Dans une future implémentation, nous sauvegarderions le commentaire dans les données
+    // Si le commentaire est vide, afficher le texte d'invite
+    const displayText = commentText.trim() === '' ? 'Cliquez pour ajouter un commentaire' : commentText;
+    
     console.log(`Commentaire sauvegardé pour la tâche ${taskId}: ${commentText}`);
     
     // Recréer la structure du commentaire
     commentCell.innerHTML = `
-        <div class="comment-container">
-            <span class="comment-text">${commentText}</span>
-            <button class="edit-comment-btn" data-task-id="${taskId}">
-                <i class="fas fa-pencil-alt"></i>✏️
-            </button>
-        </div>
+        <span class="comment-text${displayText === 'Cliquez pour ajouter un commentaire' ? ' comment-placeholder' : ''}">${displayText}</span>
     `;
     
-    // Réattacher l'événement au bouton d'édition
-    commentCell.querySelector('.edit-comment-btn').addEventListener('click', function() {
+    // Réattacher le gestionnaire d'événement (important !)
+    commentCell.addEventListener('click', function() {
         const taskId = this.dataset.taskId;
-        const commentCell = this.closest('.task-comment');
-        const commentText = commentCell.querySelector('.comment-text').textContent || '';
+        const commentText = this.querySelector('.comment-text');
+        const currentText = commentText.textContent;
         
-        // Code pour créer l'input...
-        // (Vous pourriez extraire cette partie dans une fonction séparée)
+        // Ne pas transformer en champ d'édition si déjà en cours d'édition
+        if (this.querySelector('.comment-input')) {
+            return;
+        }
+        
+        // Créer un champ de saisie et le reste du code...
+        // (code similaire à celui dans renderTaskGroups)
     });
 }
 
@@ -413,4 +454,123 @@ function showDebugInfo() {
     - Nombre de clients: ${clients ? clients.length : 0}
     
     Consultez la console pour plus de détails.`);
+}
+
+// Fonction pour modifier une tâche
+function editTask(taskId) {
+    console.log('Édition de la tâche:', taskId);
+    
+    // Trouver la tâche dans le DOM
+    const taskRow = document.querySelector(`[data-task-id="${taskId}"]`).closest('tr');
+    if (!taskRow) {
+        console.error(`Impossible de trouver la ligne pour la tâche ${taskId}`);
+        return;
+    }
+    
+    const descriptionCell = taskRow.querySelector('.task-description');
+    const dateCell = taskRow.querySelector('.task-date');
+    const description = descriptionCell.textContent || '';
+    const dateText = dateCell.textContent || '';
+    
+    console.log('Description:', description);
+    console.log('Date:', dateText);
+    
+    // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD pour l'input date
+    let dateValue = '';
+    if (dateText && dateText !== '—') {
+        try {
+            const [day, month, year] = dateText.split('/');
+            dateValue = `${year}-${month}-${day}`;
+        } catch (e) {
+            console.error('Erreur de conversion de date:', e);
+        }
+    }
+    
+    // Créer un formulaire d'édition
+    const form = document.createElement('div');
+    form.className = 'edit-task-form';
+    form.innerHTML = `
+        <div class="edit-form-header">Modifier la tâche</div>
+        <div class="edit-form-field">
+            <label for="edit-description">Description:</label>
+            <input type="text" id="edit-description" value="${description}" required>
+        </div>
+        <div class="edit-form-field">
+            <label for="edit-date">Date:</label>
+            <input type="date" id="edit-date" value="${dateValue}">
+        </div>
+        <div class="edit-form-actions">
+            <button type="button" class="btn-cancel">Annuler</button>
+            <button type="button" class="btn-save">Enregistrer</button>
+        </div>
+    `;
+    
+    // Créer un overlay et ajouter le formulaire
+    const overlay = document.createElement('div');
+    overlay.className = 'task-edit-overlay';
+    overlay.appendChild(form);
+    document.body.appendChild(overlay);
+    
+    // Focus sur le champ de description
+    setTimeout(() => {
+        const descInput = overlay.querySelector('#edit-description');
+        if (descInput) {
+            descInput.focus();
+            descInput.select();
+        }
+    }, 10);
+    
+    // Gestionnaires d'événements pour les boutons
+    overlay.querySelector('.btn-cancel').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    overlay.querySelector('.btn-save').addEventListener('click', () => {
+        const newDescription = overlay.querySelector('#edit-description').value;
+        const newDate = overlay.querySelector('#edit-date').value;
+        
+        // Validation simple
+        if (!newDescription.trim()) {
+            alert('La description ne peut pas être vide.');
+            return;
+        }
+        
+        console.log(`Sauvegarde des modifications: ${newDescription}, ${newDate}`);
+        
+        // Mise à jour visuelle des cellules
+        descriptionCell.textContent = newDescription;
+        dateCell.textContent = newDate ? formatDate(newDate) : '—';
+        
+        // Fermer l'overlay
+        document.body.removeChild(overlay);
+    });
+}
+
+// Fonction pour supprimer une tâche
+function deleteTask(taskId) {
+    console.log('Suppression de la tâche:', taskId);
+    
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+        // Trouver la ligne de la tâche
+        const taskRow = document.querySelector(`[data-task-id="${taskId}"]`).closest('tr');
+        if (!taskRow) {
+            console.error(`Impossible de trouver la ligne pour la tâche ${taskId}`);
+            return;
+        }
+        
+        // Ajouter la classe pour l'animation de suppression
+        taskRow.classList.add('deleting');
+        
+        // Attendre la fin de l'animation avant de supprimer réellement
+        setTimeout(() => {
+            // Vérifier si l'élément existe toujours (au cas où la page aurait été rafraîchie)
+            if (taskRow.parentNode) {
+                taskRow.parentNode.removeChild(taskRow);
+                console.log(`Tâche ${taskId} supprimée du DOM`);
+                
+                // Mettre à jour la barre de progression si nécessaire
+                // updateProgressBar();
+            }
+        }, 300); // Correspond à la durée de l'animation dans le CSS
+    }
 }
