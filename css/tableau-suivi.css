@@ -1,539 +1,440 @@
-/* Styles spécifiques pour le tableau de suivi */
-
-.controls {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    align-items: center;
+/* Reset et variables */
+:root {
+  --primary-color: #2196F3;
+  --primary-light: rgba(33, 150, 243, 0.1);
+  --primary-dark: #1976D2;
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --border-radius: 10px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.07);
+  --transition: all 0.25s ease;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-.search-filter {
-    display: flex;
-    gap: 10px;
-    flex: 1;
+body {
+  font-family: var(--font-family);
+  color: var(--gray-700);
+  background-color: #f5f7fa;
+  line-height: 1.6;
 }
 
-.search-filter input {
-    flex: 2;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.search-filter select {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.task-controls {
-    display: flex;
-    gap: 10px;
-}
-
-.table-container {
-    width: 100%;
-    overflow-x: auto;
-    margin-bottom: 30px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-#suiviTable {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: var(--bg-color);
-}
-
-#suiviTable th,
-#suiviTable td {
-    padding: 10px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-#suiviTable th {
-    background-color: var(--primary-color);
-    color: white;
-    position: sticky;
-    top: 0;
-}
-
-#suiviTable tbody tr:hover {
-    background-color: rgba(0,0,0,0.05);
-}
-
-.task-status {
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.85em;
-    font-weight: bold;
-}
-
-.status-todo {
-    background-color: #ffecb3;
-    color: #856404;
-}
-
-.status-inprogress {
-    background-color: #b3e0ff;
-    color: #004085;
-}
-
-.status-waiting {
-    background-color: #d6d8db;
-    color: #383d41;
-}
-
-.status-done {
-    background-color: #c3e6cb;
-    color: #155724;
-}
-
-.task-deadline {
-    white-space: nowrap;
-}
-
-.task-deadline.urgent {
-    color: #dc3545;
-    font-weight: bold;
-}
-
-.task-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.task-actions button {
-    padding: 5px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2em;
-}
-
-.task-actions button:hover {
-    color: var(--primary-color);
-}
-
-/* Styles pour le tableau de suivi */
-
+/* Conteneurs principaux */
 .tasks-container {
-    margin-top: 20px;
-}
-
-.task-group {
-    margin-bottom: 30px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.task-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.task-table th {
-    background-color: var(--primary-color, #3498db);
-    color: white;
-    padding: 10px 15px;
-    text-align: left;
-    font-weight: 600;
-}
-
-.task-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.task-table tr:last-child td {
-    border-bottom: none;
-}
-
-.task-table tr:hover {
-    background-color: rgba(0,0,0,0.02);
-}
-
-.task-description {
-    width: 35%; /* Réduction pour faire place à la colonne Actions */
-    font-weight: 500;
-}
-
-.task-date {
-    width: 20%; /* Réduit de 25% à 20% */
-    color: #666;
-    white-space: nowrap;
-}
-
-.task-status {
-    width: 10%; /* Réduit de 15% à 10% */
-    text-align: center;
-}
-
-/* Modifier les styles pour la colonne commentaire */
-
-.task-comment {
-    width: 25%;
-    cursor: text; /* Indique que le champ est cliquable/éditable */
-}
-
-.comment-text {
-    display: inline-block;
-    width: 100%;
-    min-height: 1.2em;
-    font-style: italic;
-    color: #666;
-}
-
-.comment-placeholder {
-    color: #aaa;
-    font-style: italic;
-}
-
-.comment-input {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-style: italic;
-    font-family: inherit;
-    font-size: inherit;
-}
-
-.task-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.task-completed .task-description {
-    text-decoration: line-through;
-    color: #999;
-}
-
-.task-controls {
-    display: flex;
-    justify-content: flex-end;
-    margin: 20px 0;
-}
-
-.btn-primary {
-    background-color: var(--primary-color, #3498db);
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-color-dark, #2980b9);
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .search-filter {
-        width: 100%;
-    }
-    
-    .task-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .task-date,
-    .task-comment {
-        display: none; /* Cacher les colonnes moins importantes sur mobile */
-    }
-    
-    .task-description {
-        width: 60%; /* Augmenter pour mobile */
-    }
-    
-    .task-status {
-        width: 20%; /* Augmenter pour mobile */
-    }
-    
-    .task-actions {
-        width: 20%; /* Garder visible sur mobile */
-    }
-}
-
-/* Ajouter ces styles à la fin du fichier */
-
-/* Style pour la ligne contenant le nom du client */
-.client-name-row {
-    background-color: #f7f7f7;
-}
-
-.client-name-cell {
-    padding: 10px 0 !important;
-    border-top: 1px solid #ddd !important;
-    border-bottom: 1px solid #ddd !important;
-}
-
-.client-name-container {
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.1em;
-    padding: 8px 12px;
-    color: var(--primary-color, #3498db);
-    background-color: rgba(52, 152, 219, 0.1);
-    border-radius: 4px;
-    display: inline-block;
-    margin: 0 auto;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Amélioration du style des tâches pour une meilleure cohérence visuelle */
-.task-table tr:nth-child(even):not(.client-name-row) {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-.task-table tr:hover:not(.client-name-row) {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-/* Ajouter ces styles */
-
-.client-name-header {
-    background-color: #f2f2f2;
-    color: var(--primary-color, #3498db);
-    font-size: 1.2em;
-    font-weight: bold;
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 2px solid var(--primary-color, #3498db);
-}
-
-/* Ajouter ces styles pour la barre de progression */
-
-.progress-header {
-    padding: 0 !important;
-    background-color: transparent !important;
-    border-bottom: none !important;
-}
-
-.progress-container {
-    width: 100%;
-    height: 24px;
-    background-color: #f3f3f3;
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin: 5px 0 10px 0;
-}
-
-.progress-bar {
-    height: 100%;
-    background-color: var(--primary-color, #3498db);
-    border-radius: 4px;
-    transition: width 0.5s ease-in-out;
-}
-
-.progress-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #333;
-    font-size: 0.85em;
-    font-weight: 600;
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
-}
-
-/* Modifier la couleur de la barre en fonction du pourcentage */
-.progress-bar[style*="width: 100%"] {
-    background-color: #27ae60; /* Vert pour 100% */
-}
-
-.progress-bar[style*="width: 0%"] {
-    background-color: #e74c3c; /* Rouge pour 0% */
+  margin: 30px auto;
+  max-width: 1200px;
 }
 
 .clients-status {
-    margin-bottom: 15px;
-    padding: 8px 12px;
-    background-color: #f8f9fa;
-    border-left: 4px solid var(--primary-color, #3498db);
-    color: #555;
-    font-size: 0.9em;
-    border-radius: 0 4px 4px 0;
+  font-size: 0.9rem;
+  color: var(--gray-600);
+  margin-bottom: 20px;
+  text-align: right;
 }
 
-/* Ajouter ces styles pour la colonne Actions */
-
-.task-actions-header {
-    width: 10%;
-    text-align: center;
+.task-group {
+  margin-bottom: 30px;
+  border: none;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background-color: white;
+  transition: var(--transition);
 }
 
+.task-group:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* En-têtes et tableau */
+.task-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+.task-table th {
+  background-color: white;
+  color: var(--gray-700);
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.client-name-header {
+  background-image: linear-gradient(to right, var(--primary-light), white);
+  color: var(--gray-800);
+  font-size: 1.2rem;
+  padding: 20px;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.task-table td {
+  padding: 14px 20px;
+  border: none;
+  transition: var(--transition);
+  vertical-align: middle;
+}
+
+.task-table tr:not(.client-name-row):last-child td {
+  border-bottom: none;
+}
+
+.task-table tr:not(.client-name-row) {
+  border-bottom: 1px solid var(--gray-200);
+  transition: var(--transition);
+}
+
+.task-table tr:not(.client-name-row):hover {
+  background-color: var(--gray-100);
+}
+
+/* Barre de progression */
+.progress-header {
+  padding: 0 20px 20px !important;
+  background-color: white !important;
+}
+
+.progress-container {
+  height: 8px;
+  background-color: var(--gray-200);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 5px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-radius: 20px;
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.progress-text {
+  position: absolute;
+  right: 0;
+  top: -22px;
+  font-size: 0.8rem;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+/* Colonnes du tableau */
+.task-description {
+  width: 35%;
+  font-weight: 500;
+}
+
+.task-description .description-text {
+  color: var(--gray-800);
+  display: block;
+  padding: 2px 0;
+}
+
+.task-date {
+  width: 20%;
+  color: var(--gray-600);
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.task-status {
+  width: 10%;
+  text-align: center;
+}
+
+.task-comment {
+  width: 25%;
+}
+
+.comment-text {
+  color: var(--gray-600);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.comment-placeholder {
+  color: var(--gray-400);
+}
+
+/* Style personnalisé des checkboxes */
+.task-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--gray-300);
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  margin: 0;
+}
+
+.task-checkbox:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.task-checkbox:checked::before {
+  content: "✓";
+  position: absolute;
+  color: white;
+  font-size: 14px;
+  line-height: 1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.task-checkbox:hover {
+  border-color: var(--primary-color);
+}
+
+/* Style des tâches complétées */
+.task-completed .task-description .description-text {
+  text-decoration: line-through;
+  color: var(--gray-500);
+}
+
+.task-completed .task-date, 
+.task-completed .comment-text {
+  color: var(--gray-500);
+}
+
+/* Champs d'édition */
+.description-input, 
+.date-input, 
+.comment-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: var(--transition);
+}
+
+.description-input:focus, 
+.date-input:focus, 
+.comment-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+}
+
+/* Boutons d'action */
 .task-actions {
-    width: 10%;
-    text-align: center;
-    white-space: nowrap;
+  width: 10%;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #777;
-    padding: 4px;
-    margin: 0 2px;
-    border-radius: 3px;
-    transition: all 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 6px;
+  margin: 0 2px;
+  border-radius: 6px;
+  transition: var(--transition);
+  opacity: 0.6;
 }
 
-.edit-task-btn:hover {
-    color: var(--primary-color, #3498db);
-    background-color: rgba(52, 152, 219, 0.1);
+.task-table tr:hover .action-btn {
+  opacity: 1;
 }
 
 .delete-task-btn:hover {
-    color: #e74c3c;
-    background-color: rgba(231, 76, 60, 0.1);
-}
-
-/* Style pour l'overlay d'édition */
-.task-edit-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.edit-task-form {
-    background-color: white;
-    padding: 20px;
-    border-radius: 6px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    width: 400px;
-    max-width: 90%;
-}
-
-.edit-form-header {
-    font-size: 1.2em;
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: var(--primary-color, #3498db);
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-.edit-form-field {
-    margin-bottom: 15px;
-}
-
-.edit-form-field label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
-
-.edit-form-field input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.edit-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.btn-cancel, .btn-save {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.btn-cancel {
-    background-color: #f1f1f1;
-    color: #333;
-}
-
-.btn-save {
-    background-color: var(--primary-color, #3498db);
-    color: white;
+  color: #e74c3c;
+  background-color: rgba(231, 76, 60, 0.1);
 }
 
 /* Animation de suppression */
 @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; height: 0; padding: 0; margin: 0; border: 0; }
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(20px); height: 0; padding: 0; margin: 0; border: 0; }
 }
 
 tr.deleting {
-    animation: fadeOut 0.3s forwards;
+  animation: fadeOut 0.4s forwards cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* Ajouter/modifier ces styles pour l'édition in-line */
-
-.task-description, .task-date, .task-comment {
-    cursor: text; /* Indique que le champ est cliquable/éditable */
+/* Style des éléments d'édition in-line */
+.task-description, 
+.task-date, 
+.task-comment {
+  position: relative;
+  cursor: text;
+  border-radius: 4px;
+  transition: var(--transition);
 }
 
-.description-input, .date-input {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-family: inherit;
-    font-size: inherit;
+.task-description:hover, 
+.task-date:hover, 
+.task-comment:hover {
+  background-color: var(--primary-light);
 }
 
-/* Style spécifique pour l'input date */
-.date-input {
-    width: 140px; /* Limite la largeur pour un meilleur rendu */
+/* Style des tooltips d'action */
+.task-description:hover::after, 
+.task-date:hover::after, 
+.task-comment:hover::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='14' height='14' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'%3E%3C/path%3E%3Cpath d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-
-/* Effet de survol pour indiquer les zones cliquables */
-.task-description:hover, .task-date:hover, .task-comment:hover {
-    background-color: rgba(52, 152, 219, 0.05);
-}
-
-/* Ajouter des indices visuels pour les champs éditables */
 
 .task-description:hover::after, 
 .task-date:hover::after, 
 .task-comment:hover::after {
-    content: "✎";
-    position: absolute;
-    right: 5px;
-    color: #aaa;
-    font-size: 0.85em;
-    opacity: 0.7;
+  opacity: 0.5;
 }
 
-.task-description, .task-date, .task-comment {
-    position: relative; /* Pour positionner l'icône d'édition */
+/* Boutons de contrôle */
+.task-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px 0;
+  gap: 10px;
 }
 
-/* Surbrillance au survol */
-.task-description:hover .description-text,
-.task-date:hover .date-text,
-.task-comment:hover .comment-text {
-    text-decoration: underline dotted #999;
+.btn-primary, 
+.btn-secondary {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+  background-color: var(--gray-100);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .task-table th, .task-table td {
+    padding: 12px;
+  }
+  
+  .task-date, .task-comment {
+    display: none;
+  }
+  
+  .task-description {
+    width: 70%;
+  }
+  
+  .task-status {
+    width: 15%;
+  }
+  
+  .task-actions {
+    width: 15%;
+  }
+}
+
+/* Mode sombre */
+[data-theme="dark"] {
+  --primary-color: #64B5F6;
+  --primary-light: rgba(100, 181, 246, 0.15);
+  --primary-dark: #42A5F5;
+  --gray-100: #333;
+  --gray-200: #424242;
+  --gray-300: #616161;
+  --gray-400: #757575;
+  --gray-500: #9E9E9E;
+  --gray-600: #BDBDBD;
+  --gray-700: #E0E0E0;
+  --gray-800: #EEEEEE;
+}
+
+[data-theme="dark"] body {
+  background-color: #121212;
+}
+
+[data-theme="dark"] .task-group {
+  background-color: #1E1E1E;
+}
+
+[data-theme="dark"] .task-table th {
+  background-color: #1E1E1E;
+  border-bottom: 1px solid #333;
+}
+
+[data-theme="dark"] .client-name-header {
+  background-image: linear-gradient(to right, var(--primary-light), #1E1E1E);
+}
+
+[data-theme="dark"] .task-table tr:not(.client-name-row) {
+  border-bottom: 1px solid #333;
+}
+
+[data-theme="dark"] .task-table tr:not(.client-name-row):hover {
+  background-color: #2A2A2A;
+}
+
+[data-theme="dark"] .progress-container {
+  background-color: #333;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: #333;
+  border-color: #424242;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: #424242;
 }
 

@@ -445,6 +445,9 @@ function renderTaskGroups() {
     console.log('Tous les gestionnaires d\'événements ont été ajoutés');
 
     console.log('Rendu terminé');
+
+    // À la fin de la fonction:
+    addEditableFieldListeners();
 }
 
 // Fonction pour sauvegarder un commentaire
@@ -710,4 +713,307 @@ function deleteTask(taskId) {
             }
         }, 300); // Correspond à la durée de l'animation dans le CSS
     }
+}
+
+// Fonction pour initialiser les gestionnaires d'événements après le rendu du tableau
+
+function addEditableFieldListeners() {
+    console.log('Initialisation des champs éditables...');
+    
+    // Gestionnaires pour l'édition des descriptions
+    document.querySelectorAll('.task-description').forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            // Empêcher l'édition si on clique sur un élément d'interface (comme un bouton)
+            if (e.target.closest('.action-btn')) return;
+            
+            console.log('Clic sur description');
+            const taskId = this.dataset.taskId;
+            const textElement = this.querySelector('.description-text');
+            
+            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
+            if (!textElement || this.querySelector('.description-input')) {
+                return;
+            }
+            
+            const currentText = textElement.textContent || '';
+            
+            // Créer un champ de saisie
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'description-input';
+            input.value = currentText;
+            input.dataset.originalValue = currentText; // Stocker la valeur originale
+            
+            // Cacher le texte et ajouter l'input
+            textElement.style.display = 'none';
+            this.appendChild(input);
+            
+            // Focus sur le champ et sélectionner le texte
+            input.focus();
+            input.select();
+            
+            // Empêcher que le clic se propage pour éviter des déclenchements multiples
+            e.stopPropagation();
+            
+            // Gestionnaire pour la touche Entrée
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveField(this, textElement, 'description', taskId);
+                } else if (e.key === 'Escape') {
+                    // Annuler l'édition et restaurer la valeur d'origine
+                    textElement.style.display = '';
+                    this.remove();
+                }
+            });
+            
+            // Gestionnaire pour la perte de focus
+            input.addEventListener('blur', function() {
+                saveField(this, textElement, 'description', taskId);
+            });
+        });
+    });
+    
+    // Gestionnaires pour l'édition des dates
+    document.querySelectorAll('.task-date').forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            // Empêcher l'édition si on clique sur un bouton
+            if (e.target.closest('.action-btn')) return;
+            
+            console.log('Clic sur date');
+            const taskId = this.dataset.taskId;
+            const textElement = this.querySelector('.date-text');
+            
+            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
+            if (!textElement || this.querySelector('.date-input')) {
+                return;
+            }
+            
+            const currentText = textElement.textContent || '';
+            
+            // Convertir la date du format affiché vers format ISO pour l'input
+            let dateValue = '';
+            if (currentText && currentText !== '—') {
+                try {
+                    const [day, month, year] = currentText.split('/');
+                    dateValue = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                } catch (e) {
+                    console.error('Erreur de conversion de date:', e);
+                }
+            }
+            
+            // Créer un champ date
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.className = 'date-input';
+            input.value = dateValue;
+            input.dataset.originalValue = currentText; // Stocker la valeur originale
+            
+            // Cacher le texte et ajouter l'input
+            textElement.style.display = 'none';
+            this.appendChild(input);
+            
+            // Focus sur le champ
+            input.focus();
+            
+            // Empêcher que le clic se propage
+            e.stopPropagation();
+            
+            // Gestionnaire pour la touche Échap (annuler)
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    textElement.style.display = '';
+                    this.remove();
+                }
+            });
+            
+            // Gestionnaires pour sauvegarder
+            input.addEventListener('change', function() {
+                saveField(this, textElement, 'date', taskId);
+            });
+            
+            input.addEventListener('blur', function() {
+                saveField(this, textElement, 'date', taskId);
+            });
+        });
+    });
+    
+    // Gestionnaires pour l'édition des commentaires
+    document.querySelectorAll('.task-comment').forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            // Empêcher l'édition si on clique sur un bouton
+            if (e.target.closest('.action-btn')) return;
+            
+            console.log('Clic sur commentaire');
+            const taskId = this.dataset.taskId;
+            const textElement = this.querySelector('.comment-text');
+            
+            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
+            if (!textElement || this.querySelector('.comment-input')) {
+                return;
+            }
+            
+            const currentText = textElement.textContent || '';
+            const isPlaceholder = textElement.classList.contains('comment-placeholder');
+            
+            // Créer un champ de saisie
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'comment-input';
+            input.value = isPlaceholder ? '' : currentText;
+            input.dataset.originalValue = currentText; // Stocker la valeur originale
+            
+            // Cacher le texte et ajouter l'input
+            textElement.style.display = 'none';
+            this.appendChild(input);
+            
+            // Focus sur le champ et sélectionner le texte
+            input.focus();
+            if (!isPlaceholder) {
+                input.select();
+            }
+            
+            // Empêcher que le clic se propage
+            e.stopPropagation();
+            
+            // Gestionnaire pour la touche Entrée
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveField(this, textElement, 'comment', taskId);
+                } else if (e.key === 'Escape') {
+                    // Annuler l'édition
+                    textElement.style.display = '';
+                    this.remove();
+                }
+            });
+            
+            // Gestionnaire pour la perte de focus
+            input.addEventListener('blur', function() {
+                saveField(this, textElement, 'comment', taskId);
+            });
+        });
+    });
+    
+    console.log('Champs éditables initialisés avec succès');
+}
+
+// Fonction pour sauvegarder un champ modifié
+function saveField(inputElement, textElement, fieldType, taskId) {
+    console.log(`Sauvegarde du champ ${fieldType} pour la tâche ${taskId}`);
+    
+    // Si l'élément a déjà été retiré (pour éviter les appels multiples)
+    if (!inputElement.parentNode) return;
+    
+    // Récupérer la valeur et restaurer l'affichage du texte
+    let newValue = inputElement.value;
+    textElement.style.display = '';
+    
+    // Traitement spécifique selon le type de champ
+    switch (fieldType) {
+        case 'description':
+            // Validation: la description ne peut pas être vide
+            if (!newValue.trim()) {
+                alert('La description ne peut pas être vide.');
+                textElement.textContent = inputElement.dataset.originalValue;
+                inputElement.remove();
+                return;
+            }
+            textElement.textContent = newValue;
+            break;
+            
+        case 'date':
+            // Formater la date pour l'affichage ou afficher un tiret si vide
+            if (newValue) {
+                const date = new Date(newValue);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                textElement.textContent = `${day}/${month}/${year}`;
+            } else {
+                textElement.textContent = '—';
+            }
+            break;
+            
+        case 'comment':
+            // Gérer le texte placeholder pour les commentaires vides
+            if (!newValue.trim()) {
+                textElement.textContent = 'Cliquez pour ajouter un commentaire';
+                textElement.classList.add('comment-placeholder');
+            } else {
+                textElement.textContent = newValue;
+                textElement.classList.remove('comment-placeholder');
+            }
+            break;
+    }
+    
+    // Supprimer le champ d'édition
+    inputElement.remove();
+    
+    // Enregistrer dans la structure de données (à implémenter)
+    // updateTaskInStorage(taskId, fieldType, newValue);
+    
+    // Log pour debug
+    console.log(`Champ ${fieldType} mis à jour: ${newValue}`);
+    
+    // Pour intégrer avec la persistance:
+    // 1. Trouver le client correspondant
+    const clientId = findClientIdByTaskId(taskId);
+    if (clientId) {
+        // 2. Mettre à jour la tâche dans la structure
+        updateTaskField(clientId, taskId, fieldType, newValue);
+        // 3. Sauvegarder les tâches
+        saveTasks();
+    }
+}
+
+// Fonction pour trouver le clientId d'une tâche
+function findClientIdByTaskId(taskId) {
+    // Chercher dans le DOM (plus simple pour le demo)
+    const checkbox = document.querySelector(`.task-checkbox[data-task-id="${taskId}"]`);
+    if (checkbox && checkbox.dataset.clientId) {
+        return checkbox.dataset.clientId;
+    }
+    
+    // Alternative: chercher dans la structure de données
+    for (const clientId in tasks) {
+        const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+            return clientId;
+        }
+    }
+    
+    console.error(`Impossible de trouver le client pour la tâche ${taskId}`);
+    return null;
+}
+
+// Fonction pour mettre à jour un champ de tâche dans la structure de données
+function updateTaskField(clientId, taskId, fieldType, value) {
+    if (!tasks[clientId]) {
+        console.error(`Client ${clientId} non trouvé dans les tâches`);
+        return false;
+    }
+    
+    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+    if (taskIndex === -1) {
+        console.error(`Tâche ${taskId} non trouvée pour le client ${clientId}`);
+        return false;
+    }
+    
+    // Mettre à jour le champ approprié
+    switch (fieldType) {
+        case 'description':
+            tasks[clientId][taskIndex].description = value;
+            break;
+        case 'date':
+            tasks[clientId][taskIndex].dueDate = value || null;
+            break;
+        case 'comment':
+            tasks[clientId][taskIndex].comment = value === 'Cliquez pour ajouter un commentaire' ? '' : value;
+            break;
+        default:
+            console.error(`Type de champ inconnu: ${fieldType}`);
+            return false;
+    }
+    
+    console.log(`Champ ${fieldType} mis à jour dans la structure de données`);
+    return true;
 }
