@@ -28,6 +28,7 @@ console.log('Chemin du fichier clients:', clientsFilePath);
 
 // Variables globales
 let clients = [];
+let tasks = {}; // Ajout de la variable globale tasks
 
 // Au chargement du document
 document.addEventListener('DOMContentLoaded', () => {
@@ -254,7 +255,7 @@ function renderTaskGroups() {
                     <span class="date-text">${formatDate(task.dueDate)}</span>
                 </td>
                 <td class="task-status">
-                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" 
+                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
                         ${task.completed ? 'checked' : ''}>
                 </td>
                 <td class="task-comment" data-task-id="${task.id}">
@@ -284,11 +285,18 @@ function renderTaskGroups() {
             const taskId = this.dataset.taskId;
             const isChecked = this.checked;
             
+            // Récupérer l'ID du client depuis le groupe parent
+            const taskGroup = this.closest('.task-group');
+            const clientId = taskGroup.dataset.clientId;
+            
             // Mettre à jour l'apparence
             const row = this.closest('tr');
             row.classList.toggle('task-completed', isChecked);
             
-            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'}`);
+            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'} pour le client ${clientId}`);
+            
+            // Mettre à jour les données et la barre de progression
+            updateTaskStatus(clientId, taskId, isChecked);
         });
     });
 
@@ -1019,24 +1027,84 @@ function updateTaskField(clientId, taskId, fieldType, value) {
     return true;
 }
 
-// Modifier la fonction updateProgressBar si elle existe déjà
+// Fonction pour mettre à jour l'état d'une tâche
+function updateTaskStatus(clientId, taskId, isCompleted) {
+    console.log(`Mise à jour du statut de la tâche ${taskId} pour client ${clientId}: ${isCompleted}`);
+    
+    // Initialiser tasks[clientId] si nécessaire
+    if (!tasks) {
+        tasks = {};
+    }
+    
+    if (!tasks[clientId]) {
+        // Récupérer toutes les tâches visibles pour ce client
+        const taskElements = document.querySelectorAll(`[data-client-id='${clientId}'] tr[data-task-id]`);
+        tasks[clientId] = Array.from(taskElements).map(row => {
+            const taskId = row.dataset.taskId;
+            const description = row.querySelector('.description-text')?.textContent || '';
+            const dateText = row.querySelector('.date-text')?.textContent || '';
+            const isCompleted = row.classList.contains('task-completed');
+            const comment = row.querySelector('.comment-text')?.textContent || '';
+            
+            return {
+                id: taskId,
+                description,
+                dueDate: dateText !== '—' ? convertToIsoDate(dateText) : '',
+                completed: isCompleted,
+                comment: comment === 'Cliquez pour ajouter un commentaire' ? '' : comment
+            };
+        });
+    }
+    
+    // Trouver et mettre à jour la tâche
+    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+    if (taskIndex !== -1) {
+        tasks[clientId][taskIndex].completed = isCompleted;
+        
+        // Mettre à jour la barre de progression
+        updateProgressBar(clientId);
+        return true;
+    } else {
+        console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
+        return false;
+    }
+}
+
+// Fonction auxiliaire pour convertir le format de date
+function convertToIsoDate(dateString) {
+    if (dateString === '—') return '';
+    const [day, month, year] = dateString.split('/');
+    return `${year}-${month}-${day}`;
+}
+
+// Améliorer cette fonction pour mieux gérer les erreurs
 function updateProgressBar(clientId) {
-    // Récupérer les tâches du client
-    const clientTasks = tasks[clientId] || [];
-    if (clientTasks.length === 0) return;
+    console.log(`Mise à jour de la barre de progression pour client: ${clientId}`);
     
-    // Calculer le nouveau pourcentage
-    const totalTasks = clientTasks.length;
-    const completedTasks = clientTasks.filter(task => task.completed).length;
-    const progressPercentage = Math.round((completedTasks / totalTasks) * 100);
+    // Récupérer le groupe de tâches pour ce client
+    const taskGroup = document.querySelector(`div[data-client-id='${clientId}']`);
+    if (!taskGroup) {
+        console.error(`Groupe de tâches non trouvé pour client: ${clientId}`);
+        return;
+    }
     
-    // Trouver et mettre à jour la barre de progression
-    const progressBar = document.querySelector(`[data-client-id="${clientId}"] .progress-bar`);
-    const progressNumber = document.querySelector(`[data-client-id="${clientId}"] .progress-number`);
+    // Compter les tâches terminées directement dans le DOM
+    const allTaskRows = taskGroup.querySelectorAll('tr[data-task-id]');
+    const completedTaskRows = taskGroup.querySelectorAll('tr.task-completed');
+    
+    const totalTasks = allTaskRows.length;
+    const completedTasks = completedTaskRows.length;
+    
+    // Calculer le pourcentage
+    const progressPercentage = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    console.log(`Progression: ${completedTasks}/${totalTasks} = ${progressPercentage}%`);
+    
+    // Mettre à jour la barre
+    const progressBar = taskGroup.querySelector('.progress-bar');
+    const progressNumber = taskGroup.querySelector('.progress-number');
     
     if (progressBar) {
         progressBar.style.width = `${progressPercentage}%`;
-        
         if (progressNumber) {
             progressNumber.textContent = `${progressPercentage}%`;
         }

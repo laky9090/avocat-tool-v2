@@ -107,7 +107,7 @@ body {
 /* Barre de progression avec centrage forcé */
 
 .progress-container {
-  height: 24px; /* Augmenté à 24px pour plus de visibilité */
+  height: 24px; /* Hauteur maintenue à 24px */
   background-color: var(--gray-200);
   border-radius: 20px;
   overflow: visible; /* Important pour éviter que le texte soit coupé */
@@ -125,22 +125,31 @@ body {
   border-radius: 20px;
   transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   position: relative;
-  min-width: 60px; /* Augmenté pour toujours avoir de la place pour le texte */
+  min-width: 60px; /* Maintenu pour avoir de la place pour le texte */
+  display: flex !important; /* Force l'utilisation de flexbox */
+  align-items: center !important; /* Centre verticalement avec flexbox */
+  justify-content: center !important; /* Centre horizontalement avec flexbox */
 }
 
-/* Nouvelle approche pour le texte du pourcentage */
-.progress-number {
+/* Nouvelle approche pour le texte du pourcentage - Combinaison de méthodes de centrage */
+.progress-bar .progress-number {
   position: absolute;
   color: white;
-  font-size: 1rem; /* Augmenté pour plus de lisibilité */
-  font-weight: 700; /* Plus épais */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* Ombre plus prononcée */
-  top: 50%; /* Centrer verticalement */
-  left: 50%; /* Centrer horizontalement */
-  transform: translate(-50%, -50%); /* Centrage parfait */
-  z-index: 10; /* S'assurer qu'il est au-dessus de tout */
+  font-size: 1rem;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
   white-space: nowrap;
   letter-spacing: 0.5px;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  text-align: center;
+  display: block;
+  pointer-events: none; /* Évite d'interférer avec les interactions */
 }
 
 /* Assurer que le texte reste bien visible même sur les barres courtes */
