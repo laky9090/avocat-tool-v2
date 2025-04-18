@@ -31,6 +31,10 @@ if (!window.emailConfig) {
 console.log('État de la configuration d\'email:', 
     window.emailConfig && window.emailConfig.email ? 'OK' : 'Incomplète');
 
+// Variables de verrou pour éviter les envois multiples
+let emailSendingInProgress = false;
+let lastRequestTimestamp = 0;
+
 // Nouveau fichier pour gérer l'envoi d'emails
 
 // Fonction pour afficher la modal d'envoi d'email
@@ -185,6 +189,26 @@ async function generateInvoicePDF(invoiceNumber) {
 // Fonction pour envoyer l'email avec la facture
 async function sendInvoiceEmail(event) {
     event.preventDefault();
+    
+    // Protection contre les doubles soumissions
+    const now = Date.now();
+    if (emailSendingInProgress || (now - lastRequestTimestamp < 2000)) {
+        console.log('Envoi déjà en cours ou demande trop rapprochée, ignorée.');
+        return;
+    }
+    
+    // Mettre le verrou
+    emailSendingInProgress = true;
+    lastRequestTimestamp = now;
+    
+    // Récupérer le bouton de soumission
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.textContent : 'Envoyer';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Envoi en cours...';
+    }
     
     try {
         // Déterminer si c'est un email de facture ou de client
@@ -347,17 +371,20 @@ async function sendInvoiceEmail(event) {
             ipcRenderer.send('send-email', emailData);
 
             // Timeout de sécurité pour restaurer le bouton si aucune réponse n'est reçue
-            const safetyTimeout = setTimeout(() => {
-                console.log('Aucune réponse reçue après 10 secondes, restauration du bouton');
+            const unlockTimeout = setTimeout(() => {
+                console.log('Timeout de sécurité: déverrouillage forcé');
+                emailSendingInProgress = false;
+                
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                 }
-            }, 10000); // 10 secondes
+            }, 30000); // 30 secondes max
             
             ipcRenderer.once('email-sent', (event, response) => {
-                // Annuler le timeout de sécurité
-                clearTimeout(safetyTimeout);
+                // Déverrouiller immédiatement
+                emailSendingInProgress = false;
+                clearTimeout(unlockTimeout);
                 
                 console.log('Réponse du processus principal:', response);
                 
@@ -400,11 +427,13 @@ async function sendInvoiceEmail(event) {
             submitBtn.textContent = originalText;
         }
     } catch (error) {
+        // En cas d'erreur, déverrouiller
+        emailSendingInProgress = false;
+        
         console.error('Erreur lors de l\'envoi de l\'email:', error);
         alert(`Une erreur est survenue : ${error.message}`);
         
         // Restaurer le bouton
-        const submitBtn = event.target.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Envoyer';
@@ -568,50 +597,58 @@ console.log("Configuration email chargée");`;
     }
 }
 
-// Fonction pour afficher la modal d'envoi d'email pour un client
+// Modifiez votre fonction showClientEmailModal
+
 function showClientEmailModal(client) {
+    // Empêcher l'ouverture si un envoi est en cours
+    if (emailSendingInProgress) {
+        console.log('Un envoi est en cours, impossible d\'ouvrir une nouvelle fenêtre');
+        return;
+    }
+    
     console.log("Préparation d'email pour le client:", client.nom);
     
-    // Créer un champ caché pour l'ID du client s'il n'existe pas
-    if (!document.getElementById('clientIdForEmail')) {
-        const hiddenField = document.createElement('input');
-        hiddenField.type = 'hidden';
-        hiddenField.id = 'clientIdForEmail';
-        document.getElementById('emailForm').appendChild(hiddenField);
-    }
-    
-    // Stocker l'ID du client
-    document.getElementById('clientIdForEmail').value = client.id || '';
-    
-    // S'assurer que le champ de numéro de facture est vide
-    if (document.getElementById('invoiceNumberForEmail')) {
-        document.getElementById('invoiceNumberForEmail').value = '';
-    }
-    
-    // Préremplir l'adresse email du client
-    const emailInput = document.getElementById('emailTo');
-    if (emailInput) {
-        emailInput.value = client.email || '';
-    }
-    
-    // Personnaliser l'objet de l'email
-    const emailSubject = document.getElementById('emailSubject');
-    if (emailSubject) {
-        emailSubject.value = `${client.numeroDossier || ''} - ${client.nom} ${client.prenom || ''} - Maître Candice ROVERA`;
-    }
-    
-    // Créer le contenu du message
-    let audienceDate = '';
-    if (client.dateAudience) {
-        try {
-            const date = new Date(client.dateAudience);
-            audienceDate = date.toLocaleDateString('fr-FR');
-        } catch (error) {
-            audienceDate = client.dateAudience;
+    try {
+        // Créer un champ caché pour stocker l'ID du client s'il n'existe pas
+        if (!document.getElementById('clientIdForEmail')) {
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.id = 'clientIdForEmail';
+            document.getElementById('emailForm').appendChild(hiddenField);
         }
-    }
-    
-    const emailMessage = `Cher(e) ${client.prenom || ''} ${client.nom},
+        
+        // Stocker l'ID du client
+        document.getElementById('clientIdForEmail').value = client.id || '';
+        
+        // S'assurer que le champ de numéro de facture est vide
+        if (document.getElementById('invoiceNumberForEmail')) {
+            document.getElementById('invoiceNumberForEmail').value = '';
+        }
+        
+        // Préremplir l'adresse email du client
+        const emailTo = document.getElementById('emailTo');
+        if (emailTo) {
+            emailTo.value = client.email || '';
+        }
+        
+        // Personnaliser l'objet de l'email
+        const emailSubject = document.getElementById('emailSubject');
+        if (emailSubject) {
+            emailSubject.value = `${client.numeroDossier || ''} - ${client.nom} ${client.prenom || ''} - Maître Candice ROVERA`;
+        }
+        
+        // Créer le contenu du message
+        let audienceDate = '';
+        if (client.dateAudience) {
+            try {
+                const date = new Date(client.dateAudience);
+                audienceDate = date.toLocaleDateString('fr-FR');
+            } catch (error) {
+                audienceDate = client.dateAudience;
+            }
+        }
+        
+        const emailMessage = `Cher(e) ${client.prenom || ''} ${client.nom},
 
 ${client.type && client.role ? `Dans le cadre de la procédure ${client.type} où vous êtes ${client.role}, j'ai le plaisir de vous contacter.` : 'J\'ai le plaisir de vous contacter concernant votre dossier.'}
 ${client.dateAudience ? `Je vous rappelle que l'audience est prévue le ${audienceDate}.` : ''}
@@ -628,24 +665,29 @@ Avocate au Barreau de Paris
 Toque C0199
 Site internet : https://candicerovera-avocat.fr/`;
 
-    // Mettre le message dans le formulaire
-    const emailMessageField = document.getElementById('emailMessage');
-    if (emailMessageField) {
-        emailMessageField.value = emailMessage;
-    }
-    
-    // Décocher la case pour les pièces jointes
-    const attachPDF = document.getElementById('attachPDF');
-    if (attachPDF) {
-        attachPDF.checked = false;
-    }
-    
-    // Afficher la modal
-    const emailModal = document.getElementById('emailModal');
-    if (emailModal) {
-        emailModal.style.display = 'flex';
-    } else {
-        console.error("Modal d'email non trouvée dans le DOM");
+        // Définir le message dans le formulaire
+        const emailMessageElem = document.getElementById('emailMessage');
+        if (emailMessageElem) {
+            emailMessageElem.value = emailMessage;
+        }
+        
+        // Décocher la case pour les pièces jointes par défaut pour les clients
+        const attachPDF = document.getElementById('attachPDF');
+        if (attachPDF) {
+            attachPDF.checked = false;
+        }
+        
+        // Afficher la modal
+        const emailModal = document.getElementById('emailModal');
+        if (emailModal) {
+            emailModal.style.display = 'flex';
+        } else {
+            console.error("Modal d'email non trouvée dans le DOM");
+            alert("Erreur: La fenêtre d'envoi d'email n'a pas pu être trouvée.");
+        }
+    } catch (error) {
+        console.error("Erreur lors de la préparation de l'email:", error);
+        alert("Une erreur est survenue lors de la préparation de l'email: " + error.message);
     }
 }
 
@@ -742,7 +784,7 @@ function initEmailManager() {
     }
 }
 
-// Exposer les fonctions globalement
+// Exposer les fonctions globalement - CETTE SECTION NE DOIT APPARAÎTRE QU'UNE FOIS
 window.showEmailModal = showEmailModal;
 window.generateInvoicePDF = generateInvoicePDF;
 window.sendInvoiceEmail = sendInvoiceEmail;

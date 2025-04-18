@@ -32,9 +32,35 @@ function createWindow() {
   remoteMain.enable(mainWindow.webContents);
 }
 
+// Variable pour suivre les emails déjà envoyés
+const processedEmails = new Set();
+
 // Gestionnaire d'événement pour l'envoi d'emails
 ipcMain.on('send-email', async (event, emailData) => {
   try {
+    // Créer un identifiant unique basé sur le destinataire, le sujet et un timestamp
+    const uniqueId = `${emailData.to}-${emailData.subject}-${Date.now()}`;
+    
+    // Vérifier si cet email a déjà été traité récemment
+    if (processedEmails.has(uniqueId)) {
+      console.log('Requête d\'email dupliquée détectée et ignorée');
+      
+      // Répondre au renderer process
+      event.reply('email-sent', {
+        success: false,
+        error: "Envoi ignoré (requête dupliquée)"
+      });
+      return;
+    }
+    
+    // Ajouter à l'ensemble des emails traités
+    processedEmails.add(uniqueId);
+    
+    // Nettoyer l'ensemble après un délai pour éviter une croissance infinie
+    setTimeout(() => {
+      processedEmails.delete(uniqueId);
+    }, 10000); // 10 secondes
+    
     console.log('Demande d\'envoi d\'email reçue');
     
     // Créer un transporteur SMTP avec Gmail
