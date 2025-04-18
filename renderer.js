@@ -1837,31 +1837,7 @@ function initializeFileExplorer() {
                             document.body.removeChild(contextMenu);
                         }
                     },
-                    {
-                        text: 'Renommer',
-                        action: () => {
-                            const newName = prompt('Nouveau nom :', item.name);
-                            if (newName && newName !== item.name) {
-                                const newPath = path.join(path.dirname(item.path), newName);
-                                try {
-                                    fs.renameSync(item.path, newPath);
-                                    // Rafraîchir l'arborescence complète
-                                    refreshView();
-                                    // Rafraîchir la liste des fichiers du dossier courant
-                                    renderFileList(dirPath);
-                                } catch (error) {
-                                    if (error.code === 'EBUSY') {
-                                        alert('Veuillez fermer le fichier avant de le renommer');
-                                    } else {
-                                        alert('Erreur lors du renommage : ' + error.message);
-                                    }
-                                }
-                            }
-                            if (contextMenu.parentNode) {
-                                document.body.removeChild(contextMenu);
-                            }
-                        }
-                    },
+
                     {
                         text: 'Supprimer',
                         action: () => {
