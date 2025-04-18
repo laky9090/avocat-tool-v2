@@ -64,8 +64,13 @@ function loadData() {
                 clients = [];
             } else {
                 try {
-                    clients = JSON.parse(fileContent);
-                    console.log(`${clients.length} clients chargés`);
+                    const allClients = JSON.parse(fileContent);
+                    
+                    // Filtrer pour ne garder que les clients non archivés
+                    clients = allClients.filter(client => !client.archived);
+                    
+                    console.log(`${allClients.length} clients chargés au total`);
+                    console.log(`${clients.length} clients actifs (non archivés)`);
                 } catch (parseError) {
                     console.error("Erreur de parsing JSON:", parseError);
                     clients = [];
@@ -88,19 +93,22 @@ function loadData() {
                 id: "client_test_1",
                 nom: "Dupont",
                 prenom: "Jean",
-                type: "Divorce"
+                type: "Divorce",
+                archived: false
             },
             {
                 id: "client_test_2",
                 nom: "Martin",
                 prenom: "Sophie",
-                type: "Droit immobilier"
+                type: "Droit immobilier",
+                archived: false
             },
             {
                 id: "client_test_3",
                 nom: "Durand",
                 prenom: "Pierre",
-                type: "Droit du travail"
+                type: "Droit du travail",
+                archived: false
             }
         ];
     }
