@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de suivi - Maître Candice ROVERA</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/tableau-suivi.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="assets/logo.png" alt="Logo Cabinet">
+            <h1>Cabinet d'avocats<br>Maître Candice ROVERA</h1>
+        </div>
+        <nav>
+            <button id="themeToggle" class="theme-toggle">
+                <span id="themeIcon">🌞</span>
+                <span id="themeText">Mode sombre</span>
+            </button>
+            <button id="backToHomeBtn" class="action-button">Retour à l'accueil</button>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Tableau de suivi des dossiers</h1>
+        
+        <div class="task-controls">
+            <button id="addTaskBtn" class="btn-primary">+ Ajouter une tâche</button>
+            <button id="debugBtn" class="btn-secondary">Déboguer</button>
+        </div>
+        
+        <div id="tasksContainer" class="tasks-container">
+            <!-- Le contenu sera généré dynamiquement par JavaScript -->
+        </div>
+    </main>
+
+    <footer>
+        Maître Candice ROVERA - Avocate au Barreau de Paris
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/tableau-suivi.js"></script>
+</body>
+</html>

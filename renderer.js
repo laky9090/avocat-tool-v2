@@ -2225,3 +2225,24 @@ document.getElementById('openFinanceBtn').addEventListener('click', () => {
 document.getElementById('refreshPageBtn').addEventListener('click', () => {
     window.location.reload();
 });
+
+// Au chargement du document, initialiser les gestionnaires d'événements
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser le thème
+    initializeTheme();
+    
+    // Initialiser le sélecteur de type/rôle
+    initTypeRoleSelect();
+    
+    // Initialiser le bouton de tableau de suivi
+    const tableauSuiviBtn = document.getElementById('openTableauSuiviBtn');
+    if (tableauSuiviBtn) {
+      tableauSuiviBtn.addEventListener('click', function() {
+        console.log('Ouverture du tableau de suivi');
+        window.location.href = 'tableau-suivi.html';
+      });
+    }
+    
+    // Charger les clients
+    chargerClients();
+});

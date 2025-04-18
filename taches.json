@@ -1,0 +1,30 @@
+[
+  {
+    "id": "task_1",
+    "clientId": "client_1",
+    "description": "Rédiger conclusions d'appel",
+    "dueDate": "2025-05-10",
+    "completed": false
+  },
+  {
+    "id": "task_2",
+    "clientId": "client_1",
+    "description": "Envoyer mise en demeure",
+    "dueDate": "2025-05-15",
+    "completed": true
+  },
+  {
+    "id": "task_3",
+    "clientId": "client_2",
+    "description": "Préparer audience",
+    "dueDate": "2025-06-01",
+    "completed": false
+  },
+  {
+    "id": "task_4",
+    "clientId": "client_2",
+    "description": "Consulter jurisprudence",
+    "dueDate": "2025-05-20",
+    "completed": false
+  }
+]

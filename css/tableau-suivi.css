@@ -1,0 +1,281 @@
+/* Styles spécifiques pour le tableau de suivi */
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.search-filter {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+}
+
+.search-filter input {
+    flex: 2;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.search-filter select {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.task-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#suiviTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-color);
+}
+
+#suiviTable th,
+#suiviTable td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+#suiviTable th {
+    background-color: var(--primary-color);
+    color: white;
+    position: sticky;
+    top: 0;
+}
+
+#suiviTable tbody tr:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.task-status {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.status-todo {
+    background-color: #ffecb3;
+    color: #856404;
+}
+
+.status-inprogress {
+    background-color: #b3e0ff;
+    color: #004085;
+}
+
+.status-waiting {
+    background-color: #d6d8db;
+    color: #383d41;
+}
+
+.status-done {
+    background-color: #c3e6cb;
+    color: #155724;
+}
+
+.task-deadline {
+    white-space: nowrap;
+}
+
+.task-deadline.urgent {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.task-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.task-actions button {
+    padding: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
+.task-actions button:hover {
+    color: var(--primary-color);
+}
+
+/* Styles pour le tableau de suivi */
+
+.tasks-container {
+    margin-top: 20px;
+}
+
+.task-group {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.task-table th {
+    background-color: var(--primary-color, #3498db);
+    color: white;
+    padding: 10px 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.task-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.task-table tr:last-child td {
+    border-bottom: none;
+}
+
+.task-table tr:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.task-description {
+    width: 60%;
+    font-weight: 500;
+}
+
+.task-date {
+    width: 25%;
+    color: #666;
+    white-space: nowrap;
+}
+
+.task-status {
+    width: 15%;
+    text-align: center;
+}
+
+.task-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.task-completed .task-description {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.task-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0;
+}
+
+.btn-primary {
+    background-color: var(--primary-color, #3498db);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark, #2980b9);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .search-filter {
+        width: 100%;
+    }
+    
+    .task-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .task-date {
+        display: none;
+    }
+    
+    .task-description {
+        width: 75%;
+    }
+    
+    .task-status {
+        width: 25%;
+    }
+}
+
+/* Ajouter ces styles à la fin du fichier */
+
+/* Style pour la ligne contenant le nom du client */
+.client-name-row {
+    background-color: #f7f7f7;
+}
+
+.client-name-cell {
+    padding: 10px 0 !important;
+    border-top: 1px solid #ddd !important;
+    border-bottom: 1px solid #ddd !important;
+}
+
+.client-name-container {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1em;
+    padding: 8px 12px;
+    color: var(--primary-color, #3498db);
+    background-color: rgba(52, 152, 219, 0.1);
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Amélioration du style des tâches pour une meilleure cohérence visuelle */
+.task-table tr:nth-child(even):not(.client-name-row) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.task-table tr:hover:not(.client-name-row) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Ajouter ces styles */
+
+.client-name-header {
+    background-color: #f2f2f2;
+    color: var(--primary-color, #3498db);
+    font-size: 1.2em;
+    font-weight: bold;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid var(--primary-color, #3498db);
+}
+
