@@ -1065,3 +1065,16 @@ calendar-nav button {
   gap: 10px;
   margin-top: 20px;
 }
+
+/* Ajoutez ceci à votre fichier CSS */
+button#configEmailBtn, 
+button#imprimerTousBtn {
+  width: 200px;  /* Largeur fixe pour les deux boutons */
+  white-space: nowrap;
+}
+
+/* Alternative avec classe CSS */
+.fixed-width-btn {
+  width: 200px;
+  white-space: nowrap;
+}

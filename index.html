@@ -188,10 +188,8 @@
           <option value="dateEcheance">Date d'entrée du dossier</option>
           <option value="dateContact">Date de dernier contact</option>
         </select>
-        <button onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
-        <button onclick="showEmailConfigModal()" class="settings-button">
-            ✉️ Configurer l'email
-        </button>
+        <button class="fixed-width-btn" onclick="showEmailConfigModal()">Configurer l'email</button>
+        <button class="fixed-width-btn" onclick="imprimerTousLesClients()">Imprimer tous les dossiers</button>
       </div>
       <ul id="listeClients"></ul>
       <div id="fiche-detaillee" style="display:none;"></div>
@@ -302,4 +300,3 @@
   <script src="renderer.js"></script>
 </body>
 </html>
-``` 
