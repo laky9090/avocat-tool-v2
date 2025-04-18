@@ -345,40 +345,53 @@ async function sendInvoiceEmail(event) {
             const { ipcRenderer } = window.require('electron');
             
             ipcRenderer.send('send-email', emailData);
-            
-            console.log('Événement send-email envoyé au processus principal avec les données:', {
-                to: emailData.to,
-                subject: emailData.subject,
-                attachmentsCount: emailData.attachments.length
-            });
+
+            // Timeout de sécurité pour restaurer le bouton si aucune réponse n'est reçue
+            const safetyTimeout = setTimeout(() => {
+                console.log('Aucune réponse reçue après 10 secondes, restauration du bouton');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            }, 10000); // 10 secondes
             
             ipcRenderer.once('email-sent', (event, response) => {
+                // Annuler le timeout de sécurité
+                clearTimeout(safetyTimeout);
+                
                 console.log('Réponse du processus principal:', response);
+                
+                // Restaurer le bouton et le formulaire IMMÉDIATEMENT
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+                
+                // Réinitialiser l'état de soumission du formulaire
+                const emailForm = document.getElementById('emailForm');
+                if (emailForm) {
+                    emailForm.removeAttribute('data-submitting');
+                }
                 
                 if (response.success) {
                     alert('Email envoyé avec succès !');
                     
-                    // Fermer la modal
+                    // Fermer la modal APRÈS avoir restauré le bouton
                     closeEmailModal();
                     
                     // Pour les factures: mettre à jour le statut à "sent"
                     if (!isClientEmail && typeof updateInvoiceStatus === 'function') {
-                        updateInvoiceStatus(invoiceNumber, 'sent');
+                        try {
+                            updateInvoiceStatus(invoiceNumber, 'sent');
+                        } catch (err) {
+                            console.error('Erreur lors de la mise à jour du statut de la facture:', err);
+                        }
                     }
                     
-                    // Forcer le rafraîchissement de la fenêtre 
-                    setTimeout(() => {
-                        if (typeof forceWindowRefresh === 'function') {
-                            forceWindowRefresh();
-                        }
-                    }, 200);
+                    // Le reste du code...
                 } else {
                     alert(`Erreur lors de l'envoi de l'email : ${response.error}`);
                 }
-                
-                // Restaurer le bouton
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
             });
         } else {
             // Si on n'est pas dans Electron, afficher un message d'erreur
@@ -399,18 +412,27 @@ async function sendInvoiceEmail(event) {
     }
 }
 
-// Fonction améliorée pour fermer la modal d'email et restaurer l'état de l'application
+// Modifier la fonction closeEmailModal
+
 function closeEmailModal() {
+    // Réinitialiser explicitement le bouton d'envoi s'il est encore en état "envoi en cours"
+    const submitBtn = document.querySelector('#emailForm button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Envoyer';
+    }
+    
+    // Réinitialiser l'attribut de soumission du formulaire
+    const emailForm = document.getElementById('emailForm');
+    if (emailForm) {
+        emailForm.removeAttribute('data-submitting');
+        emailForm.reset();
+    }
+    
     // Fermer la modal
     const emailModal = document.getElementById('emailModal');
     if (emailModal) {
         emailModal.style.display = 'none';
-    }
-    
-    // Réinitialiser les champs du formulaire
-    const emailForm = document.getElementById('emailForm');
-    if (emailForm) {
-        emailForm.reset();
     }
     
     // Restaurer le focus sur le document principal et débloquer l'interface
@@ -690,15 +712,31 @@ function openGoogleAppPasswordPage() {
 function initEmailManager() {
     const emailForm = document.getElementById('emailForm');
     if (emailForm) {
-        emailForm.addEventListener('submit', sendInvoiceEmail);
+        // Supprimer tous les écouteurs d'événements existants
+        emailForm.removeEventListener('submit', sendInvoiceEmail);
+        
+        // En ajouter un nouveau
+        emailForm.addEventListener('submit', function(event) {
+            // Éviter les soumissions multiples
+            if (this.getAttribute('data-submitting') === 'true') {
+                event.preventDefault();
+                console.log('Soumission déjà en cours, ignorée');
+                return;
+            }
+            
+            // Marquer le formulaire comme en cours de soumission
+            this.setAttribute('data-submitting', 'true');
+            
+            // Appeler la fonction d'envoi
+            sendInvoiceEmail(event);
+        });
+        
+        console.log('Formulaire email initialisé avec protection contre les soumissions multiples');
     }
     
-    // Vérifier si la configuration d'email existe
+    // Vérification de la configuration email (inchangée)
     if (!window.emailConfig || !window.emailConfig.email || !window.emailConfig.appPassword) {
         console.warn('Configuration d\'email incomplète');
-        
-        // Ne pas afficher automatiquement la modale de configuration
-        // L'utilisateur peut la configurer quand il en a besoin via le bouton
     } else {
         console.log('Configuration d\'email chargée:', window.emailConfig.email);
     }
@@ -721,6 +759,3 @@ window.openGoogleAppPasswordPage = openGoogleAppPasswordPage;
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', initEmailManager);
-
-// Exposer la fonction showClientEmailModal globalement
-window.showClientEmailModal = showClientEmailModal;
