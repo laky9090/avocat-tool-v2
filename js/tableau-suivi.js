@@ -217,8 +217,9 @@ function renderTaskGroups() {
             <tr>
                 <th colspan="5" class="progress-header">
                     <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progressPercentage}%"></div>
-                        <span class="progress-text">${progressPercentage}% d'avancement</span>
+                        <div class="progress-bar" style="width: ${progressPercentage}%">
+                            <span class="progress-number">${progressPercentage}%</span>
+                        </div>
                     </div>
                 </th>
             </tr>
@@ -709,7 +710,7 @@ function deleteTask(taskId) {
                 console.log(`Tâche ${taskId} supprimée du DOM`);
                 
                 // Mettre à jour la barre de progression si nécessaire
-                // updateProgressBar();
+                updateProgressBar();
             }
         }, 300); // Correspond à la durée de l'animation dans le CSS
     }
@@ -1016,4 +1017,28 @@ function updateTaskField(clientId, taskId, fieldType, value) {
     
     console.log(`Champ ${fieldType} mis à jour dans la structure de données`);
     return true;
+}
+
+// Modifier la fonction updateProgressBar si elle existe déjà
+function updateProgressBar(clientId) {
+    // Récupérer les tâches du client
+    const clientTasks = tasks[clientId] || [];
+    if (clientTasks.length === 0) return;
+    
+    // Calculer le nouveau pourcentage
+    const totalTasks = clientTasks.length;
+    const completedTasks = clientTasks.filter(task => task.completed).length;
+    const progressPercentage = Math.round((completedTasks / totalTasks) * 100);
+    
+    // Trouver et mettre à jour la barre de progression
+    const progressBar = document.querySelector(`[data-client-id="${clientId}"] .progress-bar`);
+    const progressNumber = document.querySelector(`[data-client-id="${clientId}"] .progress-number`);
+    
+    if (progressBar) {
+        progressBar.style.width = `${progressPercentage}%`;
+        
+        if (progressNumber) {
+            progressNumber.textContent = `${progressPercentage}%`;
+        }
+    }
 }

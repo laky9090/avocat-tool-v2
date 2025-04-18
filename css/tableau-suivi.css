@@ -111,12 +111,13 @@ body {
 }
 
 .progress-container {
-  height: 8px;
+  height: 20px; /* Augmenté de 8px à 20px pour plus d'espace */
   background-color: var(--gray-200);
   border-radius: 20px;
   overflow: hidden;
   position: relative;
   margin-top: 5px;
+  margin-bottom: 8px;
 }
 
 .progress-bar {
@@ -124,15 +125,23 @@ body {
   background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border-radius: 20px;
   transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px; /* Assurer un minimum de largeur pour le texte */
+  position: relative;
 }
 
+.progress-number {
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* La classe progress-text peut être cachée car le pourcentage sera à l'intérieur */
 .progress-text {
-  position: absolute;
-  right: 0;
-  top: -22px;
-  font-size: 0.8rem;
-  color: var(--gray-600);
-  font-weight: 500;
+  display: none;
 }
 
 /* Colonnes du tableau */
