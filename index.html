@@ -243,9 +243,14 @@
           <textarea id="emailMessage" rows="10" required></textarea>
         </div>
         
-        <div class="form-group checkbox-group">
+        <div class="form-group checkbox-group" id="attachPDFCheckboxGroup">
           <input type="checkbox" id="attachPDF" checked>
-          <label for="attachPDF">Joindre un document</label>
+          <label for="attachPDF">Joindre la facture</label>
+        </div>
+
+        <div class="form-group" id="attachDocumentBtnGroup" style="display: none;">
+          <button type="button" id="attachDocumentBtn" class="btn-secondary">📎 Joindre un document</button>
+          <span id="attachedFileName" style="margin-left: 10px; font-style: italic;"></span>
         </div>
         
         <div class="form-actions">
@@ -297,3 +302,4 @@
   <script src="renderer.js"></script>
 </body>
 </html>
+``` 

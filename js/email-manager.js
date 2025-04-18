@@ -37,7 +37,8 @@ let lastRequestTimestamp = 0;
 
 // Nouveau fichier pour gérer l'envoi d'emails
 
-// Fonction pour afficher la modal d'envoi d'email
+// Modifier la fonction showEmailModal
+
 function showEmailModal(invoiceNumber) {
     // Récupérer les infos de la facture
     const invoice = window.invoices.find(inv => inv.number === invoiceNumber);
@@ -85,6 +86,17 @@ Site internet : https://candicerovera-avocat.fr/`;
 
     // Définir le message dans le formulaire
     document.getElementById('emailMessage').value = emailMessage;
+    
+    // S'assurer que l'interface est configurée pour les factures
+    const checkboxGroup = document.getElementById('attachPDFCheckboxGroup');
+    const buttonGroup = document.getElementById('attachDocumentBtnGroup');
+    if (checkboxGroup && buttonGroup) {
+        checkboxGroup.style.display = 'block';
+        buttonGroup.style.display = 'none';
+    }
+    
+    // Réinitialiser la pièce jointe client
+    clientAttachment = null;
     
     // Afficher la modal
     document.getElementById('emailModal').style.display = 'flex';
@@ -214,120 +226,99 @@ async function sendInvoiceEmail(event) {
         // Déterminer si c'est un email de facture ou de client
         const invoiceNumber = document.getElementById('invoiceNumberForEmail')?.value;
         const clientId = document.getElementById('clientIdForEmail')?.value;
-        const isClientEmail = !invoiceNumber && clientId;
+        
+        // Forcer explicitement le type d'email basé sur les éléments d'interface
+        const clientAttachmentBtn = document.getElementById('attachDocumentBtnGroup');
+        const isClientEmail = (clientAttachmentBtn && clientAttachmentBtn.style.display !== 'none') || (!invoiceNumber && clientId);
         
         // Récupérer les valeurs du formulaire
         const toEmail = document.getElementById('emailTo').value;
         const subject = document.getElementById('emailSubject').value;
         const message = document.getElementById('emailMessage').value;
-        const attachPDF = document.getElementById('attachPDF').checked;
         
         // Vérifier les champs requis
         if (!toEmail) {
             alert('Veuillez remplir l\'adresse email');
+            emailSendingInProgress = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
             return;
         }
         
-        // Afficher un indicateur de chargement
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Envoi en cours...';
-        
-        // Préparer les pièces jointes
+        // Préparer les pièces jointes - NOUVELLE IMPLÉMENTATION
         let attachments = [];
 
-        // Gestion des pièces jointes selon le type (facture ou client)
-        if (!isClientEmail && attachPDF) {
-            // Code existant pour les factures
-            const pdfBlob = await generateInvoicePDF(invoiceNumber);
-            if (pdfBlob) {
-                // Convertir le Blob en base64
-                const reader = new FileReader();
-                const pdfBase64 = await new Promise((resolve) => {
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(pdfBlob);
-                });
-                
-                attachments.push({
-                    filename: `Facture_${invoiceNumber}.pdf`,
-                    content: pdfBase64,
-                    encoding: 'base64'
-                });
-            }
-        } 
-        else if (isClientEmail && attachPDF) {
-            // Nouveau code pour les clients: permettre de sélectionner un fichier
+        // Log pour débogage
+        console.log(`Type d'email: ${isClientEmail ? 'Client' : 'Facture'}`);
+        console.log('Interface client visible:', clientAttachmentBtn && clientAttachmentBtn.style.display !== 'none');
+        
+        // POUR LES EMAILS DE FACTURE
+        if (!isClientEmail) {
+            // Code existant pour les factures...
+            
+            // Ajouter le RIB uniquement pour les factures
             try {
-                const { dialog } = window.require('@electron/remote');
-                const result = await dialog.showOpenDialog({
-                    properties: ['openFile'],
-                    filters: [
-                        { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'jpg', 'png'] }
-                    ],
-                    title: 'Sélectionner un document à joindre'
-                });
+                const fs = window.require('fs');
+                const path = window.require('path');
                 
-                if (!result.canceled && result.filePaths.length > 0) {
+                const ribPath = window.emailConfig && window.emailConfig.ribConfig ? 
+                    window.emailConfig.ribConfig.path : 
+                    "assets/rib/rib-candice-rovera.pdf";
+                
+                const ribFilename = window.emailConfig && window.emailConfig.ribConfig ? 
+                    window.emailConfig.ribConfig.filename : 
+                    "RIB_Candice_ROVERA.pdf";
+                
+                const absoluteRibPath = path.join(__dirname, ribPath);
+                
+                if (fs.existsSync(absoluteRibPath)) {
+                    const ribContent = fs.readFileSync(absoluteRibPath);
+                    const ribBase64 = Buffer.from(ribContent).toString('base64');
+                    
+                    attachments.push({
+                        filename: ribFilename,
+                        content: ribBase64,
+                        encoding: 'base64'
+                    });
+                    console.log('RIB ajouté à l\'email de facture');
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'ajout du RIB:', error);
+            }
+        }
+        // POUR LES EMAILS CLIENT
+        else {
+            console.log('Email client - aucun RIB ne sera ajouté');
+            
+            // Debug pour vérifier que nous sommes bien dans la branche client
+            console.log('Debug - clientAttachment:', clientAttachment ? clientAttachment.name : 'aucun');
+            
+            // Vérifier si un document a été sélectionné via le bouton
+            if (clientAttachment) {
+                try {
                     const fs = window.require('fs');
                     const path = window.require('path');
-                    const filePath = result.filePaths[0];
-                    const fileName = path.basename(filePath);
                     
-                    // Lire le fichier
-                    const fileContent = fs.readFileSync(filePath);
+                    // Lire le contenu du fichier
+                    const fileContent = fs.readFileSync(clientAttachment.path);
                     const fileBase64 = Buffer.from(fileContent).toString('base64');
                     
                     attachments.push({
-                        filename: fileName,
+                        filename: clientAttachment.name,
                         content: fileBase64,
                         encoding: 'base64'
                     });
+                    
+                    console.log('Document sélectionné ajouté:', clientAttachment.name);
+                } catch (error) {
+                    console.error('Erreur lors de la lecture du fichier joint:', error);
+                    alert("Erreur lors de la lecture du fichier joint: " + error.message);
                 }
-            } catch (error) {
-                console.error('Erreur lors de la sélection du fichier:', error);
-                alert("Erreur lors de la sélection du fichier: " + error.message);
-            }
-        }
-
-        // Ajouter le RIB pour tous les emails (factures et clients)
-        try {
-            const fs = window.require('fs');
-            const path = window.require('path');
-            
-            // Récupérer le chemin du RIB depuis la configuration
-            const ribPath = window.emailConfig && window.emailConfig.ribConfig ? 
-                window.emailConfig.ribConfig.path : 
-                "assets/rib/rib-candice-rovera.pdf";
-            
-            const ribFilename = window.emailConfig && window.emailConfig.ribConfig ? 
-                window.emailConfig.ribConfig.filename : 
-                "RIB_Candice_ROVERA.pdf";
-            
-            // Chemin absolu du RIB
-            const absoluteRibPath = path.join(__dirname, ribPath);
-            
-            // Vérifier si le fichier existe
-            if (fs.existsSync(absoluteRibPath)) {
-                // Lire le fichier RIB
-                const ribContent = fs.readFileSync(absoluteRibPath);
-                
-                // Convertir en base64
-                const ribBase64 = Buffer.from(ribContent).toString('base64');
-                
-                // Ajouter à la liste des pièces jointes
-                attachments.push({
-                    filename: ribFilename,
-                    content: ribBase64,
-                    encoding: 'base64'
-                });
-                
-                console.log('RIB ajouté à l\'email');
             } else {
-                console.warn('Fichier RIB non trouvé à l\'emplacement:', absoluteRibPath);
+                console.log('Aucun document joint');
             }
-        } catch (error) {
-            console.error('Erreur lors de l\'ajout du RIB:', error);
         }
 
         // Récupérer les données de configuration
@@ -336,18 +327,16 @@ async function sendInvoiceEmail(event) {
 
         // Vérifier si les données d'envoi d'email sont configurées
         if (!fromEmail || !appPassword) {
-            const configurer = confirm(
-                'La configuration d\'email n\'est pas complète ou n\'a pas été chargée correctement.\n\n' +
-                'Voulez-vous configurer votre email maintenant?\n\n' +
-                'Note: Normalement, cette configuration est sauvegardée et ne doit être faite qu\'une seule fois.'
-            );
-            
+            const configurer = confirm('La configuration d\'email n\'est pas complète. Voulez-vous configurer votre email maintenant?');
             if (configurer) {
                 showEmailConfigModal();
             }
             
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            emailSendingInProgress = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
             return;
         }
 
@@ -360,18 +349,20 @@ async function sendInvoiceEmail(event) {
             password: appPassword,
             attachments: attachments
         };
-        
-        console.log('Préparation à l\'envoi de l\'email:', { to: emailData.to, subject: emailData.subject, attachmentsCount: emailData.attachments.length });
-        
+
+        console.log('Préparation à l\'envoi de l\'email:', { 
+            to: emailData.to, 
+            subject: emailData.subject, 
+            attachmentsCount: emailData.attachments.length 
+        });
+
         // Envoyer l'email via le backend
         // Pour Electron, nous utilisons l'IPC pour communiquer avec le processus principal
         if (window.require) {
             const { ipcRenderer } = window.require('electron');
             
-            ipcRenderer.send('send-email', emailData);
-
-            // Timeout de sécurité pour restaurer le bouton si aucune réponse n'est reçue
-            const unlockTimeout = setTimeout(() => {
+            // Timeout de sécurité pour déverrouiller le bouton si aucune réponse n'est reçue
+            const safetyTimeout = setTimeout(() => {
                 console.log('Timeout de sécurité: déverrouillage forcé');
                 emailSendingInProgress = false;
                 
@@ -379,25 +370,25 @@ async function sendInvoiceEmail(event) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
                 }
-            }, 30000); // 30 secondes max
+                
+                alert('L\'envoi d\'email a pris trop de temps. Veuillez réessayer.');
+            }, 15000); // 15 secondes max
+            
+            ipcRenderer.send('send-email', emailData);
             
             ipcRenderer.once('email-sent', (event, response) => {
-                // Déverrouiller immédiatement
-                emailSendingInProgress = false;
-                clearTimeout(unlockTimeout);
+                // Annuler le timeout de sécurité
+                clearTimeout(safetyTimeout);
                 
                 console.log('Réponse du processus principal:', response);
                 
-                // Restaurer le bouton et le formulaire IMMÉDIATEMENT
+                // IMPORTANT: déverrouiller immédiatement
+                emailSendingInProgress = false;
+                
+                // Restaurer le bouton IMMÉDIATEMENT
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
-                }
-                
-                // Réinitialiser l'état de soumission du formulaire
-                const emailForm = document.getElementById('emailForm');
-                if (emailForm) {
-                    emailForm.removeAttribute('data-submitting');
                 }
                 
                 if (response.success) {
@@ -415,7 +406,16 @@ async function sendInvoiceEmail(event) {
                         }
                     }
                     
-                    // Le reste du code...
+                    // Forcer le rafraîchissement de la fenêtre 
+                    setTimeout(() => {
+                        if (typeof forceWindowRefresh === 'function') {
+                            try {
+                                forceWindowRefresh();
+                            } catch (err) {
+                                console.error('Erreur lors du rafraîchissement de la fenêtre:', err);
+                            }
+                        }
+                    }, 200);
                 } else {
                     alert(`Erreur lors de l'envoi de l'email : ${response.error}`);
                 }
@@ -423,21 +423,14 @@ async function sendInvoiceEmail(event) {
         } else {
             // Si on n'est pas dans Electron, afficher un message d'erreur
             alert('L\'envoi d\'emails n\'est pas disponible dans cette version de l\'application');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            emailSendingInProgress = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
         }
     } catch (error) {
-        // En cas d'erreur, déverrouiller
-        emailSendingInProgress = false;
-        
-        console.error('Erreur lors de l\'envoi de l\'email:', error);
-        alert(`Une erreur est survenue : ${error.message}`);
-        
-        // Restaurer le bouton
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Envoyer';
-        }
+        // Reste du code inchangé...
     }
 }
 
@@ -456,6 +449,13 @@ function closeEmailModal() {
     if (emailForm) {
         emailForm.removeAttribute('data-submitting');
         emailForm.reset();
+    }
+    
+    // Réinitialiser la pièce jointe client
+    clientAttachment = null;
+    const fileNameSpan = document.getElementById('attachedFileName');
+    if (fileNameSpan) {
+        fileNameSpan.textContent = '';
     }
     
     // Fermer la modal
@@ -677,6 +677,26 @@ Site internet : https://candicerovera-avocat.fr/`;
             attachPDF.checked = false;
         }
         
+        // Affichage du bouton au lieu de la case à cocher
+        const checkboxGroup = document.getElementById('attachPDFCheckboxGroup');
+        const buttonGroup = document.getElementById('attachDocumentBtnGroup');
+        if (checkboxGroup && buttonGroup) {
+            checkboxGroup.style.display = 'none';
+            buttonGroup.style.display = 'block';
+            document.getElementById('attachedFileName').textContent = '';
+        }
+        
+        // Préparer le gestionnaire pour le bouton d'attachement
+        const attachBtn = document.getElementById('attachDocumentBtn');
+        if (attachBtn) {
+            // Supprimer les gestionnaires existants
+            const newBtn = attachBtn.cloneNode(true);
+            attachBtn.parentNode.replaceChild(newBtn, attachBtn);
+            
+            // Ajouter le nouveau gestionnaire
+            newBtn.addEventListener('click', selectAttachmentForClient);
+        }
+        
         // Afficher la modal
         const emailModal = document.getElementById('emailModal');
         if (emailModal) {
@@ -688,6 +708,49 @@ Site internet : https://candicerovera-avocat.fr/`;
     } catch (error) {
         console.error("Erreur lors de la préparation de l'email:", error);
         alert("Une erreur est survenue lors de la préparation de l'email: " + error.message);
+    }
+}
+
+// Ajouter cette nouvelle fonction
+
+// Variable globale pour stocker le fichier attaché
+let clientAttachment = null;
+
+// Fonction pour sélectionner un fichier à joindre
+async function selectAttachmentForClient() {
+    try {
+        const { dialog } = window.require('@electron/remote');
+        const result = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: [
+                { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'jpg', 'png'] }
+            ],
+            title: 'Sélectionner un document à joindre'
+        });
+        
+        if (!result.canceled && result.filePaths.length > 0) {
+            const fs = window.require('fs');
+            const path = window.require('path');
+            const filePath = result.filePaths[0];
+            const fileName = path.basename(filePath);
+            
+            // Stocker les informations du fichier
+            clientAttachment = {
+                path: filePath,
+                name: fileName
+            };
+            
+            // Afficher le nom du fichier
+            const fileNameSpan = document.getElementById('attachedFileName');
+            if (fileNameSpan) {
+                fileNameSpan.textContent = fileName;
+            }
+            
+            console.log('Document sélectionné:', fileName);
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sélection du fichier:', error);
+        alert("Erreur lors de la sélection du fichier: " + error.message);
     }
 }
 
@@ -798,6 +861,7 @@ window.showEmailConfigModal = showEmailConfigModal;
 window.closeEmailConfigModal = closeEmailConfigModal;
 window.saveEmailConfiguration = saveEmailConfiguration;
 window.openGoogleAppPasswordPage = openGoogleAppPasswordPage;
+window.selectAttachmentForClient = selectAttachmentForClient; // Nouvelle fonction
 
 // Initialiser au chargement
 document.addEventListener('DOMContentLoaded', initEmailManager);
