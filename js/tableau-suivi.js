@@ -159,6 +159,12 @@ function renderTaskGroups() {
     
     container.innerHTML = '';
     
+    // Ajouter un indicateur du nombre de clients actifs
+    const statusElement = document.createElement('div');
+    statusElement.className = 'clients-status';
+    statusElement.textContent = `${clients.length} dossier(s) actif(s)`;
+    container.appendChild(statusElement);
+    
     // Si aucun client
     if (!clients || clients.length === 0) {
         container.innerHTML = '<div class="no-tasks">Aucun client trouvé. Ajoutez des clients dans la page principale.</div>';
@@ -179,38 +185,54 @@ function renderTaskGroups() {
         const table = document.createElement('table');
         table.className = 'task-table';
         
-        // Création de l'en-tête avec le nom du client
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th class="client-name-header" colspan="3">${clientName}</th>
-            </tr>
-            <tr>
-                <th class="task-description">Tâche</th>
-                <th class="task-date">Date</th>
-                <th class="task-status">Statut</th>
-            </tr>
-        `;
-        table.appendChild(thead);
-        
-        // Création du corps du tableau avec des tâches d'exemple
-        const tbody = document.createElement('tbody');
-        
         // Tâches d'exemple pour ce client
         const exampleTasks = [
             {
                 id: `task_${index}_1`,
                 description: "Préparer les conclusions",
                 dueDate: "2025-05-15",
-                completed: false
+                completed: false,
+                comment: "Vérifier les documents avant envoi"
             },
             {
                 id: `task_${index}_2`,
                 description: "Envoyer notification à l'adverse",
                 dueDate: "2025-05-20",
-                completed: true
+                completed: true,
+                comment: "Notification envoyée par email"
             }
         ];
+        
+        // Calculer le pourcentage d'avancement
+        const totalTasks = exampleTasks.length;
+        const completedTasks = exampleTasks.filter(task => task.completed).length;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        // Création de l'en-tête avec le nom du client et la barre de progression
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th class="client-name-header" colspan="4">${clientName}</th>
+            </tr>
+            <tr>
+                <th colspan="4" class="progress-header">
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${progressPercentage}%"></div>
+                        <span class="progress-text">${progressPercentage}% d'avancement</span>
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <th class="task-description">Tâche</th>
+                <th class="task-date">Date</th>
+                <th class="task-status">Statut</th>
+                <th class="task-comment">Commentaire</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        
+        // Création du corps du tableau avec les tâches d'exemple
+        const tbody = document.createElement('tbody');
             
         // Ajouter les tâches d'exemple au tableau
         exampleTasks.forEach((task) => {
@@ -225,6 +247,14 @@ function renderTaskGroups() {
                 <td class="task-status">
                     <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" 
                         ${task.completed ? 'checked' : ''}>
+                </td>
+                <td class="task-comment">
+                    <div class="comment-container">
+                        <span class="comment-text">${task.comment || ''}</span>
+                        <button class="edit-comment-btn" data-task-id="${task.id}">
+                            <i class="fas fa-pencil-alt"></i>✏️
+                        </button>
+                    </div>
                 </td>
             `;
             
@@ -245,10 +275,76 @@ function renderTaskGroups() {
             // Mettre à jour l'apparence
             const row = this.closest('tr');
             row.classList.toggle('task-completed', isChecked);
+            
+            // Mettre à jour la barre de progression (à implémenter plus tard pour les tâches réelles)
+            // Pour l'instant, nous ne faisons que mettre à jour l'apparence
+        });
+    });
+
+    // Ajouter les gestionnaires pour les boutons d'édition des commentaires
+    document.querySelectorAll('.edit-comment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            const commentCell = this.closest('.task-comment');
+            const commentText = commentCell.querySelector('.comment-text');
+            const currentComment = commentText.textContent || '';
+            
+            // Créer un champ de saisie
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'comment-input';
+            input.value = currentComment;
+            
+            // Remplacer le texte par le champ de saisie
+            const commentContainer = commentCell.querySelector('.comment-container');
+            commentContainer.innerHTML = '';
+            commentContainer.appendChild(input);
+            
+            // Focus sur le champ et sélectionner le texte
+            input.focus();
+            input.select();
+            
+            // Gestionnaire pour sauvegarder le commentaire lorsqu'on appuie sur Entrée
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveComment(taskId, this.value, commentCell);
+                }
+            });
+            
+            // Gestionnaire pour sauvegarder lors de la perte de focus
+            input.addEventListener('blur', function() {
+                saveComment(taskId, this.value, commentCell);
+            });
         });
     });
     
     console.log('Rendu terminé');
+}
+
+// Fonction pour sauvegarder un commentaire
+function saveComment(taskId, commentText, commentCell) {
+    // Dans une future implémentation, nous sauvegarderions le commentaire dans les données
+    console.log(`Commentaire sauvegardé pour la tâche ${taskId}: ${commentText}`);
+    
+    // Recréer la structure du commentaire
+    commentCell.innerHTML = `
+        <div class="comment-container">
+            <span class="comment-text">${commentText}</span>
+            <button class="edit-comment-btn" data-task-id="${taskId}">
+                <i class="fas fa-pencil-alt"></i>✏️
+            </button>
+        </div>
+    `;
+    
+    // Réattacher l'événement au bouton d'édition
+    commentCell.querySelector('.edit-comment-btn').addEventListener('click', function() {
+        const taskId = this.dataset.taskId;
+        const commentCell = this.closest('.task-comment');
+        const commentText = commentCell.querySelector('.comment-text').textContent || '';
+        
+        // Code pour créer l'input...
+        // (Vous pourriez extraire cette partie dans une fonction séparée)
+    });
 }
 
 // Formater une date (YYYY-MM-DD → DD/MM/YYYY)

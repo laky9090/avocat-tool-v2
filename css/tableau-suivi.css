@@ -157,19 +157,56 @@
 }
 
 .task-description {
-    width: 60%;
+    width: 40%; /* Réduit de 60% à 40% */
     font-weight: 500;
 }
 
 .task-date {
-    width: 25%;
+    width: 20%; /* Réduit de 25% à 20% */
     color: #666;
     white-space: nowrap;
 }
 
 .task-status {
-    width: 15%;
+    width: 10%; /* Réduit de 15% à 10% */
     text-align: center;
+}
+
+.task-comment {
+    width: 30%;
+}
+
+.comment-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.comment-text {
+    flex-grow: 1;
+    font-style: italic;
+    color: #666;
+}
+
+.edit-comment-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    visibility: hidden;
+}
+
+.task-comment:hover .edit-comment-btn {
+    visibility: visible;
+}
+
+.comment-input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
 }
 
 .task-checkbox {
@@ -219,16 +256,17 @@
         justify-content: space-between;
     }
 
-    .task-date {
-        display: none;
+    .task-date,
+    .task-comment {
+        display: none; /* Cacher les colonnes moins importantes sur mobile */
     }
     
     .task-description {
-        width: 75%;
+        width: 75%; /* Garder la même largeur */
     }
     
     .task-status {
-        width: 25%;
+        width: 25%; /* Garder la même largeur */
     }
 }
 
@@ -277,5 +315,61 @@
     padding: 12px 15px;
     text-align: left;
     border-bottom: 2px solid var(--primary-color, #3498db);
+}
+
+/* Ajouter ces styles pour la barre de progression */
+
+.progress-header {
+    padding: 0 !important;
+    background-color: transparent !important;
+    border-bottom: none !important;
+}
+
+.progress-container {
+    width: 100%;
+    height: 24px;
+    background-color: #f3f3f3;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin: 5px 0 10px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary-color, #3498db);
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #333;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
+}
+
+/* Modifier la couleur de la barre en fonction du pourcentage */
+.progress-bar[style*="width: 100%"] {
+    background-color: #27ae60; /* Vert pour 100% */
+}
+
+.progress-bar[style*="width: 0%"] {
+    background-color: #e74c3c; /* Rouge pour 0% */
+}
+
+.clients-status {
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--primary-color, #3498db);
+    color: #555;
+    font-size: 0.9em;
+    border-radius: 0 4px 4px 0;
 }
 
