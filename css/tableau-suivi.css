@@ -386,6 +386,118 @@ tr.deleting {
   box-shadow: var(--shadow-md);
 }
 
+/* Styles pour le formulaire d'ajout/édition de tâche */
+.task-edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.edit-task-form {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-form-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--gray-200);
+  padding-bottom: 10px;
+}
+
+.edit-form-field {
+  margin-bottom: 15px;
+}
+
+.edit-form-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.edit-form-field input,
+.edit-form-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.edit-form-field input:focus,
+.edit-form-field select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+}
+
+.edit-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background-color: var(--gray-200);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+
+.btn-save {
+  background-color: var(--primary-color);
+  color: white;
+  border: 1px solid var(--primary-dark);
+}
+
+.btn-cancel:hover {
+  background-color: var(--gray-300);
+}
+
+.btn-save:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Mode sombre */
+[data-theme="dark"] .edit-task-form {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+[data-theme="dark"] .edit-form-field label {
+  color: var(--gray-300);
+}
+
+[data-theme="dark"] .edit-form-field input,
+[data-theme="dark"] .edit-form-field select {
+  background-color: var(--gray-800);
+  border-color: var(--gray-700);
+  color: var(--gray-200);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .task-table th, .task-table td {

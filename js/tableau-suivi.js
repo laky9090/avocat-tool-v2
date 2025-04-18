@@ -30,8 +30,58 @@ console.log('Chemin du fichier clients:', clientsFilePath);
 let clients = [];
 let tasks = {}; // Ajout de la variable globale tasks
 
+// Fonction pour vérifier l'accès au fichier de tâches
+function checkTasksFileAccess() {
+    const tasksFilePath = path.join(__dirname, '..', 'taches.json');
+    console.log('Vérification du fichier de tâches:', tasksFilePath);
+    
+    try {
+        // Vérifier si le fichier existe
+        const exists = fs.existsSync(tasksFilePath);
+        console.log('Le fichier existe:', exists);
+        
+        if (exists) {
+            // Vérifier si on peut le lire
+            const content = fs.readFileSync(tasksFilePath, 'utf8');
+            console.log('Lecture du fichier réussie, taille:', content.length);
+            
+            // Vérifier si on peut y écrire
+            const testPath = path.join(path.dirname(tasksFilePath), 'write_test.tmp');
+            fs.writeFileSync(testPath, 'test', 'utf8');
+            fs.unlinkSync(testPath);
+            console.log('Test d\'écriture réussi');
+            
+            return {
+                success: true,
+                message: 'Accès au fichier de tâches vérifié avec succès'
+            };
+        } else {
+            // Essayer de créer le fichier
+            fs.writeFileSync(tasksFilePath, '[]', 'utf8');
+            console.log('Fichier de tâches créé avec succès');
+            
+            return {
+                success: true,
+                message: 'Fichier de tâches créé avec succès'
+            };
+        }
+    } catch (error) {
+        console.error('Erreur lors de la vérification du fichier de tâches:', error);
+        return {
+            success: false,
+            message: `Erreur d'accès au fichier: ${error.message}`
+        };
+    }
+}
+
 // Au chargement du document
 document.addEventListener('DOMContentLoaded', () => {
+    // Vérifier l'accès au fichier de tâches
+    const fileCheck = checkTasksFileAccess();
+    if (!fileCheck.success) {
+        alert(`Attention: ${fileCheck.message}. Certaines fonctionnalités peuvent ne pas fonctionner correctement.`);
+    }
+    
     // Initialisation du bouton de thème si présent
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -459,6 +509,136 @@ function renderTaskGroups() {
     addEditableFieldListeners();
 }
 
+// Fonction pour rafraîchir l'affichage des tâches d'un client
+function refreshTaskList(clientId) {
+    console.log(`Rafraîchissement des tâches pour le client ${clientId}`);
+    
+    // Option 1: Recharger toute la page (simple mais moins optimal)
+    // location.reload();
+    
+    // Option 2: Mettre à jour uniquement le groupe de tâches du client (plus efficace)
+    const taskGroup = document.querySelector(`div[data-client-id='${clientId}']`);
+    if (!taskGroup) {
+        console.error(`Groupe de tâches non trouvé pour le client ${clientId}`);
+        // Si le groupe n'existe pas, recharger toute la page
+        location.reload();
+        return;
+    }
+    
+    // Récupérer les tâches du client
+    const clientTasks = tasks[clientId] || [];
+    
+    // Vérifier s'il y a des tâches
+    if (clientTasks.length === 0) {
+        console.warn(`Aucune tâche trouvée pour le client ${clientId}`);
+        return;
+    }
+    
+    // Récupérer le tableau existant
+    const table = taskGroup.querySelector('table');
+    if (!table) {
+        console.error(`Tableau non trouvé pour le client ${clientId}`);
+        location.reload();
+        return;
+    }
+    
+    // Récupérer l'en-tête du tableau
+    const thead = table.querySelector('thead');
+    
+    // Calculer le nouveau pourcentage d'avancement
+    const totalTasks = clientTasks.length;
+    const completedTasks = clientTasks.filter(task => task.completed).length;
+    const progressPercentage = Math.round((completedTasks / totalTasks) * 100);
+    
+    // Mettre à jour la barre de progression
+    const progressBar = thead.querySelector('.progress-bar');
+    const progressNumber = thead.querySelector('.progress-number');
+    
+    if (progressBar && progressNumber) {
+        progressBar.style.width = `${progressPercentage}%`;
+        progressNumber.textContent = `${progressPercentage}%`;
+    }
+    
+    // Créer un nouveau corps de tableau
+    const tbody = document.createElement('tbody');
+    
+    clientTasks.forEach(task => {
+        const row = document.createElement('tr');
+        if (task.completed) {
+            row.classList.add('task-completed');
+        }
+        
+        row.dataset.taskId = task.id;
+        
+        row.innerHTML = `
+            <td class="task-description" data-task-id="${task.id}">
+                <span class="description-text">${task.description}</span>
+            </td>
+            <td class="task-date" data-task-id="${task.id}">
+                <span class="date-text">${formatDate(task.dueDate)}</span>
+            </td>
+            <td class="task-status">
+                <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${clientId}" 
+                    ${task.completed ? 'checked' : ''}>
+            </td>
+            <td class="task-comment" data-task-id="${task.id}">
+                <span class="comment-text${!task.comment ? ' comment-placeholder' : ''}">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
+            </td>
+            <td class="task-actions">
+                <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                    </svg>
+                </button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Remplacer l'ancien corps par le nouveau
+    const oldTbody = table.querySelector('tbody');
+    if (oldTbody) {
+        table.replaceChild(tbody, oldTbody);
+    } else {
+        table.appendChild(tbody);
+    }
+    
+    // Réattacher les gestionnaires d'événements
+    addEditableFieldListeners();
+    
+    // Gestionnaires pour les checkboxes
+    taskGroup.querySelectorAll('.task-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const isChecked = this.checked;
+            const clientId = this.dataset.clientId;
+            
+            // Mettre à jour l'apparence
+            const row = this.closest('tr');
+            row.classList.toggle('task-completed', isChecked);
+            
+            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'} pour le client ${clientId}`);
+            
+            // Mettre à jour les données et la barre de progression
+            updateTaskStatus(clientId, taskId, isChecked);
+        });
+    });
+    
+    // Gestionnaires pour les boutons de suppression
+    taskGroup.querySelectorAll('.delete-task-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const taskId = this.dataset.taskId;
+            console.log(`Bouton supprimer cliqué pour la tâche ${taskId}`);
+            deleteTask(taskId);
+        });
+    });
+    
+    console.log(`Affichage rafraîchi pour le client ${clientId}`);
+}
+
 // Fonction pour sauvegarder un commentaire
 function saveComment(taskId, commentText, commentCell) {
     // Si le commentaire est vide, afficher le texte d'invite
@@ -550,9 +730,138 @@ function formatDate(dateString) {
     }
 }
 
-// Ajouter une nouvelle tâche (fonction à développer)
+// Ajouter une nouvelle tâche (fonction mise à jour)
 function addNewTask() {
-    alert("Fonctionnalité d'ajout de tâche à venir !");
+    console.log("Ouverture du formulaire d'ajout de tâche");
+    
+    // Créer le formulaire d'ajout
+    const form = document.createElement('div');
+    form.className = 'edit-task-form';
+    
+    // Récupérer la liste des clients pour le sélecteur
+    const clientOptions = clients.map(client => {
+        const clientName = `${client.nom || ''} ${client.prenom || ''}`.trim();
+        return `<option value="${client.id}">${clientName}</option>`;
+    }).join('');
+    
+    form.innerHTML = `
+        <div class="edit-form-header">Ajouter une nouvelle tâche</div>
+        <div class="edit-form-field">
+            <label for="new-client">Client:</label>
+            <select id="new-client" required>
+                <option value="" disabled selected>Sélectionnez un client</option>
+                ${clientOptions}
+            </select>
+        </div>
+        <div class="edit-form-field">
+            <label for="new-description">Description:</label>
+            <input type="text" id="new-description" placeholder="Description de la tâche" required>
+        </div>
+        <div class="edit-form-field">
+            <label for="new-date">Date d'échéance:</label>
+            <input type="date" id="new-date">
+        </div>
+        <div class="edit-form-field">
+            <label for="new-comment">Commentaire (optionnel):</label>
+            <input type="text" id="new-comment" placeholder="Ajouter un commentaire">
+        </div>
+        <div class="edit-form-actions">
+            <button type="button" class="btn-cancel">Annuler</button>
+            <button type="button" class="btn-save">Ajouter</button>
+        </div>
+    `;
+    
+    // Créer un overlay et ajouter le formulaire
+    const overlay = document.createElement('div');
+    overlay.className = 'task-edit-overlay';
+    overlay.appendChild(form);
+    document.body.appendChild(overlay);
+    
+    // Focus sur le sélecteur de client
+    setTimeout(() => {
+        const clientSelect = overlay.querySelector('#new-client');
+        if (clientSelect) {
+            clientSelect.focus();
+        }
+    }, 10);
+    
+    // Gestionnaire pour le bouton Annuler
+    overlay.querySelector('.btn-cancel').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    // Gestionnaire pour le bouton Ajouter
+    overlay.querySelector('.btn-save').addEventListener('click', () => {
+        // Récupérer les valeurs du formulaire
+        const clientId = overlay.querySelector('#new-client').value;
+        const description = overlay.querySelector('#new-description').value.trim();
+        const dueDate = overlay.querySelector('#new-date').value;
+        const comment = overlay.querySelector('#new-comment').value.trim();
+        
+        console.log('Ajout de tâche:', { clientId, description, dueDate, comment });
+        
+        // Validation
+        if (!clientId) {
+            alert('Veuillez sélectionner un client.');
+            return;
+        }
+        if (!description) {
+            alert('La description ne peut pas être vide.');
+            return;
+        }
+        
+        // Créer un nouvel ID de tâche unique
+        const newTaskId = `task_${Date.now()}`;
+        
+        // Créer la nouvelle tâche
+        const newTask = {
+            id: newTaskId,
+            clientId: clientId,
+            description: description,
+            dueDate: dueDate || null,
+            completed: false,
+            comment: comment || ''
+        };
+        
+        console.log('Nouvelle tâche créée:', newTask);
+        
+        try {
+            // S'assurer que tasks est initialisé
+            if (!window.tasks) {
+                window.tasks = {};
+            }
+            
+            // Ajouter la tâche à la structure de données
+            if (!tasks[clientId]) {
+                tasks[clientId] = [];
+            }
+            
+            tasks[clientId].push(newTask);
+            console.log(`Tâche ajoutée à tasks[${clientId}], total: ${tasks[clientId].length} tâches`);
+            
+            // Déboguer la structure actuelle
+            console.log('Structure des tâches actuelle:', JSON.stringify(tasks));
+            
+            // Sauvegarder les modifications
+            const saveSuccess = saveTasks();
+            
+            if (saveSuccess) {
+                console.log('Sauvegarde réussie, fermeture du formulaire');
+                // Fermer l'overlay
+                document.body.removeChild(overlay);
+                
+                // Mettre à jour l'affichage en rechargeant la page (solution temporaire)
+                alert('Tâche ajoutée avec succès! La page va se recharger.');
+                location.reload();
+            } else {
+                console.error('Échec de la sauvegarde');
+                alert('La tâche a été créée mais n\'a pas pu être sauvegardée. Veuillez vérifier la console pour plus d\'informations.');
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'ajout de la tâche:', error);
+            alert(`Erreur lors de l'ajout de la tâche: ${error.message}`);
+        }
+    });
 }
 
 // Initialiser le thème (si applicable)
@@ -1108,5 +1417,64 @@ function updateProgressBar(clientId) {
         if (progressNumber) {
             progressNumber.textContent = `${progressPercentage}%`;
         }
+    }
+}
+
+// Fonction améliorée pour sauvegarder les tâches
+function saveTasks() {
+    console.log('Sauvegarde des tâches...');
+    
+    try {
+        // 1. Définir le chemin correct vers le fichier
+        const tasksFilePath = path.join(__dirname, '..', 'taches.json');
+        
+        console.log('Chemin du fichier de tâches:', tasksFilePath);
+        
+        // 2. Convertir la structure interne en liste plate pour le fichier
+        const tasksList = [];
+        for (const clientId in tasks) {
+            const clientTasks = tasks[clientId] || [];
+            console.log(`Préparation des tâches pour client ${clientId}: ${clientTasks.length} tâches`);
+            
+            clientTasks.forEach(task => {
+                tasksList.push({
+                    ...task,
+                    clientId: clientId
+                });
+            });
+        }
+        
+        console.log(`Préparation de ${tasksList.length} tâches pour la sauvegarde`);
+        
+        // 3. Vérifier si fs est disponible (si on est dans un environnement Electron)
+        if (!fs || typeof fs.writeFileSync !== 'function') {
+            console.error('Module fs non disponible! Êtes-vous en mode développement web?');
+            
+            // Alternative: stockage local pour le développement
+            localStorage.setItem('tasks', JSON.stringify(tasksList));
+            console.log('Tâches sauvegardées dans localStorage (mode dev)');
+            return true;
+        }
+        
+        // 4. Créer le répertoire si nécessaire
+        const dir = path.dirname(tasksFilePath);
+        if (!fs.existsSync(dir)) {
+            console.log(`Création du répertoire: ${dir}`);
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // 5. Sauvegarder dans le fichier
+        const jsonContent = JSON.stringify(tasksList, null, 2);
+        console.log('Contenu JSON à sauvegarder:', jsonContent);
+        
+        fs.writeFileSync(tasksFilePath, jsonContent, 'utf8');
+        
+        console.log(`Tâches sauvegardées avec succès dans ${tasksFilePath}`);
+        return true;
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde des tâches:', error);
+        console.error('Stack trace:', error.stack);
+        alert(`Erreur lors de la sauvegarde des tâches: ${error.message}`);
+        return false;
     }
 }
