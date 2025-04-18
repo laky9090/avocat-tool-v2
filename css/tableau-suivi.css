@@ -104,20 +104,19 @@ body {
   background-color: var(--gray-100);
 }
 
-/* Barre de progression */
-.progress-header {
-  padding: 0 20px 20px !important;
-  background-color: white !important;
-}
+/* Barre de progression avec centrage forcé */
 
 .progress-container {
-  height: 20px; /* Augmenté de 8px à 20px pour plus d'espace */
+  height: 24px; /* Augmenté à 24px pour plus de visibilité */
   background-color: var(--gray-200);
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible; /* Important pour éviter que le texte soit coupé */
   position: relative;
   margin-top: 5px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  width: calc(100% - 10px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .progress-bar {
@@ -125,23 +124,30 @@ body {
   background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border-radius: 20px;
   transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px; /* Assurer un minimum de largeur pour le texte */
   position: relative;
+  min-width: 60px; /* Augmenté pour toujours avoir de la place pour le texte */
 }
 
+/* Nouvelle approche pour le texte du pourcentage */
 .progress-number {
+  position: absolute;
   color: white;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 1rem; /* Augmenté pour plus de lisibilité */
+  font-weight: 700; /* Plus épais */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* Ombre plus prononcée */
+  top: 50%; /* Centrer verticalement */
+  left: 50%; /* Centrer horizontalement */
+  transform: translate(-50%, -50%); /* Centrage parfait */
+  z-index: 10; /* S'assurer qu'il est au-dessus de tout */
+  white-space: nowrap;
+  letter-spacing: 0.5px;
 }
 
-/* La classe progress-text peut être cachée car le pourcentage sera à l'intérieur */
-.progress-text {
-  display: none;
+/* Assurer que le texte reste bien visible même sur les barres courtes */
+@media (max-width: 768px) {
+  .progress-number {
+    font-size: 0.9rem; /* Légèrement plus petit sur mobile */
+  }
 }
 
 /* Colonnes du tableau */
