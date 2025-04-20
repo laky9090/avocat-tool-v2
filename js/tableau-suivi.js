@@ -437,24 +437,24 @@ function initEventListeners() {
 function refreshTaskList(clientId) {
     console.log(`Rafraîchissement des tâches pour le client ${clientId}`);
     
-    // Option 1: Recharger toute la page (simple mais moins optimal)
-    // location.reload();
+    // Recharger les tâches depuis la structure de données
+    loadTasks();
     
-    // Option 2: Mettre à jour uniquement le groupe de tâches du client (plus efficace)
+    // Trouver le groupe de tâches pour ce client
     const taskGroup = document.querySelector(`div[data-client-id='${clientId}']`);
     if (!taskGroup) {
-        console.error(`Groupe de tâches non trouvé pour le client ${clientId}`);
-        // Si le groupe n'existe pas, recharger toute la page
-        location.reload();
+        console.error(`Groupe de tâches non trouvé pour le client ${clientId}, rechargement complet`);
+        renderTaskGroups();
         return;
     }
     
     // Récupérer les tâches du client
     const clientTasks = tasks[clientId] || [];
     
-    // Vérifier s'il y a des tâches
+    // Si le client n'a pas de tâches, recharger tout
     if (clientTasks.length === 0) {
         console.warn(`Aucune tâche trouvée pour le client ${clientId}`);
+        renderTaskGroups();
         return;
     }
     
@@ -462,7 +462,7 @@ function refreshTaskList(clientId) {
     const table = taskGroup.querySelector('table');
     if (!table) {
         console.error(`Tableau non trouvé pour le client ${clientId}`);
-        location.reload();
+        renderTaskGroups();
         return;
     }
     
@@ -486,6 +486,7 @@ function refreshTaskList(clientId) {
     // Créer un nouveau corps de tableau
     const tbody = document.createElement('tbody');
     
+    // Ajouter chaque tâche au corps du tableau
     clientTasks.forEach(task => {
         const row = document.createElement('tr');
         if (task.completed) {
@@ -506,7 +507,9 @@ function refreshTaskList(clientId) {
                     ${task.completed ? 'checked' : ''}>
             </td>
             <td class="task-comment" data-task-id="${task.id}">
-                <span class="comment-text${!task.comment ? ' comment-placeholder' : ''}">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
+                <span class="comment-text${!task.comment ? ' comment-placeholder' : ''}">
+                    ${task.comment || 'Cliquez pour ajouter un commentaire'}
+                </span>
             </td>
             <td class="task-actions">
                 <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
@@ -529,10 +532,12 @@ function refreshTaskList(clientId) {
         table.appendChild(tbody);
     }
     
-    // Réattacher les gestionnaires d'événements
+    console.log('Corps de tableau mis à jour, ajout des gestionnaires d\'événements');
+    
+    // Important: réattacher tous les gestionnaires d'événements
     addEditableFieldListeners();
     
-    // Gestionnaires pour les checkboxes
+    // Gestionnaires spécifiques pour les cases à cocher et boutons de suppression
     taskGroup.querySelectorAll('.task-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const taskId = this.dataset.taskId;
@@ -543,19 +548,16 @@ function refreshTaskList(clientId) {
             const row = this.closest('tr');
             row.classList.toggle('task-completed', isChecked);
             
-            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'} pour le client ${clientId}`);
-            
-            // Mettre à jour les données et la barre de progression
+            // Mettre à jour les données
             updateTaskStatus(clientId, taskId, isChecked);
+            // Sauvegarder le changement
+            saveTasks();
         });
     });
     
-    // Gestionnaires pour les boutons de suppression
     taskGroup.querySelectorAll('.delete-task-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
+        button.addEventListener('click', function() {
             const taskId = this.dataset.taskId;
-            console.log(`Bouton supprimer cliqué pour la tâche ${taskId}`);
             deleteTask(taskId);
         });
     });
@@ -773,10 +775,16 @@ function addNewTask() {
                 console.log('Sauvegarde réussie, fermeture du formulaire');
                 // Fermer l'overlay
                 document.body.removeChild(overlay);
-                
-                // Mettre à jour l'affichage en rechargeant la page (solution temporaire)
-                alert('Tâche ajoutée avec succès! La page va se recharger.');
-                location.reload();
+                console.log('Actualisation de l\'affichage après ajout de la tâche');
+
+                // Rafraîchir uniquement les tâches du client concerné
+                refreshTaskList(clientId);
+
+                // Réattacher explicitement les gestionnaires d'événements
+                setTimeout(() => {
+                    addEditableFieldListeners();
+                    console.log('Gestionnaires d\'événements réattachés');
+                }, 50);
             } else {
                 console.error('Échec de la sauvegarde');
                 alert('La tâche a été créée mais n\'a pas pu être sauvegardée. Veuillez vérifier la console pour plus d\'informations.');
@@ -1131,6 +1139,7 @@ function addEditableFieldListeners() {
             // Gestionnaire pour la perte de focus
             input.addEventListener('blur', function() {
                 saveField(this, textElement, 'comment', taskId);
+         
             });
         });
     });
