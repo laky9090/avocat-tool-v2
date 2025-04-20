@@ -308,27 +308,37 @@ tr.deleting {
   position: relative;
   border-radius: 4px;
   transition: var(--transition);
-  cursor: default !important;
+  cursor: pointer !important; /* Remplacer default par pointer */
 }
 
+/* Ajouter une règle spécifique pour le survol des cellules */
 .task-description:hover, 
 .task-date:hover, 
 .task-comment:hover {
-  background-color: inherit !important;
+  background-color: rgba(0, 0, 0, 0.03) !important; /* Ajout d'un fond légèrement différent au survol */
   color: inherit !important;
 }
 
+/* Conserver les règles pour masquer l'icône crayon */
 .task-description:hover::after, 
 .task-date:hover::after, 
 .task-comment:hover::after {
   display: none !important;
 }
 
-/* Si l'icône est ajoutée via une classe spécifique au survol */
-.task-description:hover .edit-icon,
-.task-date:hover .edit-icon,
-.task-comment:hover .edit-icon {
-  display: none !important;
+/* Ajouter un style pour indiquer visuellement que les champs sont cliquables */
+.description-text,
+.date-text,
+.comment-text {
+  padding: 3px 6px;
+  border-radius: 3px;
+  transition: var(--transition);
+}
+
+.task-description:hover .description-text,
+.task-date:hover .date-text,
+.task-comment:hover .comment-text {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Style des tooltips d'action */
