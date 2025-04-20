@@ -32,7 +32,7 @@
     "clientId": "2025-001",
     "description": "Préparer les conclusions ",
     "dueDate": "2025-05-15",
-    "completed": true,
+    "completed": false,
     "comment": "Vérifier les documents avant envoi"
   },
   {
@@ -40,7 +40,7 @@
     "clientId": "2025-001",
     "description": "Envoyer notification à l'adverse",
     "dueDate": "2025-05-20",
-    "completed": true,
+    "completed": false,
     "comment": "Notification envoyée par email"
   },
   {
@@ -48,7 +48,7 @@
     "clientId": "2025-001",
     "description": "plou plouf",
     "dueDate": "2025-02-15",
-    "completed": true,
+    "completed": false,
     "comment": ""
   },
   {
@@ -56,16 +56,8 @@
     "clientId": "2025-001",
     "description": "tache débile",
     "dueDate": "2024-05-06",
-    "completed": true,
+    "completed": false,
     "comment": "commentaire inutul"
-  },
-  {
-    "id": "task_1745155720089",
-    "clientId": "2025-001",
-    "description": "Bonjour le test, ça va ?",
-    "dueDate": "2024-06-15",
-    "completed": true,
-    "comment": "hihihi"
   },
   {
     "id": "task_2025-003_1",
@@ -82,14 +74,6 @@
     "dueDate": "2025-05-20",
     "completed": false,
     "comment": "Notification envoyée par email"
-  },
-  {
-    "id": "task_1745149712064",
-    "clientId": "2025-003",
-    "description": "bloom",
-    "dueDate": "2024-05-14",
-    "completed": false,
-    "comment": ""
   },
   {
     "id": "task_1745150575863",

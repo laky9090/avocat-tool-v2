@@ -313,6 +313,7 @@ function renderTaskGroups() {
     // Ajouter les gestionnaires d'événements pour les cases à cocher, etc.
     addEditableFieldListeners();
     attachCheckboxListeners(); 
+    attachDeleteButtonListeners();
     
     console.log('Rendu terminé');
     
@@ -354,6 +355,54 @@ function attachCheckboxListeners() {
             
             // Sauvegarder le changement
             saveTasks();
+        });
+    });
+}
+
+// Ajouter cette fonction après attachCheckboxListeners
+function attachDeleteButtonListeners() {
+    console.log('Ajout des gestionnaires pour les boutons de suppression...');
+    
+    document.querySelectorAll('.delete-task-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const taskId = this.dataset.taskId;
+            console.log(`Clic sur bouton supprimer pour tâche: ${taskId}`);
+            
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+                // Trouver la tâche dans la structure de données
+                const clientId = findClientIdByTaskId(taskId);
+                if (!clientId) {
+                    console.error(`Client ID non trouvé pour la tâche ${taskId}`);
+                    return;
+                }
+                
+                // Trouver l'index de la tâche
+                const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+                if (taskIndex === -1) {
+                    console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
+                    return;
+                }
+                
+                // Supprimer la tâche
+                tasks[clientId].splice(taskIndex, 1);
+                console.log(`Tâche ${taskId} supprimée de la structure de données`);
+                
+                // Supprimer du DOM avec animation
+                const taskRow = this.closest('tr');
+                taskRow.classList.add('deleting');
+                
+                setTimeout(() => {
+                    if (taskRow.parentNode) {
+                        taskRow.parentNode.removeChild(taskRow);
+                    }
+                    
+                    // Mettre à jour la progression
+                    updateProgressBar(clientId);
+                    
+                    // Sauvegarder les changements
+                    saveTasks();
+                }, 300);
+            }
         });
     });
 }
@@ -1356,7 +1405,7 @@ function updateProgressBar(clientId) {
         return;
     }
     
-    // Compter les tâches terminées directement danaddEditableFieldListeners();s le DOM
+    // Compter les tâches terminées directement dans le DOM
     const allTaskRows = taskGroup.querySelectorAll('tbody tr[data-task-id]');
     const completedTaskRows = taskGroup.querySelectorAll('tbody tr.task-completed');
     
