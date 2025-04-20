@@ -312,6 +312,7 @@ function renderTaskGroups() {
     
     // Ajouter les gestionnaires d'événements pour les cases à cocher, etc.
     addEditableFieldListeners();
+    attachCheckboxListeners(); 
     
     console.log('Rendu terminé');
     
@@ -330,6 +331,31 @@ function renderTaskGroups() {
         <p>ID container: ${container.id}</p>
     `;
     container.appendChild(debugMessage);
+}
+
+// Ajouter cette fonction juste après renderTaskGroups
+function attachCheckboxListeners() {
+    console.log('Ajout des gestionnaires pour les cases à cocher...');
+    
+    document.querySelectorAll('.task-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const isChecked = this.checked;
+            const clientId = this.dataset.clientId;
+            
+            console.log(`Case à cocher changée: ${taskId}, état: ${isChecked}`);
+            
+            // Mettre à jour l'apparence
+            const row = this.closest('tr');
+            row.classList.toggle('task-completed', isChecked);
+            
+            // Mettre à jour les données
+            updateTaskStatus(clientId, taskId, isChecked);
+            
+            // Sauvegarder le changement
+            saveTasks();
+        });
+    });
 }
 
 // Le chemin du fichier clients est déjà défini en haut du fichier
@@ -1330,26 +1356,29 @@ function updateProgressBar(clientId) {
         return;
     }
     
-    // Compter les tâches terminées directement dans le DOM
-    const allTaskRows = taskGroup.querySelectorAll('tr[data-task-id]');
-    const completedTaskRows = taskGroup.querySelectorAll('tr.task-completed');
+    // Compter les tâches terminées directement danaddEditableFieldListeners();s le DOM
+    const allTaskRows = taskGroup.querySelectorAll('tbody tr[data-task-id]');
+    const completedTaskRows = taskGroup.querySelectorAll('tbody tr.task-completed');
     
     const totalTasks = allTaskRows.length;
     const completedTasks = completedTaskRows.length;
     
     // Calculer le pourcentage
-    const progressPercentage = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     console.log(`Progression: ${completedTasks}/${totalTasks} = ${progressPercentage}%`);
     
-    // Mettre à jour la barre
+    // Mettre à jour la barre - IMPORTANT: Sélection plus précise de l'élément
     const progressBar = taskGroup.querySelector('.progress-bar');
     const progressNumber = taskGroup.querySelector('.progress-number');
     
     if (progressBar) {
+        console.log(`Mise à jour de la barre: ${progressPercentage}%`);
         progressBar.style.width = `${progressPercentage}%`;
         if (progressNumber) {
             progressNumber.textContent = `${progressPercentage}%`;
         }
+    } else {
+        console.error('Barre de progression non trouvée dans le DOM');
     }
 }
 
