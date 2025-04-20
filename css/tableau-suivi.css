@@ -598,3 +598,146 @@ tr.deleting {
   background-color: #424242;
 }
 
+/* Barre de recherche et système de tri */
+.search-and-filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 15px;
+  border: 1px solid var(--gray-300);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  background-color: white;
+  color: var(--gray-700);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.search-button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-button:hover {
+  color: var(--primary-color);
+}
+
+.sort-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-container label {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.sort-select {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  background-color: white;
+  color: var(--gray-700);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Styles améliorés pour le bouton de direction de tri */
+.sort-direction {
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+}
+
+/* Animation de rotation pour le changement de direction */
+.sort-direction.asc {
+  transform: rotate(180deg);
+}
+
+/* Mode sombre */
+[data-theme="dark"] .sort-direction {
+  background-color: #2a2a2a;
+  color: #eaeaea;
+  border-color: #555;
+}
+
+/* Style pour les résultats filtrés */
+.filtered .task-group:not(.search-match) {
+  display: none;
+}
+
+.highlight {
+  background-color: rgba(255, 230, 0, 0.3);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Mode sombre pour la recherche et le tri */
+[data-theme="dark"] .search-input,
+[data-theme="dark"] .sort-select,
+[data-theme="dark"] .sort-direction {
+  background-color: #2a2a2a;
+  border-color: var(--gray-700);
+  color: var(--gray-300);
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: var(--primary-color);
+}
+
+/* Responsive design pour la recherche et le tri */
+@media (max-width: 768px) {
+  .search-and-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-container,
+  .sort-container {
+    width: 100%;
+  }
+}
+

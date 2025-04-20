@@ -457,6 +457,46 @@ function checkTasksFileAccess() {
     }
 }
 
+// Fonction pour créer l'interface de recherche et tri
+function createSearchAndSortInterface() {
+    const container = document.getElementById('tasksContainer');
+    if (!container) return;
+    
+    // Créer l'élément manuellement
+    const searchAndFilter = document.createElement('div');
+    searchAndFilter.className = 'search-and-filter';
+    
+    // Utiliser du HTML simple
+    searchAndFilter.innerHTML = `
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Rechercher un client ou une tâche..." class="search-input">
+            <button id="searchButton" class="search-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="sort-container">
+            <label for="sortOptions">Trier par:</label>
+            <select id="sortOptions" class="sort-select">
+                <option value="client">Nom de client</option>
+                <option value="date">Date d'échéance</option>
+                <option value="status">Statut</option>
+            </select>
+            <button id="sortDirection" class="sort-direction" title="Inverser l'ordre de tri">▼</button>
+        </div>
+    `;
+    
+    // Insérer au début du conteneur
+    container.insertBefore(searchAndFilter, container.firstChild);
+    
+    // Vérifier si l'insertion a réussi
+    console.log('Interface de recherche et tri insérée:', !!document.getElementById('searchInput'));
+    console.log('Bouton de tri inséré:', !!document.getElementById('sortDirection'));
+    console.log('Contenu du bouton de tri:', document.getElementById('sortDirection').textContent);
+}
+
 // Au chargement du document
 document.addEventListener('DOMContentLoaded', () => {
     // Vérifier l'accès au fichier de tâches
@@ -474,8 +514,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialiser les gestionnaires d'événements
     initEventListeners();
     
+    // Créer l'interface de recherche et tri
+    createSearchAndSortInterface();
+    
     // Charger les données
     loadData();
+
+    // Ajouter l'initialisation de la recherche et du tri
+    initSearchAndSort();
 });
 
 // Créer des exemples de tâches pour la démonstration
@@ -1488,4 +1534,172 @@ function saveTasks() {
         alert(`Erreur lors de la sauvegarde des tâches: ${error.message}`);
         return false;
     }
+}
+
+// Fonctionnalités de recherche et de tri
+function initSearchAndSort() {
+    // Forcer le style du bouton pour le rendre visible
+    const sortDirection = document.getElementById('sortDirection');
+    if (sortDirection) {
+        // Forcer un contenu visible
+        sortDirection.textContent = "▼";
+        sortDirection.style.fontSize = "16px";
+        sortDirection.style.fontWeight = "bold";
+        console.log("Bouton de tri configuré manuellement");
+    } else {
+        console.error("Bouton de tri non trouvé dans le DOM");
+    }
+    
+    console.log('Initialisation de la recherche et du tri');
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    const sortSelect = document.getElementById('sortOptions');
+    const sortDirectionButton = document.getElementById('sortDirection');
+    
+    // État du tri
+    let currentSortOrder = 'asc';
+    let currentSortType = 'client';
+    
+    // Fonctionnalité de recherche
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const tasksContainer = document.getElementById('tasksContainer');
+        
+        if (!searchTerm) {
+            // Si aucun terme de recherche, afficher tout
+            tasksContainer.classList.remove('filtered');
+            document.querySelectorAll('.highlight').forEach(el => {
+                const text = el.textContent;
+                el.outerHTML = text;
+            });
+            return;
+        }
+        
+        console.log(`Recherche: "${searchTerm}"`);
+        tasksContainer.classList.add('filtered');
+        
+        // Parcourir tous les groupes de tâches
+        document.querySelectorAll('.task-group').forEach(group => {
+            // Récupérer le nom du client
+            const clientName = group.querySelector('.client-name-header').textContent.toLowerCase();
+            
+            // Rechercher dans les descriptions et commentaires des tâches
+            const taskTexts = Array.from(group.querySelectorAll('.description-text, .comment-text'))
+                .map(el => el.textContent.toLowerCase());
+            
+            // Vérifier si le terme de recherche correspond
+            const matchesClient = clientName.includes(searchTerm);
+            const matchesTask = taskTexts.some(text => text.includes(searchTerm));
+            
+            if (matchesClient || matchesTask) {
+                group.classList.add('search-match');
+                
+                // Mettre en évidence les correspondances
+                group.querySelectorAll('.description-text, .comment-text, .client-name-header').forEach(el => {
+                    if (!el.textContent.toLowerCase().includes(searchTerm)) return;
+                    
+                    const text = el.textContent;
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    el.innerHTML = text.replace(regex, '<span class="highlight">$1</span>');
+                });
+            } else {
+                group.classList.remove('search-match');
+            }
+        });
+    }
+    
+    // Fonctionnalité de tri
+    function performSort() {
+        const taskGroups = Array.from(document.querySelectorAll('.task-group'));
+        const container = document.getElementById('tasksContainer');
+        
+        // Supprimer les groupes temporairement
+        taskGroups.forEach(group => container.removeChild(group));
+        
+        // Trier les groupes
+        taskGroups.sort((a, b) => {
+            let valueA, valueB;
+            
+            switch(currentSortType) {
+                case 'client':
+                    valueA = a.querySelector('.client-name-header').textContent.toLowerCase();
+                    valueB = b.querySelector('.client-name-header').textContent.toLowerCase();
+                    break;
+                    
+                case 'date':
+                    // Trouver la date d'échéance la plus proche dans chaque groupe
+                    const datesA = Array.from(a.querySelectorAll('.date-text')).map(el => {
+                        const text = el.textContent;
+                        if (text === '—') return Infinity;
+                        // Convertir du format DD/MM/YYYY à Date
+                        const [day, month, year] = text.split('/').map(Number);
+                        return new Date(year, month - 1, day).getTime();
+                    }).filter(d => d !== Infinity);
+                    
+                    const datesB = Array.from(b.querySelectorAll('.date-text')).map(el => {
+                        const text = el.textContent;
+                        if (text === '—') return Infinity;
+                        const [day, month, year] = text.split('/').map(Number);
+                        return new Date(year, month - 1, day).getTime();
+                    }).filter(d => d !== Infinity);
+                    
+                    valueA = datesA.length > 0 ? Math.min(...datesA) : Infinity;
+                    valueB = datesB.length > 0 ? Math.min(...datesB) : Infinity;
+                    break;
+                    
+                case 'status':
+                    // Calculer le pourcentage de tâches terminées dans chaque groupe
+                    const totalA = a.querySelectorAll('.task-checkbox').length || 1;
+                    const completedA = a.querySelectorAll('.task-checkbox:checked').length;
+                    const totalB = b.querySelectorAll('.task-checkbox').length || 1;
+                    const completedB = b.querySelectorAll('.task-checkbox:checked').length;
+                    
+                    valueA = completedA / totalA;
+                    valueB = completedB / totalB;
+                    break;
+            }
+            
+            // Appliquer la direction du tri
+            let comparison = 0;
+            if (valueA < valueB) comparison = -1;
+            if (valueA > valueB) comparison = 1;
+            
+            return currentSortOrder === 'asc' ? comparison : -comparison;
+        });
+        
+        // Réinsérer les groupes triés
+        taskGroups.forEach(group => {
+            container.appendChild(group);
+        });
+        
+        console.log(`Tri appliqué: ${currentSortType} (${currentSortOrder})`);
+    }
+    
+    // Événements
+    searchInput.addEventListener('input', performSearch);
+    searchButton.addEventListener('click', performSearch);
+    
+    // Traiter la touche Entrée dans la barre de recherche
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    sortSelect.addEventListener('change', function() {
+        currentSortType = this.value;
+        performSort();
+    });
+    
+    sortDirectionButton.addEventListener('click', function() {
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+        this.classList.toggle('asc', currentSortOrder === 'asc');
+        performSort();
+        
+        // Ajouter ceci pour un peu plus de retour visuel:
+        console.log(`Direction de tri changée à: ${currentSortOrder}`);
+    });
+    
+    // Initialiser le tri par défaut
+    setTimeout(performSort, 500); // Petit délai pour s'assurer que tous les éléments sont rendus
 }

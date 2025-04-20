@@ -32,7 +32,7 @@
     "clientId": "2025-001",
     "description": "Préparer les conclusions ",
     "dueDate": "2025-05-15",
-    "completed": false,
+    "completed": true,
     "comment": "Vérifier les documents avant envoi"
   },
   {
@@ -56,7 +56,7 @@
     "clientId": "2025-001",
     "description": "tache débile",
     "dueDate": "2024-05-06",
-    "completed": false,
+    "completed": true,
     "comment": "commentaire inutul"
   },
   {
@@ -64,7 +64,7 @@
     "clientId": "2025-003",
     "description": "Préparer les conclusions",
     "dueDate": "2025-05-15",
-    "completed": false,
+    "completed": true,
     "comment": "Vérifier les documents avant envoi"
   },
   {

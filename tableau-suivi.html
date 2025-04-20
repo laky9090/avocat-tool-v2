@@ -25,6 +25,31 @@
     <main>
         <h1>Tableau de suivi des dossiers</h1>
         
+        <div class="search-and-filter">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Rechercher un client ou une tâche..." class="search-input">
+                <button id="searchButton" class="search-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="sort-container">
+                <label for="sortOptions">Trier par:</label>
+                <select id="sortOptions" class="sort-select">
+                    <option value="client">Nom de client</option>
+                    <option value="date">Date d'échéance</option>
+                    <option value="status">Statut</option>
+                </select>
+                <button id="sortDirection" class="sort-direction" title="Inverser l'ordre de tri">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
         <div class="task-controls">
             <button id="addTaskBtn" class="btn-primary">+ Ajouter une tâche</button>
             <button id="debugBtn" class="btn-secondary">Déboguer</button>
