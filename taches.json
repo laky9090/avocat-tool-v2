@@ -26,5 +26,53 @@
     "description": "Consulter jurisprudence",
     "dueDate": "2025-05-20",
     "completed": false
+  },
+  {
+    "id": "task_2025-001_1",
+    "clientId": "2025-001",
+    "description": "Préparer les conclusions ",
+    "dueDate": "2025-05-15",
+    "completed": false,
+    "comment": "Vérifier les documents avant envoi"
+  },
+  {
+    "id": "task_2025-001_2",
+    "clientId": "2025-001",
+    "description": "Envoyer notification à l'adverse",
+    "dueDate": "2025-05-20",
+    "completed": true,
+    "comment": "Notification envoyée par email"
+  },
+  {
+    "id": "task_1745149446763",
+    "clientId": "2025-001",
+    "description": "nv ,nv n ",
+    "dueDate": "2025-02-15",
+    "completed": false,
+    "comment": ""
+  },
+  {
+    "id": "task_2025-003_1",
+    "clientId": "2025-003",
+    "description": "Préparer les conclusions",
+    "dueDate": "2025-05-15",
+    "completed": false,
+    "comment": "Vérifier les documents avant envoi"
+  },
+  {
+    "id": "task_2025-003_2",
+    "clientId": "2025-003",
+    "description": "Envoyer notification à l'adverse",
+    "dueDate": "2025-05-20",
+    "completed": true,
+    "comment": "Notification envoyée par email"
+  },
+  {
+    "id": "task_1745149712064",
+    "clientId": "2025-003",
+    "description": "bloom",
+    "dueDate": "2024-05-14",
+    "completed": false,
+    "comment": ""
   }
 ]

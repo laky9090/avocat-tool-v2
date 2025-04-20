@@ -1,38 +1,346 @@
-const fs = require('fs');
+const { ipcRenderer } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
-// Alternative pour le chemin du fichier clients
+// Chemins absolus vers les fichiers de données
+const clientsFilePath = path.resolve(__dirname, 'clients.json');
+const tasksFilePath = path.resolve(__dirname, 'taches.json');
 
-// Tester différentes méthodes pour obtenir le chemin
-const clientsFilePath1 = path.join(__dirname, '..', 'clients.json');
-const clientsFilePath2 = path.resolve(__dirname, '..', 'clients.json');
-const clientsFilePath3 = path.join(process.cwd(), 'clients.json');
+console.log('Chemin absolu vers clients.json:', clientsFilePath);
+console.log('Chemin absolu vers taches.json:', tasksFilePath);
 
-console.log('Chemins possibles:');
-console.log('1:', clientsFilePath1);
-console.log('2:', clientsFilePath2);
-console.log('3:', clientsFilePath3);
+// Ajouter après les définitions des chemins
+console.log('Répertoire actuel:', __dirname);
+console.log('Répertoire parent:', path.resolve(__dirname, '..'));
+console.log('Chemin complet du fichier clients:', clientsFilePath);
+console.log('Existence du fichier clients:', fs.existsSync(clientsFilePath));
 
-console.log('Existence des fichiers:');
-console.log('1 existe:', fs.existsSync(clientsFilePath1));
-console.log('2 existe:', fs.existsSync(clientsFilePath2));
-console.log('3 existe:', fs.existsSync(clientsFilePath3));
+// Si le fichier n'est toujours pas trouvé, essayez ces alternatives
+const alternativePaths = [
+  path.resolve(__dirname, 'clients.json'),
+  path.resolve(__dirname, '..', '..', 'clients.json'),
+  path.resolve('./clients.json'),
+  path.resolve('../clients.json')
+];
 
-// Utiliser le premier chemin qui fonctionne
-const clientsFilePath = fs.existsSync(clientsFilePath1) ? clientsFilePath1 :
-                       fs.existsSync(clientsFilePath2) ? clientsFilePath2 :
-                       fs.existsSync(clientsFilePath3) ? clientsFilePath3 : 
-                       clientsFilePath1; // Fallback
+console.log('Recherche de chemins alternatifs:');
+alternativePaths.forEach(p => {
+  console.log(`- Chemin: ${p}, Existe: ${fs.existsSync(p)}`);
+});
 
-console.log('Chemin du fichier clients:', clientsFilePath);
+// Vérifier si les fichiers existent
+console.log('clients.json existe:', fs.existsSync(clientsFilePath));
+console.log('taches.json existe:', fs.existsSync(tasksFilePath));
 
 // Variables globales
 let clients = [];
-let tasks = {}; // Ajout de la variable globale tasks
+let tasks = {};
+
+// Fonction pour charger les données
+function loadData() {
+    console.log('Chargement des données clients...');
+    
+    try {
+        // Vérifier l'existence du fichier clients
+        console.log('Vérification du fichier clients:', clientsFilePath);
+        console.log('Le fichier existe:', fs.existsSync(clientsFilePath));
+        
+        if (fs.existsSync(clientsFilePath)) {
+            const fileContent = fs.readFileSync(clientsFilePath, 'utf8');
+            console.log('Contenu lu du fichier, taille:', fileContent.length);
+            
+            if (!fileContent || fileContent.trim() === '') {
+                console.warn("Fichier clients.json vide");
+                clients = [];
+            } else {
+                try {
+                    const allClients = JSON.parse(fileContent);
+                    console.log('Données clients parsées:', allClients.slice(0, 2)); // Affiche les 2 premiers clients
+                    
+                    // CORRECTION IMPORTANTE ICI: Assigner explicitement l'ID basé sur numeroDossier
+                    allClients.forEach((client, index) => {
+                        // Utiliser "client_1", "client_2", etc. au lieu de "client_0", "client_1"
+                        client.id = client.numeroDossier || `client_${index + 1}`;
+                        console.log(`Client assigné avec ID: ${client.id} (${client.nom} ${client.prenom})`);
+                    });
+                    
+                    // Filtrer pour ne garder que les clients non archivés
+                    clients = allClients.filter(client => !client.archived);
+                    
+                    console.log(`${allClients.length} clients chargés au total`);
+                    console.log(`${clients.length} clients actifs (non archivés)`);
+                    console.log('Premier client actif:', clients.length > 0 ? 
+                        `${clients[0].nom} ${clients[0].prenom} (ID: ${clients[0].id})` : 'aucun');
+                } catch (parseError) {
+                    console.error("Erreur de parsing JSON:", parseError);
+                    clients = [];
+                }
+            }
+        } else {
+            console.warn("Fichier clients.json non trouvé dans:", clientsFilePath);
+            clients = [];
+        }
+        
+        // Charger aussi les tâches existantes
+        loadTasks();
+        
+    } catch (error) {
+        console.error("Erreur lors du chargement des clients:", error);
+        clients = [];
+    }
+    
+    // Afficher les tâches
+    renderTaskGroups();
+}
+
+// Fonction pour charger les tâches
+function loadTasks() {
+    console.log('Chargement des tâches...');
+    
+    try {
+        if (fs.existsSync(tasksFilePath)) {
+            const tasksContent = fs.readFileSync(tasksFilePath, 'utf8');
+            
+            if (tasksContent && tasksContent.trim() !== '') {
+                const tasksList = JSON.parse(tasksContent);
+                
+                // Convertir la liste plate en structure groupée par client
+                tasks = {};
+                tasksList.forEach(task => {
+                    if (!tasks[task.clientId]) {
+                        tasks[task.clientId] = [];
+                    }
+                    tasks[task.clientId].push(task);
+                });
+                
+                console.log(`Chargement de ${tasksList.length} tâches pour ${Object.keys(tasks).length} clients`);
+            } else {
+                console.log('Fichier de tâches vide, initialisation de tâches par défaut');
+                createDefaultTasks();
+            }
+        } else {
+            console.log('Fichier de tâches non trouvé, initialisation de tâches par défaut');
+            createDefaultTasks();
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des tâches:', error);
+        createDefaultTasks();
+    }
+}
+
+// Fonction pour créer des tâches par défaut pour les clients
+function createDefaultTasks() {
+    tasks = {};
+    
+    // Créer des tâches par défaut pour chaque client
+    clients.forEach((client, index) => {
+        if (!client.id) {
+            console.warn(`Client sans ID trouvé: ${client.nom} ${client.prenom}`);
+            return;
+        }
+        
+        // Créer des tâches pour ce client
+        tasks[client.id] = [
+            {
+                id: `task_${client.id}_1`,
+                clientId: client.id,
+                description: `Préparer dossier ${client.nom}`,
+                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Date dans 7 jours
+                completed: false,
+                comment: `Première tâche pour ${client.prenom} ${client.nom}`
+            },
+            {
+                id: `task_${client.id}_2`,
+                clientId: client.id,
+                description: `Contacter ${client.prenom} ${client.nom}`,
+                dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Date dans 3 jours
+                completed: index % 2 === 0, // Alterner entre complété et non complété
+                comment: ``
+            }
+        ];
+        
+        console.log(`Tâches par défaut créées pour ${client.prenom} ${client.nom} (ID: ${client.id})`);
+    });
+}
+
+// Fonction pour afficher les groupes de tâches
+function renderTaskGroups() {
+    console.log('Rendu des groupes de tâches...');
+    const container = document.getElementById('tasksContainer');
+    
+    // Vérifier si le conteneur existe
+    if (!container) {
+        console.error("Conteneur 'tasksContainer' non trouvé dans le DOM");
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    // Ajouter un indicateur du nombre de clients actifs
+    const statusElement = document.createElement('div');
+    statusElement.className = 'clients-status';
+    statusElement.textContent = `${clients.length} dossier(s) actif(s)`;
+    container.appendChild(statusElement);
+    
+    // Si aucun client
+    if (!clients || clients.length === 0) {
+        container.innerHTML = '<div class="no-tasks">Aucun client trouvé. Ajoutez des clients dans la page principale.</div>';
+        return;
+    }
+    
+    // Afficher les clients chargés pour débogage
+    console.log('Clients à afficher:', clients.map(c => `${c.nom} ${c.prenom} (ID: ${c.id})`));
+    
+    // Créer un groupe pour chaque client
+    clients.forEach((client, index) => {
+        // Format du nom du client
+        const clientName = `${client.nom || ''} ${client.prenom || ''}`.trim();
+        console.log(`Affichage du client: ${clientName} (ID: ${client.id})`);
+        
+        // Création du conteneur de groupe
+        const group = document.createElement('div');
+        group.className = 'task-group';
+        group.dataset.clientId = client.id;
+        
+        // Création du tableau
+        const table = document.createElement('table');
+        table.className = 'task-table';
+        
+        // Utiliser les tâches réelles si disponibles, sinon créer des tâches exemple
+        let clientTasks = [];
+        if (tasks[client.id] && tasks[client.id].length > 0) {
+            clientTasks = tasks[client.id];
+            console.log(`${clientTasks.length} tâches trouvées pour ${clientName}`);
+        } else {
+            // Utiliser des tâches d'exemple seulement si nécessaire
+            clientTasks = [
+                {
+                    id: `task_${client.id}_1`,
+                    clientId: client.id,
+                    description: "Préparer les conclusions",
+                    dueDate: "2025-05-15",
+                    completed: false,
+                    comment: "Vérifier les documents avant envoi"
+                },
+                {
+                    id: `task_${client.id}_2`,
+                    clientId: client.id,
+                    description: "Envoyer notification à l'adverse",
+                    dueDate: "2025-05-20",
+                    completed: true,
+                    comment: "Notification envoyée par email"
+                }
+            ];
+            
+            // Mettre à jour la structure tasks
+            tasks[client.id] = clientTasks;
+        }
+        
+        // Calculer le pourcentage d'avancement
+        const totalTasks = clientTasks.length;
+        const completedTasks = clientTasks.filter(task => task.completed).length;
+        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        // Création de l'en-tête avec le nom du client et la barre de progression
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th class="client-name-header" colspan="5">${clientName}</th>
+            </tr>
+            <tr>
+                <th colspan="5" class="progress-header">
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${progressPercentage}%">
+                            <span class="progress-number">${progressPercentage}%</span>
+                        </div>
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <th class="task-description">Tâche</th>
+                <th class="task-date">Date</th>
+                <th class="task-status">Statut</th>
+                <th class="task-comment">Commentaire</th>
+                <th class="task-actions-header">Actions</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        
+        // Création du corps du tableau avec les tâches
+        const tbody = document.createElement('tbody');
+            
+        // Ajouter les tâches au tableau
+        clientTasks.forEach((task) => {
+            const row = document.createElement('tr');
+            if (task.completed) {
+                row.classList.add('task-completed');
+            }
+            
+            row.dataset.taskId = task.id;
+            
+            row.innerHTML = `
+                <td class="task-description" data-task-id="${task.id}">
+                    <span class="description-text">${task.description}</span>
+                </td>
+                <td class="task-date" data-task-id="${task.id}">
+                    <span class="date-text">${formatDate(task.dueDate)}</span>
+                </td>
+                <td class="task-status">
+                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
+                        ${task.completed ? 'checked' : ''}>
+                </td>
+                <td class="task-comment" data-task-id="${task.id}">
+                    <span class="comment-text">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
+                </td>
+                <td class="task-actions">
+                    <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                        </svg>
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        table.appendChild(tbody);
+        group.appendChild(table);
+        container.appendChild(group);
+    });
+    
+    // Ajouter les gestionnaires d'événements pour les cases à cocher, etc.
+    addEditableFieldListeners();
+    
+    console.log('Rendu terminé');
+    
+    // Message visible pour vérifier qu'on atteint la fin de la fonction
+    const debugMessage = document.createElement('div');
+    debugMessage.style.padding = '15px';
+    debugMessage.style.margin = '10px';
+    debugMessage.style.backgroundColor = '#f8d7da';
+    debugMessage.style.border = '1px solid #f5c2c7';
+    debugMessage.style.borderRadius = '4px';
+    debugMessage.innerHTML = `
+        <h3>Informations de débogage</h3>
+        <p>Nombre de clients chargés: ${clients.length}</p>
+        <p>Premier client: ${clients.length > 0 ? clients[0].nom + ' ' + clients[0].prenom : 'Aucun'}</p>
+        <p>Nombre de clients avec tâches: ${Object.keys(tasks).length}</p>
+        <p>ID container: ${container.id}</p>
+    `;
+    container.appendChild(debugMessage);
+}
+
+// Le chemin du fichier clients est déjà défini en haut du fichier
+console.log('Chemin du fichier clients:', clientsFilePath);
+
+// Variables globales sont déjà déclarées en haut du fichier
+// Variable tasks already declared at the top of the file
 
 // Fonction pour vérifier l'accès au fichier de tâches
 function checkTasksFileAccess() {
-    const tasksFilePath = path.join(__dirname, '..', 'taches.json');
+    const tasksFilePath = path.resolve(__dirname, 'taches.json');
     console.log('Vérification du fichier de tâches:', tasksFilePath);
     
     try {
@@ -95,79 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
 });
 
-// Charger les données nécessaires
-function loadData() {
-    console.log('Chargement des données clients...');
-    
-    try {
-        // Vérifier le chemin et l'existence du fichier
-        console.log('Vérification du fichier clients:', clientsFilePath);
-        console.log('Le fichier existe:', fs.existsSync(clientsFilePath));
-        
-        // Charger les clients depuis le fichier clients.json
-        if (fs.existsSync(clientsFilePath)) {
-            const fileContent = fs.readFileSync(clientsFilePath, 'utf8');
-            console.log('Contenu lu du fichier');
-            
-            // Vérifier si le contenu est valide
-            if (!fileContent || fileContent.trim() === '') {
-                console.warn("Fichier clients.json vide");
-                clients = [];
-            } else {
-                try {
-                    const allClients = JSON.parse(fileContent);
-                    
-                    // Filtrer pour ne garder que les clients non archivés
-                    clients = allClients.filter(client => !client.archived);
-                    
-                    console.log(`${allClients.length} clients chargés au total`);
-                    console.log(`${clients.length} clients actifs (non archivés)`);
-                } catch (parseError) {
-                    console.error("Erreur de parsing JSON:", parseError);
-                    clients = [];
-                }
-            }
-        } else {
-            console.warn("Fichier clients.json non trouvé");
-            clients = [];
-        }
-    } catch (error) {
-        console.error("Erreur lors du chargement des clients:", error);
-        clients = [];
-    }
-    
-    // Si aucun client n'est trouvé, créer des clients de test
-    if (!clients || clients.length === 0) {
-        console.log("Création de clients de test pour la démonstration");
-        clients = [
-            {
-                id: "client_test_1",
-                nom: "Dupont",
-                prenom: "Jean",
-                type: "Divorce",
-                archived: false
-            },
-            {
-                id: "client_test_2",
-                nom: "Martin",
-                prenom: "Sophie",
-                type: "Droit immobilier",
-                archived: false
-            },
-            {
-                id: "client_test_3",
-                nom: "Durand",
-                prenom: "Pierre",
-                type: "Droit du travail",
-                archived: false
-            }
-        ];
-    }
-    
-    // Afficher les tâches
-    renderTaskGroups();
-}
-
 // Créer des exemples de tâches pour la démonstration
 function createExampleTasks() {
     // Pour chaque client, nous allons créer des tâches d'exemple
@@ -197,317 +432,6 @@ function initEventListeners() {
     });
 }
 
-// Afficher les groupes de tâches
-function renderTaskGroups() {
-    console.log('Rendu des groupes de tâches...');
-    const container = document.getElementById('tasksContainer');
-    
-    // Vérifier si le conteneur existe
-    if (!container) {
-        console.error("Conteneur 'tasksContainer' non trouvé dans le DOM");
-        return;
-    }
-    
-    container.innerHTML = '';
-    
-    // Ajouter un indicateur du nombre de clients actifs
-    const statusElement = document.createElement('div');
-    statusElement.className = 'clients-status';
-    statusElement.textContent = `${clients.length} dossier(s) actif(s)`;
-    container.appendChild(statusElement);
-    
-    // Si aucun client
-    if (!clients || clients.length === 0) {
-        container.innerHTML = '<div class="no-tasks">Aucun client trouvé. Ajoutez des clients dans la page principale.</div>';
-        return;
-    }
-    
-    // Créer un groupe pour chaque client
-    clients.forEach((client, index) => {
-        // Format du nom du client
-        const clientName = `${client.nom || ''} ${client.prenom || ''}`.trim();
-        
-        // Création du conteneur de groupe
-        const group = document.createElement('div');
-        group.className = 'task-group';
-        group.dataset.clientId = client.id || index;
-        
-        // Création du tableau
-        const table = document.createElement('table');
-        table.className = 'task-table';
-        
-        // Tâches d'exemple pour ce client
-        const exampleTasks = [
-            {
-                id: `task_${index}_1`,
-                description: "Préparer les conclusions",
-                dueDate: "2025-05-15",
-                completed: false,
-                comment: "Vérifier les documents avant envoi"
-            },
-            {
-                id: `task_${index}_2`,
-                description: "Envoyer notification à l'adverse",
-                dueDate: "2025-05-20",
-                completed: true,
-                comment: "Notification envoyée par email"
-            }
-        ];
-        
-        // Calculer le pourcentage d'avancement
-        const totalTasks = exampleTasks.length;
-        const completedTasks = exampleTasks.filter(task => task.completed).length;
-        const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-        
-        // Création de l'en-tête avec le nom du client et la barre de progression
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th class="client-name-header" colspan="5">${clientName}</th>
-            </tr>
-            <tr>
-                <th colspan="5" class="progress-header">
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progressPercentage}%">
-                            <span class="progress-number">${progressPercentage}%</span>
-                        </div>
-                    </div>
-                </th>
-            </tr>
-            <tr>
-                <th class="task-description">Tâche</th>
-                <th class="task-date">Date</th>
-                <th class="task-status">Statut</th>
-                <th class="task-comment">Commentaire</th>
-                <th class="task-actions-header">Actions</th>
-            </tr>
-        `;
-        table.appendChild(thead);
-        
-        // Création du corps du tableau avec les tâches d'exemple
-        const tbody = document.createElement('tbody');
-            
-        // Ajouter les tâches d'exemple au tableau
-        exampleTasks.forEach((task) => {
-            const row = document.createElement('tr');
-            if (task.completed) {
-                row.classList.add('task-completed');
-            }
-            
-            // IMPORTANT: Ajouter data-task-id à la ligne elle-même pour faciliter la sélection
-            row.dataset.taskId = task.id;
-            
-            row.innerHTML = `
-                <td class="task-description" data-task-id="${task.id}">
-                    <span class="description-text">${task.description}</span>
-                </td>
-                <td class="task-date" data-task-id="${task.id}">
-                    <span class="date-text">${formatDate(task.dueDate)}</span>
-                </td>
-                <td class="task-status">
-                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
-                        ${task.completed ? 'checked' : ''}>
-                </td>
-                <td class="task-comment" data-task-id="${task.id}">
-                    <span class="comment-text">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
-                </td>
-                <td class="task-actions">
-                    <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                        </svg>
-                    </button>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-        });
-        
-        table.appendChild(tbody);
-        group.appendChild(table);
-        container.appendChild(group);
-    });
-    
-    // Ajouter les gestionnaires d'événements pour les cases à cocher
-    document.querySelectorAll('.task-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const taskId = this.dataset.taskId;
-            const isChecked = this.checked;
-            
-            // Récupérer l'ID du client depuis le groupe parent
-            const taskGroup = this.closest('.task-group');
-            const clientId = taskGroup.dataset.clientId;
-            
-            // Mettre à jour l'apparence
-            const row = this.closest('tr');
-            row.classList.toggle('task-completed', isChecked);
-            
-            console.log(`Tâche ${taskId} marquée comme ${isChecked ? 'terminée' : 'à faire'} pour le client ${clientId}`);
-            
-            // Mettre à jour les données et la barre de progression
-            updateTaskStatus(clientId, taskId, isChecked);
-        });
-    });
-
-    // Ajouter les gestionnaires pour l'édition de commentaires
-    document.querySelectorAll('.task-comment').forEach(commentCell => {
-        commentCell.addEventListener('click', function() {
-            const taskId = this.dataset.taskId;
-            const commentText = this.querySelector('.comment-text');
-            const currentText = commentText.textContent;
-            
-            // Ne pas transformer en champ d'édition si le texte est déjà en cours d'édition
-            if (this.querySelector('.comment-input')) {
-                return;
-            }
-            
-            // Créer un champ de saisie
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'comment-input';
-            input.value = currentText === 'Cliquez pour ajouter un commentaire' ? '' : currentText;
-            
-            // Remplacer le texte par le champ de saisie
-            this.innerHTML = '';
-            this.appendChild(input);
-            
-            // Focus sur le champ et sélectionner le texte
-            input.focus();
-            input.select();
-            
-            // Gestionnaire pour sauvegarder le commentaire lorsqu'on appuie sur Entrée
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    saveComment(taskId, this.value, commentCell);
-                }
-            });
-            
-            // Gestionnaire pour sauvegarder lors de la perte de focus
-            input.addEventListener('blur', function() {
-                saveComment(taskId, this.value, commentCell);
-            });
-        });
-    });
-
-    // Ajouter les gestionnaires pour l'édition in-line de la description
-    document.querySelectorAll('.task-description').forEach(cell => {
-        cell.addEventListener('click', function() {
-            const taskId = this.dataset.taskId;
-            const textElement = this.querySelector('.description-text');
-            const currentText = textElement.textContent;
-            
-            // Ne pas transformer en champ d'édition si déjà en cours d'édition
-            if (this.querySelector('.description-input')) {
-                return;
-            }
-            
-            // Créer un champ de saisie
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'description-input';
-            input.value = currentText;
-            
-            // Remplacer le texte par le champ de saisie
-            this.innerHTML = '';
-            this.appendChild(input);
-            
-            // Focus sur le champ et sélectionner le texte
-            input.focus();
-            input.select();
-            
-            // Gestionnaire pour sauvegarder lorsqu'on appuie sur Entrée
-            input.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    saveDescription(taskId, this.value, cell);
-                }
-            });
-            
-            // Gestionnaire pour sauvegarder lors de la perte de focus
-            input.addEventListener('blur', function() {
-                saveDescription(taskId, this.value, cell);
-            });
-        });
-    });
-
-    // Ajouter les gestionnaires pour l'édition in-line de la date
-    document.querySelectorAll('.task-date').forEach(cell => {
-        cell.addEventListener('click', function() {
-            const taskId = this.dataset.taskId;
-            const textElement = this.querySelector('.date-text');
-            const currentText = textElement.textContent;
-            
-            // Ne pas transformer en champ d'édition si déjà en cours d'édition
-            if (this.querySelector('.date-input')) {
-                return;
-            }
-            
-            // Convertir la date affichée (DD/MM/YYYY) en format YYYY-MM-DD pour l'input
-            let dateValue = '';
-            if (currentText && currentText !== '—') {
-                try {
-                    const [day, month, year] = currentText.split('/');
-                    dateValue = `${year}-${month}-${day}`;
-                } catch (e) {
-                    console.error('Erreur de conversion de date:', e);
-                }
-            }
-            
-            // Créer un champ de saisie de date
-            const input = document.createElement('input');
-            input.type = 'date';
-            input.className = 'date-input';
-            input.value = dateValue;
-            
-            // Remplacer le texte par le champ de saisie
-            this.innerHTML = '';
-            this.appendChild(input);
-            
-            // Focus sur le champ
-            input.focus();
-            
-            // Gestionnaire pour sauvegarder lors de la perte de focus
-            input.addEventListener('blur', function() {
-                saveDate(taskId, this.value, cell);
-            });
-            
-            // Gestionnaire pour sauvegarder lors du changement
-            input.addEventListener('change', function() {
-                saveDate(taskId, this.value, cell);
-            });
-        });
-    });
-
-    // IMPORTANT: Ajouter ces gestionnaires explicitement pour les boutons d'action
-    document.querySelectorAll('.edit-task-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            // Empêcher la propagation de l'événement
-            e.stopPropagation();
-            
-            const taskId = this.dataset.taskId;
-            console.log(`Bouton modifier cliqué pour la tâche ${taskId}`);
-            editTask(taskId);
-        });
-    });
-
-    document.querySelectorAll('.delete-task-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            // Empêcher la propagation de l'événement
-            e.stopPropagation();
-            
-            const taskId = this.dataset.taskId;
-            console.log(`Bouton supprimer cliqué pour la tâche ${taskId}`);
-            deleteTask(taskId);
-        });
-    });
-
-    console.log('Tous les gestionnaires d\'événements ont été ajoutés');
-
-    console.log('Rendu terminé');
-
-    // À la fin de la fonction:
-    addEditableFieldListeners();
-}
 
 // Fonction pour rafraîchir l'affichage des tâches d'un client
 function refreshTaskList(clientId) {
@@ -1426,7 +1350,7 @@ function saveTasks() {
     
     try {
         // 1. Définir le chemin correct vers le fichier
-        const tasksFilePath = path.join(__dirname, '..', 'taches.json');
+        const tasksFilePath = path.resolve(__dirname, 'taches.json');
         
         console.log('Chemin du fichier de tâches:', tasksFilePath);
         
