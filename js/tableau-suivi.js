@@ -1610,69 +1610,123 @@ function initSearchAndSort() {
     
     // Fonctionnalité de tri
     function performSort() {
+        console.log(`Tri demandé: ${currentSortType} (${currentSortOrder})`);
+        
+        // Sélectionner les éléments directement avant de manipuler le DOM
         const taskGroups = Array.from(document.querySelectorAll('.task-group'));
         const container = document.getElementById('tasksContainer');
         
-        // Supprimer les groupes temporairement
-        taskGroups.forEach(group => container.removeChild(group));
+        // Ne rien faire si aucun groupe trouvé
+        if (!taskGroups.length) {
+            console.warn('Aucun groupe de tâches trouvé pour le tri');
+            return;
+        }
         
-        // Trier les groupes
-        taskGroups.sort((a, b) => {
-            let valueA, valueB;
+        // Stocker les valeurs de tri pour chaque groupe avant le tri
+        const sortValues = new Map();
+        
+        // Calculer les valeurs de tri pour chaque groupe
+        taskGroups.forEach(group => {
+            let value;
+            const clientId = group.dataset.clientId;
             
             switch(currentSortType) {
                 case 'client':
-                    valueA = a.querySelector('.client-name-header').textContent.toLowerCase();
-                    valueB = b.querySelector('.client-name-header').textContent.toLowerCase();
+                    // Simple tri par nom
+                    value = group.querySelector('.client-name-header').textContent.toLowerCase();
                     break;
                     
                 case 'date':
-                    // Trouver la date d'échéance la plus proche dans chaque groupe
-                    const datesA = Array.from(a.querySelectorAll('.date-text')).map(el => {
-                        const text = el.textContent;
-                        if (text === '—') return Infinity;
-                        // Convertir du format DD/MM/YYYY à Date
-                        const [day, month, year] = text.split('/').map(Number);
-                        return new Date(year, month - 1, day).getTime();
-                    }).filter(d => d !== Infinity);
+                    // Trouver la date la plus proche
+                    const dates = [];
+                    group.querySelectorAll('.date-text').forEach(el => {
+                        const text = el.textContent.trim();
+                        if (text && text !== '—') {
+                            try {
+                                // Format: DD/MM/YYYY
+                                const parts = text.split('/');
+                                if (parts.length === 3) {
+                                    const day = parseInt(parts[0], 10);
+                                    const month = parseInt(parts[1], 10) - 1; // Mois commence à 0 en JS
+                                    const year = parseInt(parts[2], 10);
+                                    
+                                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                        const date = new Date(year, month, day);
+                                        dates.push(date.getTime());
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Erreur format date:', text, e);
+                            }
+                        }
+                    });
                     
-                    const datesB = Array.from(b.querySelectorAll('.date-text')).map(el => {
-                        const text = el.textContent;
-                        if (text === '—') return Infinity;
-                        const [day, month, year] = text.split('/').map(Number);
-                        return new Date(year, month - 1, day).getTime();
-                    }).filter(d => d !== Infinity);
-                    
-                    valueA = datesA.length > 0 ? Math.min(...datesA) : Infinity;
-                    valueB = datesB.length > 0 ? Math.min(...datesB) : Infinity;
+                    // Utiliser la date la plus proche ou Infinity si pas de date
+                    value = dates.length > 0 ? Math.min(...dates) : Infinity;
                     break;
                     
                 case 'status':
-                    // Calculer le pourcentage de tâches terminées dans chaque groupe
-                    const totalA = a.querySelectorAll('.task-checkbox').length || 1;
-                    const completedA = a.querySelectorAll('.task-checkbox:checked').length;
-                    const totalB = b.querySelectorAll('.task-checkbox').length || 1;
-                    const completedB = b.querySelectorAll('.task-checkbox:checked').length;
+                    // Calculer le pourcentage de tâches terminées
+                    const checkboxes = Array.from(group.querySelectorAll('.task-checkbox'));
+                    const totalTasks = checkboxes.length || 1;
+                    const completedTasks = checkboxes.filter(cb => cb.checked).length;
+                    value = completedTasks / totalTasks;
                     
-                    valueA = completedA / totalA;
-                    valueB = completedB / totalB;
+                    console.log(`Groupe ${clientId}: ${completedTasks}/${totalTasks} = ${(value*100).toFixed(1)}%`);
                     break;
             }
             
-            // Appliquer la direction du tri
-            let comparison = 0;
-            if (valueA < valueB) comparison = -1;
-            if (valueA > valueB) comparison = 1;
+            // Stocker la valeur calculée
+            sortValues.set(group, value);
+        });
+        
+        // Effectuer le tri en utilisant les valeurs calculées
+        taskGroups.sort((a, b) => {
+            const valueA = sortValues.get(a);
+            const valueB = sortValues.get(b);
             
-            return currentSortOrder === 'asc' ? comparison : -comparison;
+            let result = 0;
+            if (valueA < valueB) result = -1;
+            if (valueA > valueB) result = 1;
+            
+            // Inverser si ordre descendant
+            return currentSortOrder === 'asc' ? result : -result;
         });
         
-        // Réinsérer les groupes triés
-        taskGroups.forEach(group => {
-            container.appendChild(group);
-        });
+        // Détacher tous les groupes du DOM
+        const fragment = document.createDocumentFragment();
+        taskGroups.forEach(group => container.removeChild(group));
         
-        console.log(`Tri appliqué: ${currentSortType} (${currentSortOrder})`);
+        // Réinsérer dans l'ordre trié
+        taskGroups.forEach(group => fragment.appendChild(group));
+        container.appendChild(fragment);
+        
+        // Ajouter un indicateur visuel du tri actuel
+        const sortIndicator = document.createElement('div');
+        sortIndicator.className = 'sort-indicator';
+        sortIndicator.textContent = `Trié par: ${
+            currentSortType === 'client' ? 'nom de client' : 
+            currentSortType === 'date' ? 'date d\'échéance' : 
+            'statut d\'avancement'
+        } (${currentSortOrder === 'asc' ? 'ordre croissant' : 'ordre décroissant'})`;
+        
+        // Styles pour l'indicateur
+        sortIndicator.style.padding = '8px';
+        sortIndicator.style.margin = '10px 0';
+        sortIndicator.style.backgroundColor = '#e9f5ff';
+        sortIndicator.style.border = '1px solid #c2e0ff';
+        sortIndicator.style.borderRadius = '4px';
+        sortIndicator.style.textAlign = 'center';
+        sortIndicator.style.fontWeight = 'bold';
+        
+        // Remplacer l'indicateur existant ou en ajouter un nouveau
+        const existingIndicator = container.querySelector('.sort-indicator');
+        if (existingIndicator) {
+            container.removeChild(existingIndicator);
+        }
+        container.insertBefore(sortIndicator, container.firstChild);
+        
+        console.log(`Tri terminé: ${currentSortType} (${currentSortOrder})`);
     }
     
     // Événements
@@ -1693,10 +1747,13 @@ function initSearchAndSort() {
     
     sortDirectionButton.addEventListener('click', function() {
         currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-        this.classList.toggle('asc', currentSortOrder === 'asc');
+        
+        // Mise à jour visuelle du bouton
+        this.innerHTML = currentSortOrder === 'asc' ? '▼' : '▲';
+        
+        // Appliquer le tri
         performSort();
         
-        // Ajouter ceci pour un peu plus de retour visuel:
         console.log(`Direction de tri changée à: ${currentSortOrder}`);
     });
     
