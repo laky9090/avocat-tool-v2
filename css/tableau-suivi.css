@@ -306,15 +306,29 @@ tr.deleting {
 .task-date, 
 .task-comment {
   position: relative;
-  cursor: text;
   border-radius: 4px;
   transition: var(--transition);
+  cursor: default !important;
 }
 
 .task-description:hover, 
 .task-date:hover, 
 .task-comment:hover {
-  background-color: var(--primary-light);
+  background-color: inherit !important;
+  color: inherit !important;
+}
+
+.task-description:hover::after, 
+.task-date:hover::after, 
+.task-comment:hover::after {
+  display: none !important;
+}
+
+/* Si l'icône est ajoutée via une classe spécifique au survol */
+.task-description:hover .edit-icon,
+.task-date:hover .edit-icon,
+.task-comment:hover .edit-icon {
+  display: none !important;
 }
 
 /* Style des tooltips d'action */
