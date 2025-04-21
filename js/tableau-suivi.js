@@ -287,7 +287,9 @@ function renderTaskGroups() {
                     <span class="description-text">${task.description}</span>
                 </td>
                 <td class="task-date" data-task-id="${task.id}">
-                    <span class="date-text">${formatDate(task.dueDate)}</span>
+                    <span class="date-text${isDateOverdue(task.dueDate) ? ' date-overdue' : ''}">
+                        ${formatDate(task.dueDate)}
+                    </span>
                 </td>
                 <td class="task-status">
                     <div class="status-container">
@@ -615,7 +617,9 @@ function refreshTaskList(clientId) {
                 <span class="description-text">${task.description}</span>
             </td>
             <td class="task-date" data-task-id="${task.id}">
-                <span class="date-text">${formatDate(task.dueDate)}</span>
+                <span class="date-text${isDateOverdue(task.dueDate) ? ' date-overdue' : ''}">
+                    ${formatDate(task.dueDate)}
+                </span>
             </td>
             <td class="task-status">
                 <div class="status-container">
@@ -772,6 +776,31 @@ function formatDate(dateString) {
     } catch (e) {
         console.error('Erreur de formatage de date:', e);
         return dateString;
+    }
+}
+
+// Ajouter cette fonction après la fonction formatDate existante
+
+// Vérifier si une date est dépassée
+function isDateOverdue(dateString) {
+    if (!dateString || dateString === '—') return false;
+    
+    try {
+        // Si le format est déjà DD/MM/YYYY, le convertir en YYYY-MM-DD
+        let isoDate = dateString;
+        if (dateString.includes('/')) {
+            const [day, month, year] = dateString.split('/');
+            isoDate = `${year}-${month}-${day}`;
+        }
+        
+        const date = new Date(isoDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Ignorer l'heure pour la comparaison
+        
+        return date < today;
+    } catch (e) {
+        console.error('Erreur lors de la vérification de date:', e);
+        return false;
     }
 }
 
@@ -1364,7 +1393,7 @@ function updateTaskField(clientId, taskId, fieldType, value) {
     
     const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
     if (taskIndex === -1) {
-        console.error(`Tâche ${taskId} non trouvée pour le client ${clientId}`);
+        console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
         return false;
     }
     

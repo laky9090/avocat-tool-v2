@@ -774,3 +774,14 @@ tr.deleting {
     box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
 }
 
+/* Style pour les dates dépassées */
+.date-overdue {
+    color: #e53935;
+    font-weight: 600;
+}
+
+.date-overdue::before {
+    content: '⚠️ ';
+    margin-right: 2px;
+}
+
