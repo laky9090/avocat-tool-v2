@@ -79,6 +79,10 @@ header h1 {
   width: 100%;
 }
 
+.header-content h1 {
+  color: #ffb6c1; /* Rose clair */
+}
+
 .header-image {
   height: 60px;
   border-radius: 50%;
