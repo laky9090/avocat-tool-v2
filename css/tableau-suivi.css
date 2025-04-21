@@ -73,15 +73,20 @@ body {
   border-bottom: 1px solid var(--gray-200);
 }
 
+/* Styles pour l'en-tête client */
 .client-name-header {
-  background-image: linear-gradient(to right, var(--primary-light), white);
-  color: var(--gray-800);
-  font-size: 1.2rem;
-  padding: 20px;
-  text-align: left;
+  padding: 12px 8px !important;
+  background-color: var(--primary-color-light) !important;
+}
+
+.client-icon {
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+.client-name {
+  font-size: 1.2em;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  border: none;
 }
 
 .task-table td {
@@ -107,56 +112,50 @@ body {
 /* Barre de progression avec centrage forcé */
 
 .progress-container {
-  height: 24px; /* Hauteur maintenue à 24px */
-  background-color: var(--gray-200);
-  border-radius: 20px;
-  overflow: visible; /* Important pour éviter que le texte soit coupé */
   position: relative;
-  margin-top: 5px;
-  margin-bottom: 12px;
-  width: calc(100% - 10px);
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 24px;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-  border-radius: 20px;
-  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
   position: relative;
-  min-width: 60px; /* Maintenu pour avoir de la place pour le texte */
-  display: flex !important; /* Force l'utilisation de flexbox */
-  align-items: center !important; /* Centre verticalement avec flexbox */
-  justify-content: center !important; /* Centre horizontalement avec flexbox */
 }
 
-/* Nouvelle approche pour le texte du pourcentage - Combinaison de méthodes de centrage */
-.progress-bar .progress-number {
+/* Position du texte de la barre de progression */
+.progress-number {
   position: absolute;
-  color: white;
-  font-size: 1rem;
-  font-weight: 700;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-  margin: 0;
-  padding: 0;
-  width: auto;
+  left: 0;
+  right: 0;
   text-align: center;
-  display: block;
-  pointer-events: none; /* Évite d'interférer avec les interactions */
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-weight: 500;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  width: 100%;
+  pointer-events: none;
+  padding: 0 10px; /* Ajout de padding pour éviter les bords */
 }
 
-/* Assurer que le texte reste bien visible même sur les barres courtes */
-@media (max-width: 768px) {
-  .progress-number {
-    font-size: 0.9rem; /* Légèrement plus petit sur mobile */
-  }
+/* Style spécifique pour les barres de progression vides ou très courtes */
+.progress-bar[style*="width: 0%"] ~ .progress-number,
+.progress-bar[style*="width: 1%"] ~ .progress-number,
+.progress-bar[style*="width: 2%"] ~ .progress-number,
+.progress-bar[style*="width: 3%"] ~ .progress-number,
+.progress-bar[style*="width: 4%"] ~ .progress-number,
+.progress-bar[style*="width: 5%"] ~ .progress-number {
+  color: var(--gray-700);
+  text-shadow: none;
+  text-align: left;
+  padding-left: 10px; /* Padding plus important à gauche */
+  left: 0;
 }
 
 /* Colonnes du tableau */
@@ -195,6 +194,19 @@ body {
 
 .comment-placeholder {
   color: var(--gray-400);
+}
+
+/* Style pour les commentaires vides */
+.comment-text.empty-comment {
+    color: #999;
+    font-style: italic;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 2px;
+}
+
+.task-comment:hover .empty-comment {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
 }
 
 /* Style personnalisé des checkboxes */
@@ -749,5 +761,30 @@ tr.deleting {
 @keyframes highlight {
   0% { background-color: #c2e0ff; }
   100% { background-color: #e9f5ff; }
+}
+
+/* Styles pour les pastilles de statut */
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.pending {
+    background-color: #d3d3d3;
+    border: 1px solid #bbb;
+}
+
+.status-dot.completed {
+    background-color: #4CAF50;
+    border: 1px solid #3d8b40;
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
 }
 

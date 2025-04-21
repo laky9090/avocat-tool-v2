@@ -245,13 +245,17 @@ function renderTaskGroups() {
         const thead = document.createElement('thead');
         thead.innerHTML = `
             <tr>
-                <th class="client-name-header" colspan="5">${clientName}</th>
+                <th class="client-name-header" colspan="5">
+                    <span class="client-icon">⚖️</span> 
+                    <span class="client-name">${clientName}</span>
+                </th>
             </tr>
             <tr>
                 <th colspan="5" class="progress-header">
                     <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progressPercentage}%">
-                            <span class="progress-number">${progressPercentage}%</span>
+                        <div class="progress-bar" style="width: ${progressPercentage}%"></div>
+                        <div class="progress-number">
+                            ${progressPercentage}% (${completedTasks}/${totalTasks} tâches terminées)
                         </div>
                     </div>
                 </th>
@@ -286,11 +290,17 @@ function renderTaskGroups() {
                     <span class="date-text">${formatDate(task.dueDate)}</span>
                 </td>
                 <td class="task-status">
-                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
-                        ${task.completed ? 'checked' : ''}>
+                    <div class="status-container">
+                        <span class="status-dot ${task.completed ? 'completed' : 'pending'}"></span>
+                        <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
+                            ${task.completed ? 'checked' : ''}>
+                    </div>
                 </td>
                 <td class="task-comment" data-task-id="${task.id}">
-                    <span class="comment-text">${task.comment || 'Cliquez pour ajouter un commentaire'}</span>
+                    ${task.comment ? 
+                        `<span class="comment-text">${task.comment}</span>` : 
+                        `<span class="comment-text empty-comment">Ajouter un commentaire...</span>`
+                    }
                 </td>
                 <td class="task-actions">
                     <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
@@ -601,7 +611,7 @@ function refreshTaskList(clientId) {
     
     if (progressBar && progressNumber) {
         progressBar.style.width = `${progressPercentage}%`;
-        progressNumber.textContent = `${progressPercentage}%`;
+        progressNumber.textContent = `${progressPercentage}% (${completedTasks}/${totalTasks} tâches terminées)`;
     }
     
     // Créer un nouveau corps de tableau
@@ -624,13 +634,17 @@ function refreshTaskList(clientId) {
                 <span class="date-text">${formatDate(task.dueDate)}</span>
             </td>
             <td class="task-status">
-                <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${clientId}" 
-                    ${task.completed ? 'checked' : ''}>
+                <div class="status-container">
+                    <span class="status-dot ${task.completed ? 'completed' : 'pending'}"></span>
+                    <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${clientId}" 
+                        ${task.completed ? 'checked' : ''}>
+                </div>
             </td>
             <td class="task-comment" data-task-id="${task.id}">
-                <span class="comment-text${!task.comment ? ' comment-placeholder' : ''}">
-                    ${task.comment || 'Cliquez pour ajouter un commentaire'}
-                </span>
+                ${task.comment ? 
+                    `<span class="comment-text">${task.comment}</span>` : 
+                    `<span class="comment-text empty-comment">Ajouter un commentaire...</span>`
+                }
             </td>
             <td class="task-actions">
                 <button class="action-btn delete-task-btn" data-task-id="${task.id}" title="Supprimer">
@@ -1425,7 +1439,9 @@ function updateTaskStatus(clientId, taskId, isCompleted) {
         tasks[clientId][taskIndex].completed = isCompleted;
         
         // Mettre à jour la barre de progression
-        updateProgressBar(clientId);
+        const completedTasks = tasks[clientId].filter(task => task.completed).length;
+        const totalTasks = tasks[clientId].length;
+        updateProgressBar(clientId, completedTasks, totalTasks);
         return true;
     } else {
         console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
@@ -1440,40 +1456,17 @@ function convertToIsoDate(dateString) {
     return `${year}-${month}-${day}`;
 }
 
-// Améliorer cette fonction pour mieux gérer les erreurs
-function updateProgressBar(clientId) {
-    console.log(`Mise à jour de la barre de progression pour client: ${clientId}`);
+// Fonction mise à jour pour gérer la barre de progression
+function updateProgressBar(clientId, completedTasks, totalTasks) {
+    const progressPercentage = Math.round((completedTasks / totalTasks) * 100) || 0;
+    const progressBar = document.querySelector(`.task-group[data-client-id="${clientId}"] .progress-bar`);
+    const progressNumber = document.querySelector(`.task-group[data-client-id="${clientId}"] .progress-number`);
     
-    // Récupérer le groupe de tâches pour ce client
-    const taskGroup = document.querySelector(`div[data-client-id='${clientId}']`);
-    if (!taskGroup) {
-        console.error(`Groupe de tâches non trouvé pour client: ${clientId}`);
-        return;
-    }
-    
-    // Compter les tâches terminées directement dans le DOM
-    const allTaskRows = taskGroup.querySelectorAll('tbody tr[data-task-id]');
-    const completedTaskRows = taskGroup.querySelectorAll('tbody tr.task-completed');
-    
-    const totalTasks = allTaskRows.length;
-    const completedTasks = completedTaskRows.length;
-    
-    // Calculer le pourcentage
-    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    console.log(`Progression: ${completedTasks}/${totalTasks} = ${progressPercentage}%`);
-    
-    // Mettre à jour la barre - IMPORTANT: Sélection plus précise de l'élément
-    const progressBar = taskGroup.querySelector('.progress-bar');
-    const progressNumber = taskGroup.querySelector('.progress-number');
-    
-    if (progressBar) {
-        console.log(`Mise à jour de la barre: ${progressPercentage}%`);
+    if (progressBar && progressNumber) {
         progressBar.style.width = `${progressPercentage}%`;
-        if (progressNumber) {
-            progressNumber.textContent = `${progressPercentage}%`;
-        }
+        progressNumber.textContent = `${progressPercentage}% (${completedTasks}/${totalTasks} tâches terminées)`;
     } else {
-        console.error('Barre de progression non trouvée dans le DOM');
+        console.error('Éléments de progression non trouvés pour le client', clientId);
     }
 }
 
@@ -1612,105 +1605,140 @@ function initSearchAndSort() {
     function performSort() {
         console.log(`Tri demandé: ${currentSortType} (${currentSortOrder})`);
         
-        // Sélectionner les éléments directement avant de manipuler le DOM
+        // Sélectionner tous les groupes de tâches
         const taskGroups = Array.from(document.querySelectorAll('.task-group'));
         const container = document.getElementById('tasksContainer');
         
-        // Ne rien faire si aucun groupe trouvé
+        // Vérifier qu'il y a des groupes à trier
         if (!taskGroups.length) {
             console.warn('Aucun groupe de tâches trouvé pour le tri');
             return;
         }
         
-        // Stocker les valeurs de tri pour chaque groupe avant le tri
-        const sortValues = new Map();
+        // Tableau pour stocker les groupes avec leurs valeurs de tri
+        const groupsWithValues = [];
         
-        // Calculer les valeurs de tri pour chaque groupe
+        // Collecter et analyser les groupes et leurs valeurs
         taskGroups.forEach(group => {
-            let value;
             const clientId = group.dataset.clientId;
+            const clientName = group.querySelector('.client-name-header').textContent;
+            let value;
             
-            switch(currentSortType) {
+            switch (currentSortType) {
                 case 'client':
-                    // Simple tri par nom
-                    value = group.querySelector('.client-name-header').textContent.toLowerCase();
+                    value = clientName.toLowerCase();
                     break;
                     
-                case 'date':
-                    // Trouver la date la plus proche
+                case 'date': {
+                    // Collecter toutes les dates
                     const dates = [];
-                    group.querySelectorAll('.date-text').forEach(el => {
+                    const dateElements = group.querySelectorAll('.date-text');
+                    
+                    dateElements.forEach(el => {
                         const text = el.textContent.trim();
                         if (text && text !== '—') {
                             try {
-                                // Format: DD/MM/YYYY
                                 const parts = text.split('/');
                                 if (parts.length === 3) {
                                     const day = parseInt(parts[0], 10);
-                                    const month = parseInt(parts[1], 10) - 1; // Mois commence à 0 en JS
+                                    const month = parseInt(parts[1], 10) - 1;
                                     const year = parseInt(parts[2], 10);
                                     
-                                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                                        const date = new Date(year, month, day);
+                                    const date = new Date(year, month, day);
+                                    if (!isNaN(date.getTime())) {
                                         dates.push(date.getTime());
                                     }
                                 }
                             } catch (e) {
-                                console.error('Erreur format date:', text, e);
+                                console.error(`Erreur de format de date: ${text}`, e);
                             }
                         }
                     });
                     
-                    // Utiliser la date la plus proche ou Infinity si pas de date
+                    // Trouver la date la plus proche
                     value = dates.length > 0 ? Math.min(...dates) : Infinity;
+                    console.log(`Client ${clientName}: ${dates.length} dates, plus proche: ${value !== Infinity ? new Date(value).toLocaleDateString() : 'aucune'}`);
                     break;
+                }
                     
-                case 'status':
-                    // Calculer le pourcentage de tâches terminées
-                    const checkboxes = Array.from(group.querySelectorAll('.task-checkbox'));
-                    const totalTasks = checkboxes.length || 1;
-                    const completedTasks = checkboxes.filter(cb => cb.checked).length;
-                    value = completedTasks / totalTasks;
+                case 'status': {
+                    // Compter manuellement les tâches et les tâches terminées
+                    const checkboxes = group.querySelectorAll('.task-checkbox');
+                    let total = checkboxes.length;
+                    let completed = 0;
                     
-                    console.log(`Groupe ${clientId}: ${completedTasks}/${totalTasks} = ${(value*100).toFixed(1)}%`);
+                    checkboxes.forEach(checkbox => {
+                        if (checkbox.checked) completed++;
+                    });
+                    
+                    // Calculer le pourcentage
+                    value = total > 0 ? (completed / total) : 0;
+                    console.log(`Client ${clientName}: ${completed}/${total} = ${(value*100).toFixed(1)}%`);
                     break;
+                }
             }
             
-            // Stocker la valeur calculée
-            sortValues.set(group, value);
+            // Ajouter au tableau pour tri
+            groupsWithValues.push({ group, value });
         });
         
-        // Effectuer le tri en utilisant les valeurs calculées
-        taskGroups.sort((a, b) => {
-            const valueA = sortValues.get(a);
-            const valueB = sortValues.get(b);
+        // Trier le tableau
+        groupsWithValues.sort((a, b) => {
+            let comparison = 0;
             
-            let result = 0;
-            if (valueA < valueB) result = -1;
-            if (valueA > valueB) result = 1;
+            // Pour les dates et statuts
+            if (typeof a.value === 'number' && typeof b.value === 'number') {
+                comparison = a.value - b.value;
+            } 
+            // Pour le texte
+            else {
+                comparison = a.value < b.value ? -1 : (a.value > b.value ? 1 : 0);
+            }
             
             // Inverser si ordre descendant
-            return currentSortOrder === 'asc' ? result : -result;
+            return currentSortOrder === 'asc' ? comparison : -comparison;
         });
         
-        // Détacher tous les groupes du DOM
-        const fragment = document.createDocumentFragment();
-        taskGroups.forEach(group => container.removeChild(group));
+        // Journaliser l'ordre après tri
+        console.log('Résultat du tri:');
+        groupsWithValues.forEach(({group, value}) => {
+            const clientName = group.querySelector('.client-name-header').textContent;
+            console.log(`- ${clientName}: ${value}`);
+        });
         
-        // Réinsérer dans l'ordre trié
-        taskGroups.forEach(group => fragment.appendChild(group));
-        container.appendChild(fragment);
+        // Détacher d'abord tous les groupes du DOM
+        taskGroups.forEach(group => {
+            if (group.parentNode) {
+                container.removeChild(group);
+            }
+        });
+
+        // Force un reflow du DOM avant de réinsérer les éléments
+        void container.offsetHeight;
+
+        // Insérer les groupes dans le nouvel ordre trié
+        for (let i = 0; i < groupsWithValues.length; i++) {
+            container.appendChild(groupsWithValues[i].group);
+        }
+
+        // Log de vérification
+        console.log("Groupes réordonnés dans le DOM dans cet ordre:");
+        groupsWithValues.forEach(({group}) => {
+            console.log(group.querySelector('.client-name-header').textContent);
+        });
+
+        // Ajouter l'indicateur de tri (code existant)
+        const sortTypeLabels = {
+            'client': 'nom de client',
+            'date': 'date d\'échéance',
+            'status': 'statut d\'avancement'
+        };
         
-        // Ajouter un indicateur visuel du tri actuel
         const sortIndicator = document.createElement('div');
         sortIndicator.className = 'sort-indicator';
-        sortIndicator.textContent = `Trié par: ${
-            currentSortType === 'client' ? 'nom de client' : 
-            currentSortType === 'date' ? 'date d\'échéance' : 
-            'statut d\'avancement'
-        } (${currentSortOrder === 'asc' ? 'ordre croissant' : 'ordre décroissant'})`;
+        sortIndicator.textContent = `Trié par: ${sortTypeLabels[currentSortType]} (ordre ${currentSortOrder === 'asc' ? 'croissant' : 'décroissant'})`;
         
-        // Styles pour l'indicateur
+        // Style de l'indicateur
         sortIndicator.style.padding = '8px';
         sortIndicator.style.margin = '10px 0';
         sortIndicator.style.backgroundColor = '#e9f5ff';
@@ -1719,11 +1747,13 @@ function initSearchAndSort() {
         sortIndicator.style.textAlign = 'center';
         sortIndicator.style.fontWeight = 'bold';
         
-        // Remplacer l'indicateur existant ou en ajouter un nouveau
+        // Remplacer ou ajouter l'indicateur
         const existingIndicator = container.querySelector('.sort-indicator');
         if (existingIndicator) {
             container.removeChild(existingIndicator);
         }
+        
+        // Insérer au début du conteneur
         container.insertBefore(sortIndicator, container.firstChild);
         
         console.log(`Tri terminé: ${currentSortType} (${currentSortOrder})`);
@@ -1759,4 +1789,21 @@ function initSearchAndSort() {
     
     // Initialiser le tri par défaut
     setTimeout(performSort, 500); // Petit délai pour s'assurer que tous les éléments sont rendus
+
+    // Ajouter à la fin de initSearchAndSort()
+    console.log("Test automatique des types de tri");
+    setTimeout(() => {
+        sortSelect.value = 'date';
+        sortSelect.dispatchEvent(new Event('change'));
+        
+        setTimeout(() => {
+            sortSelect.value = 'status';
+            sortSelect.dispatchEvent(new Event('change'));
+            
+            setTimeout(() => {
+                sortSelect.value = 'client';
+                sortSelect.dispatchEvent(new Event('change'));
+            }, 1000);
+        }, 1000);
+    }, 1000);
 }
