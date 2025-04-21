@@ -71,6 +71,28 @@ header h1 {
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
 }
 
+/* Remplacer les styles de .header-content et .header-image */
+
+.header-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.header-image {
+  height: 60px;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  margin-right: 20px; /* Changer margin-left en margin-right */
+  transition: transform 0.3s ease;
+}
+
+/* Garder l'effet hover */
+.header-image:hover {
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
 /* Main Layout */
 #mainContent {
     display: flex;
