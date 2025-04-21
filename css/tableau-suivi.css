@@ -127,7 +127,7 @@ body {
   position: relative;
 }
 
-/* Position du texte de la barre de progression */
+/* Position du texte de la barre de progression - toujours noir */
 .progress-number {
   position: absolute;
   left: 0;
@@ -135,27 +135,13 @@ body {
   text-align: center;
   top: 50%;
   transform: translateY(-50%);
-  color: white;
+  color: #333; /* Couleur noire */
   font-weight: 500;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8); /* Ombre blanche pour contraste */
   z-index: 2;
   width: 100%;
   pointer-events: none;
-  padding: 0 10px; /* Ajout de padding pour éviter les bords */
-}
-
-/* Style spécifique pour les barres de progression vides ou très courtes */
-.progress-bar[style*="width: 0%"] ~ .progress-number,
-.progress-bar[style*="width: 1%"] ~ .progress-number,
-.progress-bar[style*="width: 2%"] ~ .progress-number,
-.progress-bar[style*="width: 3%"] ~ .progress-number,
-.progress-bar[style*="width: 4%"] ~ .progress-number,
-.progress-bar[style*="width: 5%"] ~ .progress-number {
-  color: var(--gray-700);
-  text-shadow: none;
-  text-align: left;
-  padding-left: 10px; /* Padding plus important à gauche */
-  left: 0;
+  padding: 0 10px;
 }
 
 /* Colonnes du tableau */
