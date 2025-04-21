@@ -246,7 +246,7 @@ function renderTaskGroups() {
         thead.innerHTML = `
             <tr>
                 <th class="client-name-header" colspan="5">
-                    <span class="client-icon">⚖️</span> 
+                    <span class="client-icon">👤</span> 
                     <span class="client-name">${clientName}</span>
                 </th>
             </tr>
@@ -262,7 +262,7 @@ function renderTaskGroups() {
             </tr>
             <tr>
                 <th class="task-description">Tâche</th>
-                <th class="task-date">Date</th>
+                <th class="task-date">Échéance</th>
                 <th class="task-status">Statut</th>
                 <th class="task-comment">Commentaire</th>
                 <th class="task-actions-header">Actions</th>
@@ -326,22 +326,6 @@ function renderTaskGroups() {
     attachDeleteButtonListeners();
     
     console.log('Rendu terminé');
-    
-    // Message visible pour vérifier qu'on atteint la fin de la fonction
-    const debugMessage = document.createElement('div');
-    debugMessage.style.padding = '15px';
-    debugMessage.style.margin = '10px';
-    debugMessage.style.backgroundColor = '#f8d7da';
-    debugMessage.style.border = '1px solid #f5c2c7';
-    debugMessage.style.borderRadius = '4px';
-    debugMessage.innerHTML = `
-        <h3>Informations de débogage</h3>
-        <p>Nombre de clients chargés: ${clients.length}</p>
-        <p>Premier client: ${clients.length > 0 ? clients[0].nom + ' ' + clients[0].prenom : 'Aucun'}</p>
-        <p>Nombre de clients avec tâches: ${Object.keys(tasks).length}</p>
-        <p>ID container: ${container.id}</p>
-    `;
-    container.appendChild(debugMessage);
 }
 
 // Ajouter cette fonction juste après renderTaskGroups
