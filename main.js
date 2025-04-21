@@ -11,9 +11,13 @@ remoteMain.initialize(); // Garder uniquement cette initialisation
 
 function createWindow() {
   // Créer la fenêtre du navigateur
-  mainWindow = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    // Ajouter cette ligne pour définir l'icône
+    icon: process.platform === 'win32' 
+      ? path.join(__dirname, 'icone.ico')
+      : path.join(__dirname, 'icone.icns'), // pour macOS
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -101,10 +105,16 @@ ipcMain.on('send-email', async (event, emailData) => {
   }
 });
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.whenReady().then(() => {
+  createWindow();
+  
+  // Configuration Mac OS X
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+
+// Quitter quand toutes les fenêtres sont fermées, sauf sur macOS
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
 });
