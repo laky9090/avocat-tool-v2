@@ -1320,9 +1320,6 @@ function updateStats() {
     
     let openCount = 0;
     let archivedCount = 0;
-    let sumMontantTotal = 0;
-    let sumMontantPaye = 0;
-    let sumReste = 0;
     
     clients.forEach(client => {
         if (client.archived) {
@@ -1330,43 +1327,45 @@ function updateStats() {
         } else {
             openCount++;
         }
-        
-        sumMontantTotal += parseFloat(client.montantTotal) || 0;
-        sumMontantPaye += parseFloat(client.montantPaye) || 0;
-        sumReste += parseFloat(client.resteAFacturer) || 0;
     });
     
     const statsHtml = `
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📁</div>
-                <div class="stat-value">${openCount}</div>
-                <div class="stat-label">Dossiers en cours</div>
+        <div class="stats-cards-container">
+            <div class="stat-card active-files">
+                <div class="stat-card-content">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon">📁</div>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">${openCount}</div>
+                        <div class="stat-label">Dossiers en cours</div>
+                    </div>
+                </div>
+                <div class="stat-card-progress" style="width: ${calculatePercentage(openCount, openCount + archivedCount)}%"></div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon">📦</div>
-                <div class="stat-value">${archivedCount}</div>
-                <div class="stat-label">Dossiers archivés</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">💰</div>
-                <div class="stat-value">${sumMontantTotal.toFixed(2)} €</div>
-                <div class="stat-label">Montant total HT</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-value">${sumMontantPaye.toFixed(2)} €</div>
-                <div class="stat-label">Montant payé HT</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-value">${sumReste.toFixed(2)} €</div>
-                <div class="stat-label">Reste à facturer HT</div>
+            
+            <div class="stat-card archived-files">
+                <div class="stat-card-content">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon">📦</div>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">${archivedCount}</div>
+                        <div class="stat-label">Dossiers archivés</div>
+                    </div>
+                </div>
+                <div class="stat-card-progress" style="width: ${calculatePercentage(archivedCount, openCount + archivedCount)}%"></div>
             </div>
         </div>
     `;
     
     document.getElementById('statsContent').innerHTML = statsHtml;
+}
+
+// Fonction d'aide pour calculer le pourcentage pour les barres de progression
+function calculatePercentage(value, total) {
+    if (total === 0) return 0;
+    return Math.round((value / total) * 100);
 }
 
 function checkFormChanges() {

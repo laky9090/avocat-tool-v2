@@ -238,5 +238,52 @@
     "totalHT": 451,
     "totalTTC": 541.1999999999999,
     "status": "sent"
+  },
+  {
+    "number": "2025-003-04",
+    "client": {
+      "numeroDossier": "2025-003",
+      "nom": "CHAUCAPIC",
+      "prenom": "Putase",
+      "adresse": "402 rue de la paix, Paris",
+      "telephone": "0753770325",
+      "email": "dhllaky4@gmail.com",
+      "profession": "Chef de projet plouf",
+      "tribunal": "Tribunal judiciaire d'Auxerres",
+      "type": "Appel - Divorce",
+      "role": "Appelant(e)",
+      "dateAudience": "2025-05-24",
+      "dateContact": "2025-04-16",
+      "dateEcheance": "2025-02-20",
+      "commentaire": "Nullissime",
+      "nomAdverse": "Jean-Marie",
+      "prenomAdverse": "SALAUD",
+      "adresseAdverse": "55 rue André, Nancy",
+      "telephoneAdverse": "0604115280",
+      "emailAdverse": "test4@gmail.com",
+      "professionAdverse": "Architecte",
+      "aideJuridictionnelle": "oui",
+      "montantTotal": "1500",
+      "montantPaye": "0",
+      "tags": [],
+      "notes": [
+        {
+          "content": "Relationationnellement stable",
+          "date": "2025-04-12T10:39:45.656Z",
+          "id": 1744454385656
+        }
+      ],
+      "archived": false
+    },
+    "date": "2025-04-21T22:18:02.981Z",
+    "prestations": [
+      {
+        "description": "Faire caca",
+        "amount": 1000
+      }
+    ],
+    "totalHT": 1000,
+    "totalTTC": 1200,
+    "status": "sent"
   }
 ]
