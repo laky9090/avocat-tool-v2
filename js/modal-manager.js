@@ -96,7 +96,7 @@ function recreateInvoiceModal() {
                 </div>
 
                 <div class="button-group">
-                    <button type="submit" class="primary-button">Générer et envoyer la facture</button>
+                    <button type="submit" class="primary-button">Générer la facture</button>
                     <button type="button" class="secondary-button close-modal">Annuler</button>
                 </div>
             </form>
