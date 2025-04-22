@@ -78,12 +78,19 @@ header h1 {
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
 }
 
-/* Remplacer les styles de .header-content et .header-image */
+/* Ajouter ces styles pour le logo dans la section header */
 
+.header-logo {
+  height: 50px;
+  width: auto;
+  margin-right: 20px;
+}
+
+/* Ajuster le contenu du header pour qu'il s'aligne correctement */
 .header-content {
   display: flex;
   align-items: center;
-  width: 100%;
+  flex: 1;
 }
 
 .header-content h1 {
@@ -102,6 +109,24 @@ header h1 {
 .header-image:hover {
   transform: scale(1.1);
   cursor: pointer;
+}
+
+/* Pour la version responsive */
+@media (max-width: 768px) {
+  .header-logo {
+    height: 40px;
+  }
+  
+  .header-content h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-logo {
+    height: 35px;
+    margin-right: 10px;
+  }
 }
 
 /* Main Layout */
@@ -1276,4 +1301,31 @@ footer {
     width: 100%;
     z-index: 999;
     box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+}
+
+/* Ajouter à la fin du fichier CSS */
+
+/* Fond blanc pour l'entête de tableau-suivi.html */
+.tableau-suivi-page header {
+    background: #ffffff;
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Ajustement des couleurs du texte dans cet entête */
+.tableau-suivi-page header h1 {
+    color: var(--primary-color);
+    text-shadow: none;
+}
+
+/* Ajustement pour les boutons dans l'en-tête */
+.tableau-suivi-page .header-actions button {
+    border: 1px solid var(--primary-color);
+}
+
+/* Couleur rose clair pour le texte du header dans tableau-suivi.html */
+
+.tableau-suivi-page header .header-content h1 {
+  color: #ffb6c1; /* Rose clair */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
