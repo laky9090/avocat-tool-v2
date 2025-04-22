@@ -796,3 +796,31 @@ th.sortable.sort-desc:after {
     color: white !important;
     order: 2 !important;
 }
+
+/* Styles spécifiques pour la modale de facture */
+
+/* Cibler directement le conteneur de boutons */
+.button-group {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    margin-top: 20px !important;
+}
+
+/* S'assurer que le bouton Annuler est à gauche du bouton Générer */
+.button-group .secondary-button {
+    order: -1 !important;
+}
+
+/* S'assurer que les deux boutons ont le même style */
+.button-group .secondary-button,
+.button-group .primary-button {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+}

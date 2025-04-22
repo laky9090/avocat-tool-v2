@@ -557,132 +557,107 @@ Avocate au Barreau de Paris</textarea>
     <!-- Ajouter ce script juste avant la fermeture de </body> -->
 
     <script>
-    // Fonction pour repositionner correctement les boutons
-    function fixModalButtons() {
-        console.log("🔧 Tentative de correction des boutons dans les modales...");
+    // Solution radicale pour corriger les boutons dans les modales
+    function forceButtonsCorrection() {
+        console.log("🛠️ Application d'une solution radicale pour les boutons...");
         
         // Cibler toutes les modales ouvertes
         document.querySelectorAll('.modal:not([style*="display: none"])').forEach(modal => {
-            // Identifier les conteneurs de boutons
-            const actionContainers = modal.querySelectorAll('.modal-actions, .button-group, .modal-footer, .form-actions');
+            // Trouver les boutons, peu importe où ils sont
+            const cancelBtn = modal.querySelector('button:contains("Annuler"), .btn-secondary, .cancel-btn');
+            const primaryBtn = modal.querySelector('button:contains("Générer"), .btn-primary, button[type="submit"]');
             
-            actionContainers.forEach(container => {
-                // Forcer le style du conteneur
-                Object.assign(container.style, {
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: '10px',
-                    position: 'absolute',
-                    bottom: '20px',
-                    right: '20px',
-                    width: 'auto'
-                });
+            if (cancelBtn && primaryBtn) {
+                console.log("🔍 Boutons trouvés, application de la correction radicale");
                 
-                // Trouver les boutons
-                const cancelBtn = Array.from(container.querySelectorAll('button')).find(btn => 
-                    btn.textContent.includes('Annuler') || 
-                    btn.classList.contains('cancel-btn') || 
-                    btn.classList.contains('btn-secondary')
-                );
-                
-                const primaryBtn = Array.from(container.querySelectorAll('button')).find(btn => 
-                    btn.classList.contains('btn-primary') || 
-                    btn.type === 'submit' ||
-                    btn.textContent.includes('Générer') ||
-                    btn.textContent.includes('Enregistrer')
-                );
-                
-                // Si on a trouvé les deux boutons
-                if (cancelBtn && primaryBtn) {
-                    // Les repositionner
-                    cancelBtn.style.cssText = "margin: 0 10px 0 0 !important; order: 1 !important;";
-                    primaryBtn.style.cssText = "margin: 0 !important; order: 2 !important;";
-                }
-            });
-        });
-    }
-
-    // Exécuter la correction à intervalles réguliers
-    setInterval(fixModalButtons, 500);
-
-    // Et aussi sur les événements qui pourraient ouvrir la modale
-    document.addEventListener('click', function(e) {
-        if (e.target.getAttribute('data-toggle') === 'modal' || 
-            e.target.closest('[data-toggle="modal"]')) {
-            setTimeout(fixModalButtons, 100);
-            setTimeout(fixModalButtons, 300);
-        }
-    });
-
-    // Et au chargement initial
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(fixModalButtons, 100);
-    });
-    </script>
-
-    <script>
-    // Fonction qui copie directement le style entre les boutons
-    function copyButtonStyles() {
-        console.log("🎨 Application du même style aux boutons...");
-        
-        // Rechercher toutes les modales ouvertes
-        document.querySelectorAll('.modal:not([style*="display: none"])').forEach(modal => {
-            
-            // Trouver le bouton principal et le bouton annuler
-            const primaryBtn = modal.querySelector('.btn-primary, button[type="submit"], button:contains("Générer")');
-            const cancelBtn = modal.querySelector('.btn-secondary, .cancel-btn, button:contains("Annuler")');
-            
-            if (primaryBtn && cancelBtn) {
-                console.log("✅ Boutons trouvés, copie du style en cours...");
-                
-                // 1. Copier toutes les propriétés de style calculées
-                const computedStyle = window.getComputedStyle(primaryBtn);
-                
-                // 2. Appliquer chaque propriété au bouton Annuler
-                for (let prop of computedStyle) {
-                    cancelBtn.style[prop] = computedStyle.getPropertyValue(prop);
+                // 1. Créer un nouveau conteneur pour les boutons
+                let buttonContainer = modal.querySelector('.fixed-button-container');
+                if (!buttonContainer) {
+                    buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'fixed-button-container';
+                    
+                    // Appliquer un style direct au conteneur
+                    buttonContainer.style.position = 'absolute';
+                    buttonContainer.style.bottom = '20px';
+                    buttonContainer.style.right = '20px';
+                    buttonContainer.style.display = 'flex';
+                    buttonContainer.style.flexDirection = 'row';
+                    buttonContainer.style.gap = '10px';
+                    buttonContainer.style.zIndex = '9999';
+                    
+                    // Ajouter au conteneur modal
+                    modal.querySelector('.modal-content').appendChild(buttonContainer);
                 }
                 
-                // 3. Forcer quelques propriétés clés
-                cancelBtn.style.backgroundColor = primaryBtn.style.backgroundColor;
-                cancelBtn.style.color = primaryBtn.style.color;
-                cancelBtn.style.border = primaryBtn.style.border;
-                cancelBtn.style.borderRadius = primaryBtn.style.borderRadius;
-                cancelBtn.style.padding = primaryBtn.style.padding;
-                cancelBtn.style.boxShadow = primaryBtn.style.boxShadow;
-                cancelBtn.style.fontWeight = primaryBtn.style.fontWeight;
-                cancelBtn.style.fontSize = primaryBtn.style.fontSize;
+                // 2. Détacher les boutons de leur position actuelle et les ajouter à notre conteneur
+                if (cancelBtn.parentNode) {
+                    try { cancelBtn.parentNode.removeChild(cancelBtn); } catch(e) {}
+                }
                 
-                // 4. Copier les classes (optionnel)
-                primaryBtn.classList.forEach(cls => {
-                    if (cls !== 'btn-primary' && cls !== 'primary-button') {
-                        cancelBtn.classList.add(cls);
-                    }
-                });
+                if (primaryBtn.parentNode) {
+                    try { primaryBtn.parentNode.removeChild(primaryBtn); } catch(e) {}
+                }
                 
-                console.log("✨ Style appliqué avec succès");
-            } else {
-                console.log("❌ Boutons non trouvés dans la modale");
+                // 3. Réinitialiser tous les styles des boutons
+                cancelBtn.style = '';
+                primaryBtn.style = '';
+                
+                // 4. Appliquer nos styles directs
+                const buttonStyles = {
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    border: 'none',
+                    backgroundColor: 'var(--primary-color)',
+                    color: 'white',
+                    fontWeight: '500',
+                    margin: '0 5px'
+                };
+                
+                Object.assign(cancelBtn.style, buttonStyles);
+                Object.assign(primaryBtn.style, buttonStyles);
+                
+                // 5. Ajouter les boutons dans le bon ordre (inversé)
+                buttonContainer.innerHTML = '';
+                buttonContainer.appendChild(cancelBtn);   // D'abord le bouton Annuler
+                buttonContainer.appendChild(primaryBtn);  // Puis le bouton Générer
+                
+                console.log("✅ Boutons repositionnés avec succès");
             }
         });
     }
 
-    // Exécuter régulièrement pour s'assurer que le style est appliqué
-    setInterval(copyButtonStyles, 500);
-
-    // Également lors de l'ouverture de modales
+    // Exécuter la correction à l'ouverture des modales
     document.addEventListener('click', function(e) {
+        // Détecter les clics sur les éléments qui ouvrent des modales
         if (e.target.getAttribute('data-toggle') === 'modal' || 
             e.target.closest('[data-toggle="modal"]')) {
-            setTimeout(copyButtonStyles, 100);
-            setTimeout(copyButtonStyles, 300);
+            
+            // Exécuter notre correction après un court délai
+            setTimeout(forceButtonsCorrection, 100);
+            setTimeout(forceButtonsCorrection, 300);
         }
     });
 
-    // Et au chargement de la page
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(copyButtonStyles, 300);
+    // Également lorsque le DOM est modifié (par exemple, quand une modale est injectée)
+    const observer = new MutationObserver(function() {
+        // Exécuter notre correction
+        forceButtonsCorrection();
     });
+
+    // Observer les modifications du DOM
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Exécuter aussi périodiquement pour s'assurer que les boutons restent corrects
+    setInterval(forceButtonsCorrection, 500);
+
+    // Et au chargement initial
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(forceButtonsCorrection, 100);
+    });
+
+    // Exécuter immédiatement aussi
+    forceButtonsCorrection();
     </script>
 </body>
 </html>
