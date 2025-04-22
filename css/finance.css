@@ -791,6 +791,7 @@ th.sortable.sort-desc:after {
     border-radius: 4px !important;
     cursor: pointer !important;
     font-weight: 500 !important;
+    font-size: 14px !important; /* Ajout de la taille de police */
     position: static !important;
     margin: 0 !important;
     width: auto !important;
