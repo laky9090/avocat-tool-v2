@@ -785,3 +785,8 @@ tr.deleting {
     margin-right: 2px;
 }
 
+/* Ajouter à la fin du fichier */
+.tableau-suivi-page header .header-content h1 {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
