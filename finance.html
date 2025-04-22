@@ -559,16 +559,37 @@ Avocate au Barreau de Paris</textarea>
     <script>
     // Solution radicale pour corriger les boutons dans les modales
     function forceButtonsCorrection() {
-        console.log("🛠️ Application d'une solution radicale pour les boutons...");
+        console.log("🛠️ Correction des boutons dans les modales...");
         
         // Cibler toutes les modales ouvertes
         document.querySelectorAll('.modal:not([style*="display: none"])').forEach(modal => {
-            // Trouver les boutons, peu importe où ils sont
-            const cancelBtn = modal.querySelector('button:contains("Annuler"), .btn-secondary, .cancel-btn');
-            const primaryBtn = modal.querySelector('button:contains("Générer"), .btn-primary, button[type="submit"]');
+            // Trouver tous les boutons dans la modale
+            const buttons = Array.from(modal.querySelectorAll('button'));
             
-            if (cancelBtn && primaryBtn) {
-                console.log("🔍 Boutons trouvés, application de la correction radicale");
+            // Trouver le bouton Annuler par son texte ou sa classe
+            const cancelBtn = buttons.find(btn => 
+                (btn.textContent && btn.textContent.includes('Annuler')) || 
+                btn.classList.contains('secondary-button') || 
+                btn.classList.contains('btn-secondary') || 
+                btn.classList.contains('btn-cancel')
+            );
+            
+            // Trouver le bouton principal par son texte ou sa classe
+            const primaryBtn = buttons.find(btn => 
+                (btn.textContent && btn.textContent.includes('Générer')) || 
+                btn.classList.contains('primary-button') || 
+                btn.classList.contains('btn-primary') || 
+                btn.type === 'submit'
+            );
+            
+            // Ignorer la croix de fermeture
+            const isCloseButton = (btn) => 
+                btn.classList.contains('close') || 
+                btn.classList.contains('close-modal') || 
+                btn.textContent === '×';
+                
+            if (cancelBtn && primaryBtn && !isCloseButton(cancelBtn) && !isCloseButton(primaryBtn)) {
+                console.log("✅ Boutons trouvés:", cancelBtn.textContent, primaryBtn.textContent);
                 
                 // 1. Créer un nouveau conteneur pour les boutons
                 let buttonContainer = modal.querySelector('.fixed-button-container');
@@ -576,33 +597,31 @@ Avocate au Barreau de Paris</textarea>
                     buttonContainer = document.createElement('div');
                     buttonContainer.className = 'fixed-button-container';
                     
-                    // Appliquer un style direct au conteneur
-                    buttonContainer.style.position = 'absolute';
-                    buttonContainer.style.bottom = '20px';
-                    buttonContainer.style.right = '20px';
-                    buttonContainer.style.display = 'flex';
-                    buttonContainer.style.flexDirection = 'row';
-                    buttonContainer.style.gap = '10px';
-                    buttonContainer.style.zIndex = '9999';
+                    // Styles de positionnement fixe
+                    Object.assign(buttonContainer.style, {
+                        position: 'absolute',
+                        bottom: '20px',
+                        right: '20px',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '10px',
+                        zIndex: '9999'
+                    });
                     
                     // Ajouter au conteneur modal
-                    modal.querySelector('.modal-content').appendChild(buttonContainer);
+                    const modalContent = modal.querySelector('.modal-content');
+                    if (modalContent) modalContent.appendChild(buttonContainer);
                 }
                 
-                // 2. Détacher les boutons de leur position actuelle et les ajouter à notre conteneur
-                if (cancelBtn.parentNode) {
-                    try { cancelBtn.parentNode.removeChild(cancelBtn); } catch(e) {}
+                // 2. Détacher les boutons de leur position actuelle
+                try {
+                    if (cancelBtn.parentNode) cancelBtn.parentNode.removeChild(cancelBtn);
+                    if (primaryBtn.parentNode) primaryBtn.parentNode.removeChild(primaryBtn);
+                } catch(e) {
+                    console.error('Erreur lors du détachement:', e);
                 }
                 
-                if (primaryBtn.parentNode) {
-                    try { primaryBtn.parentNode.removeChild(primaryBtn); } catch(e) {}
-                }
-                
-                // 3. Réinitialiser tous les styles des boutons
-                cancelBtn.style = '';
-                primaryBtn.style = '';
-                
-                // 4. Appliquer nos styles directs
+                // 3. Style uniforme pour les deux boutons
                 const buttonStyles = {
                     padding: '8px 16px',
                     borderRadius: '4px',
@@ -611,16 +630,22 @@ Avocate au Barreau de Paris</textarea>
                     backgroundColor: 'var(--primary-color)',
                     color: 'white',
                     fontWeight: '500',
-                    margin: '0 5px'
+                    margin: '0 5px',
+                    display: 'inline-block',
+                    textAlign: 'center',
+                    lineHeight: 'normal'
                 };
                 
+                // Appliquer les styles
+                cancelBtn.style = ''; // Réinitialiser le style
+                primaryBtn.style = ''; // Réinitialiser le style
                 Object.assign(cancelBtn.style, buttonStyles);
                 Object.assign(primaryBtn.style, buttonStyles);
                 
-                // 5. Ajouter les boutons dans le bon ordre (inversé)
+                // 4. Placement dans l'ordre souhaité
                 buttonContainer.innerHTML = '';
-                buttonContainer.appendChild(cancelBtn);   // D'abord le bouton Annuler
-                buttonContainer.appendChild(primaryBtn);  // Puis le bouton Générer
+                buttonContainer.appendChild(primaryBtn); // Générer la facture à gauche
+                buttonContainer.appendChild(cancelBtn);  // Annuler à droite
                 
                 console.log("✅ Boutons repositionnés avec succès");
             }

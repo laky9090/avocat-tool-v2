@@ -742,80 +742,48 @@ th.sortable.sort-desc:after {
 /* Styles unifiés pour les boutons dans les modales */
 .modal .modal-content {
     position: relative !important;
-    padding-bottom: 80px !important;
-    padding-top: 40px !important;
+    padding-bottom: 70px !important; /* Espace pour les boutons en bas */
 }
 
 /* Style de la croix de fermeture */
-.modal .modal-content .close {
+.modal .modal-content .close,
+.modal .modal-content > button.close {
     position: absolute !important;
     top: 10px !important;
-    right: 10px !important;
-    font-size: 24px !important;
+    right: 15px !important;
+    z-index: 1000 !important;
     background: transparent !important;
     border: none !important;
+    font-size: 24px !important;
+    padding: 0 !important;
+    margin: 0 !important;
     cursor: pointer !important;
-    z-index: 9999 !important;
 }
 
-/* Conteneur de boutons */
+/* Conteneur des boutons */
 .modal .modal-content .modal-actions,
-.modal .modal-content .buttons-container,
-.modal .modal-content .form-actions,
+.modal .modal-content .button-group,
 .modal .modal-content .modal-footer {
     position: absolute !important;
-    bottom: 20px !important;
-    right: 20px !important;
+    bottom: 15px !important;
+    right: 15px !important;
+    left: auto !important;
+    top: auto !important;
     width: auto !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 10px !important;
-}
-
-/* Style unifié pour tous les boutons */
-.modal .modal-content button {
-    padding: 8px 16px !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    border: none !important;
-}
-
-/* Style du bouton Annuler identique au bouton principal */
-.modal .modal-content .btn-secondary,
-.modal .modal-content .cancel-btn,
-.modal .modal-content button[type="button"]:not(.close):not(.theme-button) {
-    background-color: var(--primary-color) !important;
-    color: white !important;
-    order: 1 !important;
-}
-
-/* Style du bouton principal */
-.modal .modal-content .btn-primary,
-.modal .modal-content button[type="submit"] {
-    background-color: var(--primary-color) !important;
-    color: white !important;
-    order: 2 !important;
-}
-
-/* Styles spécifiques pour la modale de facture */
-
-/* Cibler directement le conteneur de boutons */
-.button-group {
     display: flex !important;
     flex-direction: row !important;
     justify-content: flex-end !important;
     gap: 10px !important;
-    margin-top: 20px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: none !important;
 }
 
-/* S'assurer que le bouton Annuler est à gauche du bouton Générer */
-.button-group .secondary-button {
-    order: -1 !important;
-}
-
-/* S'assurer que les deux boutons ont le même style */
-.button-group .secondary-button,
-.button-group .primary-button {
+/* Style unifié pour tous les boutons */
+.modal .modal-content .button-group button,
+.modal .modal-content .modal-actions button,
+.modal .modal-content .modal-footer button {
     background-color: var(--primary-color) !important;
     color: white !important;
     padding: 8px 16px !important;
@@ -823,4 +791,24 @@ th.sortable.sort-desc:after {
     border-radius: 4px !important;
     cursor: pointer !important;
     font-weight: 500 !important;
+    position: static !important;
+    margin: 0 !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ordre des boutons: Annuler (ou secondaire) avant le principal */
+.modal .modal-content .button-group .secondary-button,
+.modal .modal-content .modal-actions .btn-secondary,
+.modal .modal-content .modal-footer .cancel-btn {
+    order: 1 !important;
+}
+
+/* Cibler spécifiquement le bouton Générer/Principal */
+.modal .modal-content .button-group .primary-button,
+.modal .modal-content .modal-actions .btn-primary,
+.modal .modal-content .modal-footer button[type="submit"] {
+    order: 2 !important;
 }
