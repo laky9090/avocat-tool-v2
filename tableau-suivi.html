@@ -8,6 +8,17 @@
     <link rel="stylesheet" href="css/tableau-suivi.css?v=1.1">
 </head>
 <body class="tableau-suivi-page">
+    <div class="theme-buttons">
+        <button id="refreshPageBtn" class="theme-button">
+            <span id="refreshIcon">🔄</span>
+            <span>Actualiser</span>
+        </button>
+        <button id="themeToggle" class="theme-button">
+            <span id="themeIcon">🌞</span>
+            <span id="themeText">Mode sombre</span>
+        </button>
+    </div>
+  
     <header>
         <div class="header-content">
             <img src="logo_candice.png" alt="Logo Candice ROVERA" class="header-logo">
@@ -62,5 +73,36 @@
 
     <!-- Scripts -->
     <script src="js/tableau-suivi.js"></script>
+    <script>
+        // Gestionnaires d'événements pour les boutons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Bouton de changement de thème
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const html = document.documentElement;
+                    const currentTheme = html.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    html.setAttribute('data-theme', newTheme);
+                    
+                    // Mettre à jour l'icône et le texte
+                    const themeIcon = document.getElementById('themeIcon');
+                    const themeText = document.getElementById('themeText');
+                    if (themeIcon && themeText) {
+                        themeIcon.textContent = newTheme === 'dark' ? '🌙' : '🌞';
+                        themeText.textContent = newTheme === 'dark' ? 'Mode clair' : 'Mode sombre';
+                    }
+                });
+            }
+            
+            // Bouton d'actualisation
+            const refreshBtn = document.getElementById('refreshPageBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -9,21 +9,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body>
-    <button id="themeToggle" class="theme-toggle">
+<body class="finance-page">
+  <div class="theme-buttons">
+    <button id="refreshPageBtn" class="theme-button">
+        <span id="refreshIcon">🔄</span>
+        <span>Actualiser</span>
+    </button>
+    <button id="themeToggle" class="theme-button">
         <span id="themeIcon">🌞</span>
         <span id="themeText">Mode sombre</span>
     </button>
-
-    <header>
-        <div class="header-content">
-            <img src="logo_candice.png" alt="Logo Candice ROVERA" class="header-logo">
-            <h1>Gestion financière</h1>
-        </div>
-        <div class="header-actions">
-            <button id="backToHomeBtn" class="nav-button">Retour à l'accueil</button>
-        </div>
-    </header>
+  </div>
+  
+  <header>
+    <div class="header-content">
+        <img src="logo_candice.png" alt="Logo Candice ROVERA" class="header-logo">
+        <h1>Gestion financière</h1>
+    </div>
+    <div class="header-actions">
+        <button id="backToHomeBtn" class="nav-button">Retour à l'accueil</button>
+    </div>
+  </header>
 
     <div class="finance-dashboard">
         <!-- Section statistiques -->
@@ -533,6 +539,18 @@ Avocate au Barreau de Paris</textarea>
         alert('Erreur: ' + e.message);
       }
     }
+    </script>
+
+    <script>
+    // Gestionnaire d'événement pour le bouton "Retour à l'accueil"
+    document.addEventListener('DOMContentLoaded', function() {
+        const backToHomeBtn = document.getElementById('backToHomeBtn');
+        if (backToHomeBtn) {
+            backToHomeBtn.addEventListener('click', function() {
+                window.location.href = 'index.html';
+            });
+        }
+    });
     </script>
 </body>
 </html>

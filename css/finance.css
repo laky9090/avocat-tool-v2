@@ -670,3 +670,69 @@ th.sortable.sort-desc:after {
 #invoicesPaidTTC .stat-value {
     color: #27ae60;
 }
+
+/* Correction pour éviter la superposition des boutons */
+.finance-page header {
+    height: 60px;
+    padding-right: 200px; /* Espace pour les boutons de thème */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative; /* Assurez-vous que le header a une position relative */
+}
+
+/* Remettre le style du header-content comme avant */
+.finance-page .header-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+/* Positionnement des boutons d'action du header */
+.finance-page .header-actions {
+    display: flex;
+    align-items: center;
+    margin-right: 240px; /* Augmenter l'espace pour éviter la superposition */
+}
+
+/* Style pour les boutons de thème */
+.theme-buttons {
+    display: flex !important;
+    gap: 10px;
+    position: fixed !important; /* Au lieu de absolute */
+    top: 15px !important;
+    right: 25px !important;
+    z-index: 9999 !important; /* S'assurer qu'il est au-dessus de tout */
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important; /* Garantir que les clics fonctionnent */
+}
+
+.theme-button {
+    display: flex !important;
+    align-items: center;
+    padding: 8px 15px;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Retirer le positionnement absolu qui cause des problèmes */
+.finance-page .theme-buttons {
+    position: static; /* Revenir au flux normal du document */
+    margin-left: 10px;
+}
+
+/* S'assurer que le bouton de retour est bien visible */
+.finance-page #backToHomeBtn {
+    z-index: 10;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}

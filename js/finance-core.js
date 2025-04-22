@@ -151,6 +151,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser l'application
     initializeApp();
+
+    // Ajouter un gestionnaire d'événements pour le bouton "Retour à l'accueil"
+    const backToHomeBtn = document.getElementById('backToHomeBtn');
+    if (backToHomeBtn) {
+        backToHomeBtn.addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+    }
+    
+    // Ajouter le code pour le bouton de changement de thème s'il n'est pas déjà présent
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            // Mettre à jour l'icône et le texte
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            if (newTheme === 'dark') {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Mode clair';
+            } else {
+                themeIcon.textContent = '🌞';
+                themeText.textContent = 'Mode sombre';
+            }
+        });
+    }
 });
 
 // Chargement des données

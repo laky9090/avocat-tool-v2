@@ -790,3 +790,65 @@ tr.deleting {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
+/* Style pour les boutons de thème dans la page tableau-suivi */
+.tableau-suivi-page .theme-buttons {
+    display: flex !important;
+    gap: 10px;
+    position: fixed !important;
+    top: 15px !important;
+    right: 25px !important;
+    z-index: 9999 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.tableau-suivi-page .theme-button {
+    display: flex !important;
+    align-items: center;
+    padding: 8px 15px;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Style pour le bouton "Retour à l'accueil" identique à celui de finance.html */
+
+/* Positionnement des boutons d'action du header */
+.tableau-suivi-page .header-actions {
+    display: flex;
+    align-items: center;
+    margin-right: 240px; /* Espace pour éviter la superposition avec les boutons de thème */
+}
+
+/* S'assurer que le bouton de retour est bien visible */
+.tableau-suivi-page #backToHomeBtn {
+    z-index: 10;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}
+
+/* Ajustement du header */
+.tableau-suivi-page header {
+    height: 60px;
+    padding-right: 200px; /* Espace pour les boutons de thème */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+/* Ajustement du contenu du header */
+.tableau-suivi-page .header-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
