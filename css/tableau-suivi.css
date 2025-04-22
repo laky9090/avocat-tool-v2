@@ -843,6 +843,24 @@ tr.deleting {
     justify-content: space-between;
     align-items: center;
     position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--background-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+/* Ajustement du contenu principal pour éviter qu'il ne soit caché sous l'en-tête fixe */
+.tableau-suivi-page main {
+    margin-top: 80px; /* Ajuster cette valeur selon la hauteur de votre en-tête */
+    padding-top: 10px;
+}
+
+/* Assurer que les boutons de thème restent au-dessus de l'en-tête fixe */
+.tableau-suivi-page .theme-buttons {
+    z-index: 101; /* Supérieur au z-index de l'en-tête */
 }
 
 /* Ajustement du contenu du header */
