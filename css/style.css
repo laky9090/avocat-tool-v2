@@ -47,6 +47,7 @@ body {
     background-color: var(--background-primary);
     color: var(--text-primary);
     line-height: 1.6;
+    padding-top: 10px; /* Ajouter un peu d'espace après l'en-tête fixe */
 }
 
 /* Header */
@@ -58,6 +59,12 @@ header {
     gap: 15px;
     color: white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    
+    /* Nouvelles propriétés pour le fixer en haut */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
 }
 
 header img {
@@ -1018,26 +1025,10 @@ calendar-nav button {
 .theme-buttons {
     display: flex;
     gap: 8px;
-    position: absolute;
+    position: fixed; /* Changer absolute en fixed */
     top: 16px;
     right: 16px;
-}
-
-.theme-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: var(--background-secondary);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.theme-button:hover {
-    background-color: var(--hover-background);
+    z-index: 1001; /* Au-dessus du header */
 }
 
 .file-explorer-instructions {
@@ -1270,4 +1261,19 @@ button#imprimerTousBtn {
 
 .archived-files .stat-card-progress {
     background: linear-gradient(90deg, rgba(142, 68, 173, 0.8), rgba(142, 68, 173, 0.4));
+}
+
+/* Si vous avez un footer, ajoutez ceci */
+footer {
+    background: var(--secondary-color);
+    padding: 15px var(--spacing);
+    color: white;
+    text-align: center;
+    
+    /* Propriétés pour le fixer en bas */
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
 }
