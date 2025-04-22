@@ -736,3 +736,63 @@ th.sortable.sort-desc:after {
     border-radius: var(--border-radius);
     cursor: pointer;
 }
+
+/* Ajouter à la fin du fichier */
+
+/* Styles unifiés pour les boutons dans les modales */
+.modal .modal-content {
+    position: relative !important;
+    padding-bottom: 80px !important;
+    padding-top: 40px !important;
+}
+
+/* Style de la croix de fermeture */
+.modal .modal-content .close {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    font-size: 24px !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    z-index: 9999 !important;
+}
+
+/* Conteneur de boutons */
+.modal .modal-content .modal-actions,
+.modal .modal-content .buttons-container,
+.modal .modal-content .form-actions,
+.modal .modal-content .modal-footer {
+    position: absolute !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+}
+
+/* Style unifié pour tous les boutons */
+.modal .modal-content button {
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    border: none !important;
+}
+
+/* Style du bouton Annuler identique au bouton principal */
+.modal .modal-content .btn-secondary,
+.modal .modal-content .cancel-btn,
+.modal .modal-content button[type="button"]:not(.close):not(.theme-button) {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    order: 1 !important;
+}
+
+/* Style du bouton principal */
+.modal .modal-content .btn-primary,
+.modal .modal-content button[type="submit"] {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    order: 2 !important;
+}
