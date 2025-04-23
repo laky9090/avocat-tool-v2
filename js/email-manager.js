@@ -35,8 +35,26 @@ console.log('État de la configuration d\'email:',
 let emailSendingInProgress = false;
 let lastRequestTimestamp = 0;
 
-// Nouveau fichier pour gérer l'envoi d'emails
-
+// Fonction pour obtenir le chemin racine de manière fiable
+function getAppRootPath() {
+    if (remote && remote.app) {
+        // Utilise le chemin de l'application fourni par Electron
+        return remote.app.getAppPath();
+    } else {
+        // Fallback (moins fiable, utilise l'ancienne méthode mais log un avertissement)
+        console.warn("Utilisation du fallback pour getAppRootPath via __dirname.");
+        // Attention: Ce fallback peut encore donner le mauvais chemin C:\Users\dhlla\Downloads\
+        // Il faudrait idéalement passer le chemin correct via IPC depuis le processus principal.
+        // Assurez-vous que 'path' est disponible (il devrait l'être via window.path)
+        if (typeof path !== 'undefined') {
+             return path.resolve(__dirname, '..');
+        } else {
+             console.error("ERREUR CRITIQUE: Module 'path' non disponible pour le fallback de getAppRootPath !");
+             // Retourner une valeur par défaut ou lever une erreur plus explicite
+             return 'CHEMIN_RACINE_INCONNU'; // Ou null, ou lever une erreur
+        }
+    }
+}
 // Modifier la fonction showEmailModal
 
 function showEmailModal(invoiceNumber) {
@@ -287,7 +305,69 @@ async function sendInvoiceEmail(event) {
             } catch (error) {
                 console.error('Erreur lors de l\'ajout du RIB:', error);
             }
+            
+            // --- AJOUT POUR JOINDRE LA FACTURE PDF ---
+            try {
+                const fs = window.require('fs');
+                const path = window.require('path');
+
+                // 1. Récupérer l'objet facture complet via son numéro
+                const invoice = window.invoices.find(inv => inv.number === invoiceNumber);
+                if (!invoice) {
+                    // Si la facture n'est pas trouvée en mémoire, on ne peut pas construire le chemin
+                    throw new Error(`Facture ${invoiceNumber} non trouvée dans window.invoices.`);
+                }
+                if (!invoice.client || !invoice.client.nom || !invoice.client.prenom) {
+                    throw new Error(`Données client manquantes pour la facture ${invoiceNumber}.`);
+                }
+
+                // 2. Obtenir le chemin racine
+                const appRootPath = getAppRootPath(); // Utilise la fonction ajoutée/existante
+                if (appRootPath === 'CHEMIN_RACINE_INCONNU') {
+                    throw new Error("Impossible de déterminer le chemin racine pour joindre la facture PDF.");
+                }
+
+                // 3. Reconstruire le chemin exact du fichier PDF (identique à invoice-manager.js)
+                const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
+                const clientFolderName = `${invoice.client.nom}_${invoice.client.prenom}`.replace(/[^a-zA-Z0-9_]/g, '_');
+                const facturesSubDir = '2-Factures';
+                const pdfFileName = `Facture_${invoice.number}.pdf`;
+                const pdfFilePath = path.join(baseDossiersPath, clientFolderName, facturesSubDir, pdfFileName);
+
+                console.log(`Recherche de la facture PDF à joindre: ${pdfFilePath}`);
+
+                // 4. Vérifier si le fichier PDF existe
+                if (fs.existsSync(pdfFilePath)) {
+                    // 5. Lire le contenu du fichier PDF
+                    const pdfContent = fs.readFileSync(pdfFilePath);
+                    // 6. Convertir en Base64 pour l'attachement
+                    const pdfBase64 = Buffer.from(pdfContent).toString('base64');
+
+                    // 7. Ajouter la facture aux pièces jointes
+                    attachments.push({
+                        filename: pdfFileName, // Nom du fichier tel qu'il apparaîtra dans l'email
+                        content: pdfBase64,
+                        encoding: 'base64'
+                    });
+                    console.log(`Facture PDF ajoutée avec succès à l'email: ${pdfFileName}`);
+                } else {
+                    // Si le fichier n'existe pas, logguer une erreur et informer l'utilisateur
+                    console.error(`ERREUR: Le fichier PDF de la facture est introuvable: ${pdfFilePath}`);
+                    alert(`Attention : Le fichier PDF de la facture ${pdfFileName} n'a pas été trouvé à l'emplacement attendu et ne sera pas joint à l'e-mail.`);
+                }
+
+            } catch (error) {
+                // Gérer les erreurs potentielles (facture non trouvée, chemin racine inconnu, etc.)
+                console.error('Erreur lors de la tentative d\'ajout de la facture PDF:', error);
+                alert(`Une erreur est survenue lors de la tentative d'ajout de la facture PDF à l'e-mail : ${error.message}`);
+                // On continue quand même l'envoi sans le PDF si une erreur survient ici (sauf si on veut l'annuler)
+            }
+            // --- FIN AJOUT FACTURE PDF ---
+
         }
+
+
+        
         // POUR LES EMAILS CLIENT
         else {
             console.log('Email client - aucun RIB ne sera ajouté');
