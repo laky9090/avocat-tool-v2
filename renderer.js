@@ -354,6 +354,9 @@ function ajouterOuModifierClient() {
             nom: document.getElementById('nom').value.trim(),
             prenom: document.getElementById('prenom').value.trim(),
             adresse: document.getElementById('adresse').value.trim(),
+            codePostal: document.getElementById('codePostal').value.trim(), // Nouveau
+            ville: document.getElementById('ville').value.trim(), // Nouveau
+            complementAdresse: document.getElementById('complementAdresse').value.trim(), // Nouveau
             telephone: document.getElementById('telephone').value.trim(),
             email: document.getElementById('email').value.trim(),
             profession: document.getElementById('profession').value.trim(),
@@ -367,6 +370,9 @@ function ajouterOuModifierClient() {
             nomAdverse: document.getElementById('nomAdverse').value.trim(),
             prenomAdverse: document.getElementById('prenomAdverse').value.trim(),
             adresseAdverse: document.getElementById('adresseAdverse').value.trim(),
+            codePostalAdverse: document.getElementById('codePostalAdverse').value.trim(), // Nouveau
+            villeAdverse: document.getElementById('villeAdverse').value.trim(), // Nouveau
+            complementAdresseAdverse: document.getElementById('complementAdresseAdverse').value.trim(), // Nouveau
             telephoneAdverse: document.getElementById('telephoneAdverse').value.trim(),
             emailAdverse: document.getElementById('emailAdverse').value.trim(),
             professionAdverse: document.getElementById('professionAdverse').value.trim(),
@@ -832,6 +838,9 @@ function afficherClients(clients) {
     detailDiv.innerHTML = `
       <p>Nom complet : ${client.nom} ${client.prenom || ''}</p>
       <p>Adresse : ${client.adresse || ''}</p>
+      <p>Complément : ${client.complementAdresse || ''}</p> <!-- Nouveau -->
+      <p>Code Postal : ${client.codePostal || ''}</p> <!-- Nouveau -->
+      <p>Ville : ${client.ville || ''}</p> <!-- Nouveau -->
       <p>Téléphone : ${client.telephone || ''}</p>
       <p>Email : ${client.email || ''}</p>
       <p>Profession : ${client.profession || ''}</p>
@@ -870,6 +879,9 @@ function afficherClients(clients) {
       <p><strong>Adverse</strong></p>
       <p>Nom complet : ${client.nomAdverse} ${client.prenomAdverse || ''}</p>
       <p>Adresse : ${client.adresseAdverse || ''}</p>
+      <p>Complément : ${client.complementAdresseAdverse || ''}</p> <!-- Nouveau -->
+      <p>Code Postal : ${client.codePostalAdverse || ''}</p> <!-- Nouveau -->
+      <p>Ville : ${client.villeAdverse || ''}</p> <!-- Nouveau -->
       <p>Téléphone : ${client.telephoneAdverse || ''}</p>
       <p>Email : ${client.emailAdverse || ''}</p>
       <p>Profession : ${client.professionAdverse || ''}</p>
@@ -906,8 +918,11 @@ function afficherClients(clients) {
         
         // Remplissage du formulaire pour modification
         document.getElementById('nom').value = client.nom;
-        document.getElementById('prenom').value = client.prenom; // Nouveau champ
+        document.getElementById('prenom').value = client.prenom; 
         document.getElementById('adresse').value = client.adresse;
+        document.getElementById('codePostal').value = client.codePostal || ''; // Nouveau
+        document.getElementById('ville').value = client.ville || ''; // Nouveau
+        document.getElementById('complementAdresse').value = client.complementAdresse || ''; // Nouveau
         document.getElementById('telephone').value = client.telephone;
         document.getElementById('email').value = client.email;
         document.getElementById('profession').value = client.profession;
@@ -915,7 +930,7 @@ function afficherClients(clients) {
             document.getElementById('tribunal').value = client.tribunal;
         }
         document.getElementById('type').value = client.type;
-        document.getElementById('role').value = client.role; // Nouveau champ
+        document.getElementById('role').value = client.role; 
         document.getElementById('dateAudience').value = client.dateAudience;
         document.getElementById('dateContact').value = client.dateContact;
         document.getElementById('dateEcheance').value = client.dateEcheance;
@@ -924,6 +939,9 @@ function afficherClients(clients) {
         document.getElementById('nomAdverse').value = client.nomAdverse;
         document.getElementById('prenomAdverse').value = client.prenomAdverse || '';
         document.getElementById('adresseAdverse').value = client.adresseAdverse;
+        document.getElementById('codePostalAdverse').value = client.codePostalAdverse || ''; // Nouveau
+        document.getElementById('villeAdverse').value = client.villeAdverse || ''; // Nouveau
+        document.getElementById('complementAdresseAdverse').value = client.complementAdresseAdverse || ''; // Nouveau
         document.getElementById('telephoneAdverse').value = client.telephoneAdverse;
         document.getElementById('emailAdverse').value = client.emailAdverse;
         document.getElementById('professionAdverse').value = client.professionAdverse;
@@ -977,6 +995,9 @@ function afficherClients(clients) {
         document.getElementById('nom').value = nouveauNom;
         document.getElementById('prenom').value = ''; // Vide pour le nouveau client
         document.getElementById('adresse').value = client.adresse;
+        document.getElementById('codePostal').value = client.codePostal || ''; // Nouveau
+        document.getElementById('ville').value = client.ville || ''; // Nouveau
+        document.getElementById('complementAdresse').value = client.complementAdresse || ''; // Nouveau
         document.getElementById('telephone').value = client.telephone;
         document.getElementById('email').value = client.email;
         document.getElementById('profession').value = client.profession;
@@ -991,6 +1012,9 @@ function afficherClients(clients) {
         document.getElementById('nomAdverse').value = client.nomAdverse;
         document.getElementById('prenomAdverse').value = client.prenomAdverse || '';
         document.getElementById('adresseAdverse').value = client.adresseAdverse;
+        document.getElementById('codePostalAdverse').value = client.codePostalAdverse || ''; // Nouveau
+        document.getElementById('villeAdverse').value = client.villeAdverse || ''; // Nouveau
+        document.getElementById('complementAdresseAdverse').value = client.complementAdresseAdverse || ''; // Nouveau
         document.getElementById('telephoneAdverse').value = client.telephoneAdverse;
         document.getElementById('emailAdverse').value = client.emailAdverse;
         document.getElementById('professionAdverse').value = client.professionAdverse;
@@ -1380,6 +1404,9 @@ function checkFormChanges() {
         nom: document.getElementById('nom').value,
         prenom: document.getElementById('prenom').value,
         adresse: document.getElementById('adresse').value,
+        codePostal: document.getElementById('codePostal').value, // Nouveau
+        ville: document.getElementById('ville').value, // Nouveau
+        complementAdresse: document.getElementById('complementAdresse').value, // Nouveau
         telephone: document.getElementById('telephone').value,
         email: document.getElementById('email').value,
         profession: document.getElementById('profession').value,
@@ -1393,6 +1420,9 @@ function checkFormChanges() {
         nomAdverse: document.getElementById('nomAdverse').value,
         prenomAdverse: document.getElementById('prenomAdverse').value,
         adresseAdverse: document.getElementById('adresseAdverse').value,
+        codePostalAdverse: document.getElementById('codePostalAdverse').value, // Nouveau
+        villeAdverse: document.getElementById('villeAdverse').value, // Nouveau
+        complementAdresseAdverse: document.getElementById('complementAdresseAdverse').value, // Nouveau
         telephoneAdverse: document.getElementById('telephoneAdverse').value,
         emailAdverse: document.getElementById('emailAdverse').value,
         professionAdverse: document.getElementById('professionAdverse').value,
@@ -1446,6 +1476,9 @@ function annulerModification() {
     document.getElementById('nom').value = '';
     document.getElementById('prenom').value = ''; // Nouveau champ
     document.getElementById('adresse').value = '';
+    document.getElementById('codePostal').value = ''; // Nouveau
+    document.getElementById('ville').value = ''; // Nouveau
+    document.getElementById('complementAdresse').value = ''; // Nouveau
     document.getElementById('telephone').value = '';
     document.getElementById('email').value = '';
     document.getElementById('profession').value = '';
@@ -1460,6 +1493,9 @@ function annulerModification() {
     document.getElementById('nomAdverse').value = '';
     document.getElementById('prenomAdverse').value = '';
     document.getElementById('adresseAdverse').value = '';
+    document.getElementById('codePostalAdverse').value = ''; // Nouveau
+    document.getElementById('villeAdverse').value = ''; // Nouveau
+    document.getElementById('complementAdresseAdverse').value = ''; // Nouveau
     document.getElementById('telephoneAdverse').value = '';
     document.getElementById('emailAdverse').value = '';
     document.getElementById('professionAdverse').value = '';
@@ -1490,6 +1526,9 @@ function afficherFicheClient(client) {
     <p><strong>Client</strong></p>
     <p>Nom complet : ${client.nom} ${client.prenom || ''}</p>
     <p>Adresse : ${client.adresse || ''}</p>
+    <p>Complément : ${client.complementAdresse || ''}</p> <!-- Nouveau -->
+    <p>Code Postal : ${client.codePostal || ''}</p> <!-- Nouveau -->
+    <p>Ville : ${client.ville || ''}</p> <!-- Nouveau -->
     <p>Téléphone : ${client.telephone || ''}</p>
     <p>Email : ${client.email || ''}</p>
     <p>Profession : ${client.profession || ''}</p>
@@ -1509,6 +1548,9 @@ function afficherFicheClient(client) {
     <p><strong>Adverse</strong></p>
     <p>Nom complet : ${client.nomAdverse} ${client.prenomAdverse || ''}</p>
     <p>Adresse : ${client.adresseAdverse || ''}</p>
+    <p>Complément : ${client.complementAdresseAdverse || ''}</p> <!-- Nouveau -->
+    <p>Code Postal : ${client.codePostalAdverse || ''}</p> <!-- Nouveau -->
+    <p>Ville : ${client.villeAdverse || ''}</p> <!-- Nouveau -->
     <p>Téléphone : ${client.telephoneAdverse || ''}</p>
     <p>Email : ${client.emailAdverse || ''}</p>
     <p>Profession : ${client.professionAdverse || ''}</p>
@@ -1535,7 +1577,7 @@ function filtrerClients() {
       ? JSON.parse(fs.readFileSync(cheminFichier))
       : [];
     const resultat = data.filter(client =>
-      `${client.nom} ${client.prenom || ''} ${client.type} ${client.role || ''} ${client.adresse} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.prenomAdverse || ''} ${client.adresseAdverse} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
+      `${client.nom} ${client.prenom || ''} ${client.type} ${client.role || ''} ${client.adresse} ${client.codePostal || ''} ${client.ville || ''} ${client.complementAdresse || ''} ${client.telephone} ${client.email} ${client.profession} ${client.commentaire} ${client.nomAdverse} ${client.prenomAdverse || ''} ${client.adresseAdverse} ${client.codePostalAdverse || ''} ${client.villeAdverse || ''} ${client.complementAdresseAdverse || ''} ${client.telephoneAdverse} ${client.emailAdverse} ${client.professionAdverse}`.toLowerCase().includes(filtre)
     );
     afficherClients(resultat);
   } catch (error) {
@@ -1752,6 +1794,9 @@ function exporterFichePDF(client) {
     doc.fontSize(14).text("Informations du client", { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Adresse : ${adresse || '–'}`);
+    doc.text(`Complément : ${client.complementAdresse || '–'}`); // Nouveau
+    doc.text(`Code Postal : ${client.codePostal || '–'}`); // Nouveau
+    doc.text(`Ville : ${client.ville || '–'}`); // Nouveau
     doc.text(`Téléphone : ${telephone || '–'}`);
     doc.text(`Email : ${email || '–'}`);
     doc.text(`Profession : ${profession || '–'}`);
@@ -1762,6 +1807,9 @@ function exporterFichePDF(client) {
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Nom complet : ${nomAdverse} ${prenomAdverse || ''}`);
     doc.text(`Adresse : ${adresseAdverse || '–'}`);
+    doc.text(`Complément : ${client.complementAdresseAdverse || '–'}`); // Nouveau
+    doc.text(`Code Postal : ${client.codePostalAdverse || '–'}`); // Nouveau
+    doc.text(`Ville : ${client.villeAdverse || '–'}`); // Nouveau
     doc.text(`Téléphone : ${telephoneAdverse || '–'}`);
     doc.text(`Email : ${emailAdverse || '–'}`);
     doc.text(`Profession : ${professionAdverse || '–'}`);
