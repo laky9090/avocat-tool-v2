@@ -2,6 +2,37 @@
 
 const { ipcRenderer } = require('electron');
 const { jsPDF } = require("jspdf"); // <-- AJOUTER CETTE LIGNE
+let remote;
+try {
+    remote = require('@electron/remote');
+} catch (e) {
+    console.error("Erreur: Impossible de charger @electron/remote. Assurez-vous qu'il est installé et initialisé.", e);
+    // Fournir un fallback si remote n'est pas disponible
+    remote = null;
+}
+
+// Fonction pour obtenir le chemin racine de manière fiable
+function getAppRootPath() {
+    if (remote && remote.app) {
+        // Utilise le chemin de l'application fourni par Electron
+        return remote.app.getAppPath();
+    } else {
+        // Fallback (moins fiable, utilise l'ancienne méthode mais log un avertissement)
+        console.warn("Utilisation du fallback pour getAppRootPath via __dirname.");
+        // Attention: Ce fallback peut encore donner le mauvais chemin C:\Users\dhlla\Downloads\
+        // Il faudrait idéalement passer le chemin correct via IPC depuis le processus principal.
+        // Assurez-vous que 'path' est disponible (il devrait l'être via window.path)
+        if (typeof path !== 'undefined') {
+             return path.resolve(__dirname, '..');
+        } else {
+             console.error("ERREUR CRITIQUE: Module 'path' non disponible pour le fallback de getAppRootPath !");
+             // Retourner une valeur par défaut ou lever une erreur plus explicite
+             return 'CHEMIN_RACINE_INCONNU'; // Ou null, ou lever une erreur
+        }
+    }
+}
+
+
 
 // Remplacer la fonction handleInvoiceSubmission
 function handleInvoiceSubmission(event) {
@@ -11,6 +42,7 @@ function handleInvoiceSubmission(event) {
         // Récupérer les données du formulaire
         const data = getFormData();
         if (!data) return;
+
 
         // Générer un numéro de facture unique
         const invoiceNumber = generateInvoiceNumber(data.client.numeroDossier);
@@ -32,27 +64,32 @@ function handleInvoiceSubmission(event) {
         // --- Début Génération PDF ---
         try {
             console.log('Début de la génération du PDF...');
-            // 1. Construire le chemin du répertoire client
-            // Assumant une structure comme: AvocatTool/clients_data/dossier_NUM_NOM_PRENOM/
-            // __dirname est le dossier 'js', donc on remonte d'un niveau
-            const clientDirName = `dossier_${invoice.client.numeroDossier}_${invoice.client.nom}_${invoice.client.prenom}`
-                                    .replace(/[^a-zA-Z0-9_]/g, '_'); // Nettoyer le nom du dossier
-            const baseClientDataPath = path.resolve(__dirname, '..', 'clients_data'); // Chemin vers le dossier parent des clients
-            const clientDirPath = path.join(baseClientDataPath, clientDirName);
+
+            // --- NOUVELLE LOGIQUE - À AJOUTER ---
+            // 1. Obtenir le chemin racine de l'application
+            const appRootPath = getAppRootPath();
+            console.log(`Chemin racine de l'application détecté: ${appRootPath}`); // LOG AJOUTÉ
+
+            const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
+            const clientFolderName = `${invoice.client.nom}_${invoice.client.prenom}`
+                                        .replace(/[^a-zA-Z0-9_]/g, '_');
+            const facturesSubDir = '2-Factures'; // Le sous-dossier spécifique
+
+            // Chemin complet vers le dossier où enregistrer la facture PDF
+            const clientFacturesPath = path.join(baseDossiersPath, clientFolderName, facturesSubDir);
+            // --- FIN NOUVELLE LOGIQUE ---
 
             // 2. S'assurer que le répertoire de base et celui du client existent
-            if (!fs.existsSync(baseClientDataPath)) {
-                fs.mkdirSync(baseClientDataPath, { recursive: true });
-                console.log(`Répertoire de base clients créé: ${baseClientDataPath}`);
-            }
-            if (!fs.existsSync(clientDirPath)) {
-                fs.mkdirSync(clientDirPath, { recursive: true });
-                console.log(`Répertoire client créé: ${clientDirPath}`);
+            if (!fs.existsSync(clientFacturesPath)) { // Utilise le nouveau chemin complet
+                fs.mkdirSync(clientFacturesPath, { recursive: true });
+                console.log(`Arborescence créée ou existante jusqu'à: ${clientFacturesPath}`);
+            } else {
+                 console.log(`Arborescence existe jusqu'à: ${clientFacturesPath}`);
             }
 
             // 3. Définir le nom et chemin complet du fichier PDF
             const pdfFileName = `Facture_${invoice.number}.pdf`;
-            const pdfFilePath = path.join(clientDirPath, pdfFileName);
+            const pdfFilePath = path.join(clientFacturesPath, pdfFileName); // Utilise le nouveau chemin
 
             // 4. Générer le contenu du PDF avec jsPDF
             const doc = new jsPDF();
