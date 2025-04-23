@@ -26,6 +26,14 @@ body {
   line-height: 1.6;
 }
 
+/* Assurer que le body prend toute la hauteur et utilise flex */
+body.tableau-suivi-page { /* Cible spécifiquement le body de cette page */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Hauteur minimale de la fenêtre */
+  margin: 0; /* Réinitialiser la marge par défaut du body */
+}
+
 /* Conteneurs principaux */
 .tasks-container {
   margin: 30px auto;
@@ -854,8 +862,10 @@ tr.deleting {
 
 /* Ajustement du contenu principal pour éviter qu'il ne soit caché sous l'en-tête fixe */
 .tableau-suivi-page main {
+    flex-grow: 1; /* Permet à main de prendre l'espace vertical disponible */
     margin-top: 80px; /* Ajuster cette valeur selon la hauteur de votre en-tête */
     padding-top: 10px;
+    padding-bottom: 20px; /* Ajouter un peu d'espace avant le pied de page */
 }
 
 /* Assurer que les boutons de thème restent au-dessus de l'en-tête fixe */
@@ -868,5 +878,15 @@ tr.deleting {
     flex: 1;
     display: flex;
     align-items: center;
+}
+
+/* Styles pour le pied de page */
+.tableau-suivi-page footer {
+    flex-shrink: 0; /* Empêche le pied de page de rétrécir */
+    background-color: var(--footer-background, #34495E); /* Couleur de fond (variable ou défaut) */
+    color: var(--footer-text-color, #ffffff); /* Couleur du texte */
+    padding: 15px 0;
+    text-align: center;
+    border-top: 1px solid var(--border-color, #dee2e6);
 }
 

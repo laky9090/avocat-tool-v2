@@ -64,7 +64,7 @@
     "clientId": "2025-003",
     "description": "Envoyer notification à l'adverse",
     "dueDate": "2025-04-25",
-    "completed": false,
+    "completed": true,
     "comment": "Notification envoyée par email"
   },
   {
@@ -72,7 +72,7 @@
     "clientId": "2025-003",
     "description": "test nouvelle tache",
     "dueDate": "2024-04-02",
-    "completed": false,
+    "completed": true,
     "comment": "coucou"
   }
 ]
