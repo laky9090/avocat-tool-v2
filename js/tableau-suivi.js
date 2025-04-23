@@ -1880,24 +1880,4 @@ function initSearchAndSort() {
         
         console.log(`Direction de tri changée à: ${currentSortOrder}`);
     });
-    
-    // Initialiser le tri par défaut
-    setTimeout(performSort, 500); // Petit délai pour s'assurer que tous les éléments sont rendus
-
-    // Ajouter à la fin de initSearchAndSort()
-    console.log("Test automatique des types de tri");
-    setTimeout(() => {
-        sortSelect.value = 'date';
-        sortSelect.dispatchEvent(new Event('change'));
-        
-        setTimeout(() => {
-            sortSelect.value = 'status';
-            sortSelect.dispatchEvent(new Event('change'));
-            
-            setTimeout(() => {
-                sortSelect.value = 'client';
-                sortSelect.dispatchEvent(new Event('change'));
-            }, 1000);
-        }, 1000);
-    }, 1000);
 }
