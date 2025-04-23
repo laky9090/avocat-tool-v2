@@ -93,72 +93,166 @@ function handleInvoiceSubmission(event) {
 
             // 4. Générer le contenu du PDF avec jsPDF
             const doc = new jsPDF();
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const margin = 15; // Ou la valeur souhaitée
+            // --- Début Contenu PDF ---
 
-            // --- Contenu du PDF (Exemple basique) ---
-            doc.setFontSize(18);
-            doc.text(`FACTURE N°: ${invoice.number}`, 105, 20, { align: 'center' }); // Centré
-
-            doc.setFontSize(12);
-            doc.text(`Date: ${new Date(invoice.date).toLocaleDateString('fr-FR')}`, 190, 30, { align: 'right' });
-
-            // Infos Client (à gauche)
-            doc.text('Client:', 20, 40);
-            doc.text(`${invoice.client.nom} ${invoice.client.prenom}`, 20, 47);
-            doc.text(`N° Dossier: ${invoice.client.numeroDossier}`, 20, 54);
-            // Ajouter adresse, etc. si disponible dans invoice.client
-            // doc.text(invoice.client.adresse || '', 20, 61);
-            // doc.text(`${invoice.client.codePostal || ''} ${invoice.client.ville || ''}`, 20, 68);
-
-            // Infos Avocat (à droite - à adapter)
-            doc.text('Maître Candice ROVERA', 190, 40, { align: 'right' });
-            doc.text('Avocate au Barreau de Paris', 190, 47, { align: 'right' });
-            // Ajouter adresse cabinet, SIRET, etc.
-            // doc.text('Adresse Cabinet', 190, 54, { align: 'right' });
-            // doc.text('SIRET: ...', 190, 61, { align: 'right' });
-
-            // Tableau des prestations
-            let yPos = 85;
-            doc.setFontSize(14);
-            doc.text('Description', 20, yPos);
-            doc.text('Montant HT', 190, yPos, { align: 'right' });
-            yPos += 7;
-            doc.setLineWidth(0.2);
-            doc.line(20, yPos, 190, yPos); // Ligne sous les titres
-            yPos += 7;
-            doc.setFontSize(12);
-
-            invoice.prestations.forEach((p) => {
-                // Gestion simple du retour à la ligne pour la description
-                const splitDesc = doc.splitTextToSize(p.description, 140); // Largeur max description
-                doc.text(splitDesc, 20, yPos);
-                doc.text(`${p.amount.toFixed(2)} €`, 190, yPos, { align: 'right' });
-                yPos += (splitDesc.length * 5) + 3; // Ajuster l'espacement vertical
-
-                if (yPos > 260) { // Gestion simple de la pagination
-                    doc.addPage();
-                    yPos = 20;
-                    // Redessiner les en-têtes si nécessaire sur la nouvelle page
+            // A. En-tête
+            const logoPath = path.join(appRootPath, 'logo_candice.png'); // Assurez-vous que le logo est à la racine du projet
+            const logoWidth = 30; // Largeur du logo en mm
+            const logoHeight = 15; // Hauteur du logo en mm (ajuster selon l'aspect ratio)
+            if (fs.existsSync(logoPath)) {
+                try {
+                    const imgData = fs.readFileSync(logoPath); // Lire l'image
+                    // Convertir en Base64 pour jsPDF (plus fiable que le chemin direct)
+                    const base64Img = Buffer.from(imgData).toString('base64');
+                    doc.addImage(base64Img, 'PNG', margin, margin, logoWidth, logoHeight);
+                } catch (imgError) {
+                    console.error("Erreur lors du chargement/ajout du logo:", imgError);
+                    // Optionnel: Ajouter un texte de remplacement si le logo échoue
+                    doc.setFontSize(10);
+                    doc.text("Logo non chargé", margin, margin + 5);
                 }
+            } else {
+                console.warn(`Logo non trouvé à l'emplacement: ${logoPath}`);
+                doc.setFontSize(10);
+                doc.text("Logo manquant", margin, margin + 5);
+            }
+
+            // B. Coordonnées Avocate (sous le logo, aligné à gauche)
+            let yPos = margin + logoHeight + 10; // Position Y initiale sous le logo
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Maître Candice ROVERA', margin, yPos); // Placeholder
+            doc.setFont('helvetica', 'normal');
+            yPos += 5;
+            doc.text('Avocate au Barreau de Paris', margin, yPos); // Placeholder
+            yPos += 5;
+            doc.text('123 Rue de la Loi, 75001 Paris', margin, yPos); // Placeholder
+            yPos += 5;
+            doc.text('TVA Intra: FR13983024837', margin, yPos); // Placeholder (si applicable)
+
+            // C. Coordonnées Client (aligné à droite)
+            yPos = margin + 10; // Réinitialiser Y pour l'alignement à droite
+            const clientStartX = pageWidth - margin - 70; // Position X pour le bloc client (ajuster la largeur 70mm)
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Client:', clientStartX, yPos);
+            doc.setFont('helvetica', 'normal');
+            yPos += 5;
+            doc.text(`${invoice.client.nom} ${invoice.client.prenom}`, clientStartX, yPos);
+            // Ajouter adresse client si disponible
+            if (invoice.client.adresse) {
+                yPos += 5;
+                doc.text(invoice.client.adresse, clientStartX, yPos);
+            }
+            if (invoice.client.codePostal || invoice.client.ville) {
+                yPos += 5;
+                doc.text(`${invoice.client.codePostal || ''} ${invoice.client.ville || ''}`, clientStartX, yPos);
+            }
+
+            // D. Bloc d'information facture (sous les coordonnées)
+            yPos = Math.max(margin + logoHeight + 30, yPos + 15); // Position Y sous le plus bas des deux blocs
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`FACTURE N° : ${invoice.number}`, margin, yPos);
+            doc.setFont('helvetica', 'normal');
+            yPos += 7;
+            doc.setFontSize(10);
+            doc.text(`Date d'émission : ${new Date(invoice.date).toLocaleDateString('fr-FR')}`, margin, yPos);
+            yPos += 5;
+            doc.text(`Référence dossier : ${invoice.client.numeroDossier}`, margin, yPos);
+            yPos += 5;
+            // Objet: Utiliser la première prestation ou un texte générique
+            const objet = invoice.prestations.length > 0 ? `Objet : ${invoice.prestations[0].description.substring(0, 50)}${invoice.prestations[0].description.length > 50 ? '...' : ''}` : 'Objet : Prestations juridiques';
+            doc.text(objet, margin, yPos);
+
+            // E. Tableau récapitulatif
+            yPos += 15; // Espace avant le tableau
+            const tableHeaders = ['Description', 'Prix HT (€)', 'Taux TVA (%)'];
+            const colWidths = [pageWidth * 0.55, pageWidth * 0.15, pageWidth * 0.15]; // Ajuster les largeurs
+            const tableStartX = margin;
+            const tableHeaderY = yPos;
+            const tableRowHeight = 7; // Hauteur de ligne
+            const vatRate = 20; // Taux TVA fixe
+
+            // En-têtes du tableau
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setFillColor(230, 230, 230); // Gris clair pour l'en-tête
+            doc.rect(tableStartX, tableHeaderY, colWidths.reduce((a, b) => a + b), tableRowHeight, 'F');
+            doc.text(tableHeaders[0], tableStartX + 2, tableHeaderY + tableRowHeight - 2);
+            doc.text(tableHeaders[1], tableStartX + colWidths[0] + colWidths[1] / 2, tableHeaderY + tableRowHeight - 2, { align: 'center' });
+            doc.text(tableHeaders[2], tableStartX + colWidths[0] + colWidths[1] + colWidths[2] / 2, tableHeaderY + tableRowHeight - 2, { align: 'center' });
+            yPos += tableRowHeight;
+
+            // Lignes du tableau
+            doc.setFont('helvetica', 'normal');
+            doc.setLineWidth(0.1);
+            invoice.prestations.forEach((p, index) => {
+                const descriptionLines = doc.splitTextToSize(p.description, colWidths[0] - 4); // Texte avec marge
+                const rowHeight = descriptionLines.length * (doc.getLineHeight() / doc.internal.scaleFactor) + 4; // Hauteur dynamique
+
+                // Vérifier si la ligne dépasse la page
+                if (yPos + rowHeight > pageHeight - margin - 30) { // 30mm pour les totaux et le pied de page
+                    doc.addPage();
+                    yPos = margin;
+                    // Redessiner l'en-tête du tableau sur la nouvelle page si nécessaire
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFillColor(230, 230, 230);
+                    doc.rect(tableStartX, yPos, colWidths.reduce((a, b) => a + b), tableRowHeight, 'F');
+                    doc.text(tableHeaders[0], tableStartX + 2, yPos + tableRowHeight - 2);
+                    doc.text(tableHeaders[1], tableStartX + colWidths[0] + colWidths[1] / 2, yPos + tableRowHeight - 2, { align: 'center' });
+                    doc.text(tableHeaders[2], tableStartX + colWidths[0] + colWidths[1] + colWidths[2] / 2, yPos + tableRowHeight - 2, { align: 'center' });
+                    yPos += tableRowHeight;
+                    doc.setFont('helvetica', 'normal');
+                }
+
+                // Dessiner les bordures de la ligne
+                doc.line(tableStartX, yPos, tableStartX, yPos + rowHeight); // Gauche
+                doc.line(tableStartX + colWidths[0], yPos, tableStartX + colWidths[0], yPos + rowHeight); // Milieu 1
+                doc.line(tableStartX + colWidths[0] + colWidths[1], yPos, tableStartX + colWidths[0] + colWidths[1], yPos + rowHeight); // Milieu 2
+                doc.line(tableStartX + colWidths[0] + colWidths[1] + colWidths[2], yPos, tableStartX + colWidths[0] + colWidths[1] + colWidths[2], yPos + rowHeight); // Droite
+                doc.line(tableStartX, yPos + rowHeight, tableStartX + colWidths.reduce((a, b) => a + b), yPos + rowHeight); // Bas
+
+                // Ajouter le texte
+                doc.text(descriptionLines, tableStartX + 2, yPos + 4);
+                doc.text(p.amount.toFixed(2), tableStartX + colWidths[0] + colWidths[1] / 2, yPos + 4 + (rowHeight - tableRowHeight)/2, { align: 'center' });
+                doc.text(vatRate.toFixed(0) + '%', tableStartX + colWidths[0] + colWidths[1] + colWidths[2] / 2, yPos + 4 + (rowHeight - tableRowHeight)/2, { align: 'center' });
+
+                yPos += rowHeight;
             });
 
-            yPos = Math.max(yPos, 200); // Assurer que les totaux sont en bas
-            doc.line(20, yPos, 190, yPos); // Ligne avant totaux
-            yPos += 7;
+            // F. Totaux (alignés à droite, sous le tableau)
+            yPos = Math.max(yPos + 10, pageHeight - margin - 30); // Positionner en bas ou sous le tableau
+            const totalsStartX = tableStartX + colWidths[0]; // Aligner avec la 2ème colonne
+            const totalsValueX = tableStartX + colWidths.reduce((a, b) => a + b); // Aligner à droite du tableau
 
-            // Totaux
-            doc.setFontSize(12);
-            doc.text('Total HT:', 140, yPos);
-            doc.text(`${invoice.totalHT.toFixed(2)} €`, 190, yPos, { align: 'right' });
-            yPos += 7;
-            doc.text('TVA (20%):', 140, yPos);
-            doc.text(`${(invoice.totalHT * 0.2).toFixed(2)} €`, 190, yPos, { align: 'right' });
-            yPos += 7;
-            doc.setFontSize(14);
+            doc.setFontSize(10);
+            doc.text('Total HT :', totalsStartX, yPos, { align: 'right' });
+            doc.text(`${invoice.totalHT.toFixed(2)} €`, totalsValueX, yPos, { align: 'right' });
+            yPos += tableRowHeight;
+
+            doc.text(`TVA (${vatRate}%) :`, totalsStartX, yPos, { align: 'right' });
+            doc.text(`${(invoice.totalHT * (vatRate / 100)).toFixed(2)} €`, totalsValueX, yPos, { align: 'right' });
+            yPos += tableRowHeight;
+
             doc.setFont('helvetica', 'bold');
-            doc.text('Total TTC:', 140, yPos);
-            doc.text(`${invoice.totalTTC.toFixed(2)} €`, 190, yPos, { align: 'right' });
+            doc.text('Total TTC :', totalsStartX, yPos, { align: 'right' });
+            doc.text(`${invoice.totalTTC.toFixed(2)} €`, totalsValueX, yPos, { align: 'right' });
             doc.setFont('helvetica', 'normal');
+
+            // G. Pied de page (centré en bas)
+            const footerY = pageHeight - margin + 5;
+            doc.setFontSize(8);
+            doc.setTextColor(150); // Gris
+            const footerText = `Maître Candice ROVERA - Avocate au Barreau de Paris - SIRET : 98302483700020`; // Placeholder
+            doc.text(footerText, pageWidth / 2, footerY, { align: 'center' });
+
             // --- Fin Contenu PDF ---
+
 
             // 5. Sauvegarder le PDF dans le fichier
             const pdfOutput = doc.output('arraybuffer'); // Obtenir le contenu binaire
