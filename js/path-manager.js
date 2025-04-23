@@ -3,6 +3,13 @@
 // Initialisation
 console.log('Initialisation du gestionnaire de chemins et stockage...');
 
+// --- VÉRIFIER/AJOUTER CES LIGNES ---
+const fs = require('fs');
+const path = require('path');
+window.fs = fs; // Rendre fs accessible globalement
+window.path = path; // Rendre path accessible globalement
+// --- FIN VÉRIFICATION/AJOUT ---
+
 // Système de stockage hybride - Utilise le système de fichiers si disponible,
 // sinon utilise localStorage comme solution de secours
 const StorageSystem = {

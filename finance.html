@@ -301,8 +301,7 @@ Avocate au Barreau de Paris</textarea>
 
     <script src="js/config.js"></script>
     <script src="js/email-config.js"></script>
-    <script src="js/utils.js"></script>
-    <!-- Autres scripts... -->
+
 
     <!-- Ajouter juste avant les autres scripts -->
     <script>
@@ -315,16 +314,21 @@ Avocate au Barreau de Paris</textarea>
     </script>
 
     <!-- Ordre de chargement correct -->
-    <script src="js/utils.js"></script>
     <script src="js/path-manager.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/finance-core.js"></script>
+    <script src="js/chart-manager.js"></script>
+    <script src="js/invoice-manager.js"></script>
+    <script src="js/finance-stats.js"></script>
+    <script src="js/email-manager.js"></script>
     <script src="js/window-manager.js"></script>
     <script src="js/modal-manager.js"></script>
     <script src="js/client-manager.js"></script>
-    <script src="js/invoice-manager.js"></script>
-    <script src="js/email-manager.js"></script>
-    <script src="js/chart-manager.js"></script>
-    <script src="js/finance-stats.js"></script> <!-- Nouveau fichier -->
-    <script src="js/finance-core.js"></script>
+
+  
+
+
+
     <script>
     // Script de démarrage pour s'assurer que tout fonctionne
     document.addEventListener('DOMContentLoaded', function() {
