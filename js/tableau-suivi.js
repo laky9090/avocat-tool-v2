@@ -1544,37 +1544,15 @@ function saveTasks() {
     }
 }
 
-// Nouvelle fonction pour trier les lignes <tr> dans un tbody
-function sortInternalTableRows(tbody, sortOrder) {
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-
-    rows.sort((a, b) => {
-        const isCheckedA = a.querySelector('.task-checkbox')?.checked ?? false;
-        const isCheckedB = b.querySelector('.task-checkbox')?.checked ?? false;
-
-        // Convertir booléen en nombre pour comparaison (false=0, true=1)
-        const valueA = isCheckedA ? 1 : 0;
-        const valueB = isCheckedB ? 1 : 0;
-
-        let comparison = valueA - valueB; // Tri numérique
-
-        // Inverser si ordre descendant (mettre les cochés en premier)
-        return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    // Réinsérer les lignes dans le tbody dans le nouvel ordre
-    rows.forEach(row => tbody.appendChild(row)); // Déplace la ligne à la fin
-}
-
-// *** NOUVELLE FONCTION : Afficher une liste plate de toutes les tâches ***
-function renderFlatTaskView(sortOrder) {
-    console.log(`Rendu de la vue plate des tâches, tri par statut (${sortOrder})`);
+// *** MODIFIER renderFlatTaskView pour accepter le type de tri ***
+function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
+    console.log(`Rendu de la vue plate des tâches, tri par ${sortType} (${sortOrder})`); // Log mis à jour
     const container = document.getElementById('tasksContainer');
     if (!container) return;
 
     container.innerHTML = ''; // Vider le conteneur
 
-    // 1. Collecter TOUTES les tâches de TOUS les clients actifs
+    // 1. Collecter TOUTES les tâches ... (inchangé) ...
     let allTasksList = [];
     clients.forEach(client => {
         const clientTasks = tasks[client.id] || [];
@@ -1586,25 +1564,37 @@ function renderFlatTaskView(sortOrder) {
             });
         });
     });
-
     console.log(`Total de ${allTasksList.length} tâches collectées.`);
 
-    // 2. Trier la liste globale par statut (complété/non complété)
+    // 2. Trier la liste globale en fonction de sortType
     allTasksList.sort((a, b) => {
-        const valueA = a.completed ? 1 : 0; // 1 si cochée, 0 sinon
-        const valueB = b.completed ? 1 : 0;
-        let comparison = valueA - valueB;
-        // Inverser si ordre descendant (cochées en premier)
+        let comparison = 0;
+        if (sortType === 'status') {
+            const valueA = a.completed ? 1 : 0;
+            const valueB = b.completed ? 1 : 0;
+            comparison = valueA - valueB;
+        } else if (sortType === 'date') {
+            // Convertir les dates en timestamps pour comparaison
+            // Mettre les dates invalides/absentes à la fin (Infinity)
+            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            const timeA = isNaN(dateA) ? Infinity : dateA;
+            const timeB = isNaN(dateB) ? Infinity : dateB;
+
+            if (timeA === Infinity && timeB === Infinity) comparison = 0;
+            else if (timeA === Infinity) comparison = 1; // a (Infinity) est plus grand
+            else if (timeB === Infinity) comparison = -1; // b (Infinity) est plus grand
+            else comparison = timeA - timeB; // Tri numérique des timestamps
+        }
+        // Inverser si ordre descendant
         return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    console.log('Tâches triées globalement par statut.');
+    console.log(`Tâches triées globalement par ${sortType}.`);
 
-    // 3. Créer un seul grand tableau pour afficher les tâches triées
+    // 3. Créer un seul grand tableau ... (inchangé) ...
     const flatTable = document.createElement('table');
-    flatTable.className = 'task-table flat-task-view'; // Ajouter une classe spécifique
-
-    // Ajouter l'en-tête du tableau plat
+    flatTable.className = 'task-table flat-task-view';
     flatTable.innerHTML = `
         <thead>
             <tr>
@@ -1616,11 +1606,11 @@ function renderFlatTaskView(sortOrder) {
                 <th class="task-actions-header">Actions</th>
             </tr>
         </thead>
-    `;
+    `; // En-tête inchangé
 
     const tbody = document.createElement('tbody');
 
-    // 4. Créer une ligne <tr> pour chaque tâche triée
+    // 4. Créer une ligne <tr> pour chaque tâche triée ... (inchangé) ...
     allTasksList.forEach(task => {
         const row = document.createElement('tr');
         if (task.completed) {
@@ -1668,12 +1658,34 @@ function renderFlatTaskView(sortOrder) {
     flatTable.appendChild(tbody);
     container.appendChild(flatTable);
 
-    // 5. Réattacher les gestionnaires d'événements nécessaires
-    addEditableFieldListeners(); // Pour description, date, commentaire
-    attachCheckboxListeners();   // Pour les cases à cocher
-    attachDeleteButtonListeners(); // Pour les boutons supprimer
+    // 5. Réattacher les gestionnaires d'événements ... (inchangé) ...
+    addEditableFieldListeners();
+    attachCheckboxListeners();
+    attachDeleteButtonListeners();
 
     console.log('Vue plate rendue et écouteurs attachés.');
+}
+
+// Nouvelle fonction pour trier les lignes <tr> dans un tbody
+function sortInternalTableRows(tbody, sortOrder) {
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {
+        const isCheckedA = a.querySelector('.task-checkbox')?.checked ?? false;
+        const isCheckedB = b.querySelector('.task-checkbox')?.checked ?? false;
+
+        // Convertir booléen en nombre pour comparaison (false=0, true=1)
+        const valueA = isCheckedA ? 1 : 0;
+        const valueB = isCheckedB ? 1 : 0;
+
+        let comparison = valueA - valueB; // Tri numérique
+
+        // Inverser si ordre descendant (mettre les cochés en premier)
+        return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    // Réinsérer les lignes dans le tbody dans le nouvel ordre
+    rows.forEach(row => tbody.appendChild(row)); // Déplace la ligne à la fin
 }
 
 // *** MODIFIER performSort pour utiliser les différentes vues ***
@@ -1685,51 +1697,49 @@ function performSort() {
     // --- Mise à jour de l'indicateur de tri (déplacé au début) ---
     const sortTypeLabels = {
         'client': 'nom de client (groupé)',
-        'date': 'prochaine échéance (groupé)',
-        'status': 'statut des tâches (liste globale)' // Libellé mis à jour
+        'date': 'date d\'échéance (liste globale)', // Mis à jour
+        'status': 'statut des tâches (liste globale)'
     };
     let sortIndicator = container.querySelector('.sort-indicator');
-    // ... (code pour créer/mettre à jour l'indicateur comme avant) ...
-     if (!sortIndicator) {
-         sortIndicator = document.createElement('div');
-         sortIndicator.className = 'sort-indicator';
-         // Styles...
-         sortIndicator.style.padding = '8px';
-         sortIndicator.style.margin = '10px 0';
-         sortIndicator.style.backgroundColor = 'var(--input-bg-color, #e9f5ff)';
-         sortIndicator.style.border = '1px solid var(--border-color, #c2e0ff)';
-         sortIndicator.style.borderRadius = '4px';
-         sortIndicator.style.textAlign = 'center';
-         sortIndicator.style.fontWeight = 'bold';
-         sortIndicator.style.color = 'var(--text-color, #333)';
-         const searchFilterElement = container.querySelector('.search-and-filter');
-         if (searchFilterElement) { searchFilterElement.parentNode.insertBefore(sortIndicator, searchFilterElement.nextSibling); }
-         else { container.insertBefore(sortIndicator, container.firstChild); }
-     }
-     sortIndicator.textContent = `Trié par : ${sortTypeLabels[currentSortType]} (${currentSortOrder === 'asc' ? 'croissant' : 'décroissant'})`;
+    if (!sortIndicator) {
+        sortIndicator = document.createElement('div');
+        sortIndicator.className = 'sort-indicator';
+        sortIndicator.style.padding = '8px';
+        sortIndicator.style.margin = '10px 0';
+        sortIndicator.style.backgroundColor = 'var(--input-bg-color, #e9f5ff)';
+        sortIndicator.style.border = '1px solid var(--border-color, #c2e0ff)';
+        sortIndicator.style.borderRadius = '4px';
+        sortIndicator.style.textAlign = 'center';
+        sortIndicator.style.fontWeight = 'bold';
+        sortIndicator.style.color = 'var(--text-color, #333)';
+        const searchFilterElement = container.querySelector('.search-and-filter');
+        if (searchFilterElement) {
+            searchFilterElement.parentNode.insertBefore(sortIndicator, searchFilterElement.nextSibling);
+        } else {
+            container.insertBefore(sortIndicator, container.firstChild);
+        }
+    }
+    sortIndicator.textContent = `Trié par : ${sortTypeLabels[currentSortType]} (${currentSortOrder === 'asc' ? 'croissant' : 'décroissant'})`;
     // --- Fin Mise à jour indicateur ---
 
-
     // --- Logique de tri principale ---
-    if (currentSortType === 'status') {
-        // Afficher la vue plate triée par statut
-        renderFlatTaskView(currentSortOrder);
+    if (currentSortType === 'status' || currentSortType === 'date') {
+        // Afficher la vue plate triée par statut OU date
+        renderFlatTaskView(currentSortOrder, currentSortType); // Passer aussi le type de tri
 
     } else {
-        // Afficher la vue groupée et trier les groupes (client ou date)
+        // Afficher la vue groupée et trier les groupes (client uniquement maintenant)
 
-        // 1. S'assurer que la vue groupée est affichée (reconstruire si nécessaire)
-        // Vérifier si la vue actuelle est déjà groupée ou s'il faut la reconstruire
+        // 1. S'assurer que la vue groupée est affichée
         const isGroupedView = container.querySelector('.task-group');
         if (!isGroupedView) {
             console.log("Passage à la vue groupée, reconstruction...");
-            renderTaskGroups(); // Reconstruit la vue groupée
+            renderTaskGroups();
         } else {
-             console.log("Vue déjà groupée, tri des groupes existants.");
+            console.log("Vue déjà groupée, tri des groupes existants.");
         }
 
-
-        // 2. Trier les groupes existants
+        // 2. Trier les groupes existants (uniquement par client maintenant)
         const taskGroups = Array.from(container.querySelectorAll(':scope > .task-group:not(.search-no-match)'));
         if (!taskGroups.length) {
             console.warn('Aucun groupe à trier dans la vue groupée.');
@@ -1739,68 +1749,36 @@ function performSort() {
 
         const groupsWithValues = [];
         taskGroups.forEach((group, index) => {
-            // ... (calcul de la valeur pour 'client' ou 'date' comme avant) ...
-             const clientId = group.dataset.clientId;
-             const clientNameElement = group.querySelector('.client-name-header .client-name');
-             const clientName = clientNameElement ? clientNameElement.textContent : `Client Inconnu ${index}`;
-             let value;
-             let rawValueForLog = '';
+            const clientId = group.dataset.clientId;
+            const clientNameElement = group.querySelector('.client-name-header .client-name');
+            const clientName = clientNameElement ? clientNameElement.textContent : `Client Inconnu ${index}`;
+            let value;
+            let rawValueForLog = '';
 
-             try {
-                 switch (currentSortType) { // Ne devrait être que 'client' ou 'date' ici
-                     case 'client':
-                         value = clientName.toLowerCase();
-                         rawValueForLog = value;
-                         break;
-                     case 'date':
-                         let earliestDueDate = Infinity;
-                         const taskRowsDate = group.querySelectorAll('tbody tr:not(.task-completed)');
-                         taskRowsDate.forEach(row => {
-                             const dateTextElement = row.querySelector('.date-text');
-                             const dateText = dateTextElement ? dateTextElement.textContent.trim() : '';
-                             if (dateText && dateText !== '—') {
-                                 const parts = dateText.split('/');
-                                 if (parts.length === 3) {
-                                     const date = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-                                     if (!isNaN(date.getTime())) {
-                                         const timestamp = date.getTime();
-                                         if (timestamp < earliestDueDate) { earliestDueDate = timestamp; }
-                                     }
-                                 }
-                             }
-                         });
-                         value = earliestDueDate;
-                         rawValueForLog = value === Infinity ? 'Infinity' : new Date(value).toLocaleDateString('fr-FR');
-                         break;
-                     // Le cas 'status' est géré par renderFlatTaskView
-                 }
-             } catch (error) {
-                 console.error(`Erreur calcul valeur pour ${clientName}:`, error);
-                 value = (currentSortType === 'date') ? Infinity : ''; // Fallback pour client/date
-                 rawValueForLog = `ERREUR (${value})`;
-             }
-             console.log(` -> [${index}] Client: ${clientName}, Type: ${currentSortType}, Valeur brute: ${rawValueForLog}, Valeur pour tri groupe: ${value}`);
-             groupsWithValues.push({ group, value, clientName });
+            try {
+                value = clientName.toLowerCase();
+                rawValueForLog = value;
+
+            } catch (error) {
+                console.error(`Erreur calcul valeur pour ${clientName}:`, error);
+                value = ''; // Fallback pour client
+                rawValueForLog = `ERREUR (${value})`;
+            }
+            console.log(` -> [${index}] Client: ${clientName}, Type: ${currentSortType}, Valeur brute: ${rawValueForLog}, Valeur pour tri groupe: ${value}`);
+            groupsWithValues.push({ group, value, clientName });
         });
 
-        // Trier les groupes
+        // Trier les groupes (logique de comparaison simplifiée car seulement par string)
         try {
             groupsWithValues.sort((a, b) => {
-                // ... (logique de comparaison pour les groupes client/date inchangée) ...
-                 let comparison = 0;
-                 const valA = a.value;
-                 const valB = b.value;
-                 if (valA === Infinity && valB === Infinity) { comparison = 0; }
-                 else if (valA === Infinity) { comparison = 1; }
-                 else if (valB === Infinity) { comparison = -1; }
-                 else if (typeof valA === 'number' && typeof valB === 'number') { comparison = valA - valB; }
-                 else if (typeof valA === 'string' && typeof valB === 'string') { comparison = valA.localeCompare(valB); }
-                 else { comparison = String(valA).localeCompare(String(valB)); }
-                 return currentSortOrder === 'asc' ? comparison : -comparison;
+                const valA = a.value;
+                const valB = b.value;
+                const comparison = valA.localeCompare(valB);
+                return currentSortOrder === 'asc' ? comparison : -comparison;
             });
         } catch (sortError) {
-             console.error("Erreur pendant le tri des groupes:", sortError);
-             return;
+            console.error("Erreur pendant le tri des groupes:", sortError);
+            return;
         }
 
         console.log('Ordre des groupes APRÈS tri:', groupsWithValues.map(item => item.clientName));
