@@ -1329,3 +1329,64 @@ footer {
   color: #ffb6c1; /* Rose clair */
   text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
+
+/* Styles pour les suggestions d'adresse */
+.address-suggestions {
+  display: none; /* Caché par défaut */
+  position: absolute; /* Pour se superposer */
+  border: 1px solid #ccc;
+  background-color: white;
+  z-index: 1000; /* Pour être au-dessus des autres éléments */
+  max-height: 150px; /* Limiter la hauteur */
+  overflow-y: auto; /* Ajouter une barre de défilement si nécessaire */
+  width: calc(100% - 22px); /* Ajuster la largeur (peut nécessiter ajustement) */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  margin-top: -1px; /* Pour coller à l'input */
+}
+
+/* Style pour les thèmes sombres */
+[data-theme="dark"] .address-suggestions {
+    background-color: #444;
+    border-color: #666;
+    color: #eee;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9em;
+}
+
+[data-theme="dark"] .suggestion-item {
+    border-bottom-color: #555;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: #f0f0f0;
+}
+
+[data-theme="dark"] .suggestion-item:hover {
+    background-color: #555;
+}
+
+.suggestion-item.error {
+    color: red;
+    font-style: italic;
+    cursor: default;
+}
+
+[data-theme="dark"] .suggestion-item.error {
+    color: #ff8080;
+}
+
+/* Ajuster la position relative pour les conteneurs de formulaire si nécessaire */
+.form-container .form-group, /* Ou un conteneur parent plus spécifique si besoin */
+#formClient label + input, /* Cibler les inputs pour positionner les suggestions */
+#formClient label + select {
+    position: relative; /* Permet à .address-suggestions de se positionner correctement */
+}

@@ -808,6 +808,150 @@ function renderFileList(dirPath) {
     });
 }
 
+// --- Début : Code pour l'autocomplétion d'adresse ---
+
+// Fonction Debounce pour limiter les appels API
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Fonction pour récupérer les suggestions d'adresse
+async function fetchAddressSuggestions(query, targetPrefix = '') {
+    const suggestionsContainerId = targetPrefix ? 'adverseAddressSuggestions' : 'clientAddressSuggestions';
+    const suggestionsContainer = document.getElementById(suggestionsContainerId);
+    if (!suggestionsContainer) return;
+
+    if (query.length < 3) { // Ne pas chercher si la requête est trop courte
+        suggestionsContainer.innerHTML = '';
+        suggestionsContainer.style.display = 'none';
+        return;
+    }
+
+    try {
+        // Utiliser l'API Adresse du gouvernement
+        const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayAddressSuggestions(data.features || [], targetPrefix);
+    } catch (error) {
+        console.error("Erreur lors de la récupération des suggestions d'adresse:", error);
+        suggestionsContainer.innerHTML = '<div class="suggestion-item error">Erreur de recherche</div>';
+        suggestionsContainer.style.display = 'block';
+    }
+}
+
+// Fonction pour afficher les suggestions
+function displayAddressSuggestions(suggestions, targetPrefix = '') {
+    const suggestionsContainerId = targetPrefix ? 'adverseAddressSuggestions' : 'clientAddressSuggestions';
+    const suggestionsContainer = document.getElementById(suggestionsContainerId);
+    if (!suggestionsContainer) return;
+
+    suggestionsContainer.innerHTML = ''; // Vider les anciennes suggestions
+    if (suggestions.length === 0) {
+        suggestionsContainer.style.display = 'none';
+        return;
+    }
+
+    suggestions.forEach(suggestion => {
+        const div = document.createElement('div');
+        div.classList.add('suggestion-item');
+        // Afficher l'adresse complète, la ville et le code postal
+        div.textContent = `${suggestion.properties.label}`;
+        div.onclick = () => selectAddressSuggestion(suggestion.properties, targetPrefix);
+        suggestionsContainer.appendChild(div);
+    });
+    suggestionsContainer.style.display = 'block'; // Afficher le conteneur
+}
+
+// Fonction pour sélectionner une suggestion
+function selectAddressSuggestion(properties, targetPrefix = '') {
+    // Mettre à jour les champs correspondants
+    document.getElementById(`${targetPrefix ? 'adresseAdverse' : 'adresse'}`).value = properties.name || ''; // Nom de la voie
+    document.getElementById(`${targetPrefix ? 'codePostalAdverse' : 'codePostal'}`).value = properties.postcode || '';
+    document.getElementById(`${targetPrefix ? 'villeAdverse' : 'ville'}`).value = properties.city || '';
+    // On pourrait essayer de remplir le complément si disponible, mais c'est moins fiable
+    // document.getElementById(`${targetPrefix ? 'complementAdresseAdverse' : 'complementAdresse'}`).value = properties.housenumber ? `N° ${properties.housenumber}` : '';
+
+    // Cacher les suggestions
+    const suggestionsContainerId = targetPrefix ? 'adverseAddressSuggestions' : 'clientAddressSuggestions';
+    const suggestionsContainer = document.getElementById(suggestionsContainerId);
+    if (suggestionsContainer) {
+        suggestionsContainer.innerHTML = '';
+        suggestionsContainer.style.display = 'none';
+    }
+}
+
+// Créer les fonctions debounced
+const debouncedFetchClient = debounce(fetchAddressSuggestions, 400);
+const debouncedFetchAdverse = debounce(fetchAddressSuggestions, 400);
+
+// Ajouter les écouteurs d'événements (à placer dans DOMContentLoaded ou une fonction d'init)
+function setupAddressAutocomplete() {
+    const adresseInput = document.getElementById('adresse');
+    const codePostalInput = document.getElementById('codePostal');
+    const villeInput = document.getElementById('ville');
+
+    const adresseAdverseInput = document.getElementById('adresseAdverse');
+    const codePostalAdverseInput = document.getElementById('codePostalAdverse');
+    const villeAdverseInput = document.getElementById('villeAdverse');
+
+    const handleClientInput = () => {
+        const query = `${adresseInput.value} ${codePostalInput.value} ${villeInput.value}`.trim();
+        debouncedFetchClient(query, ''); // '' pour client
+    };
+
+    const handleAdverseInput = () => {
+        const query = `${adresseAdverseInput.value} ${codePostalAdverseInput.value} ${villeAdverseInput.value}`.trim();
+        debouncedFetchAdverse(query, 'Adverse'); // 'Adverse' pour adverse
+    };
+
+    if (adresseInput && codePostalInput && villeInput) {
+        adresseInput.addEventListener('input', handleClientInput);
+        codePostalInput.addEventListener('input', handleClientInput);
+        villeInput.addEventListener('input', handleClientInput);
+        // Optionnel: Cacher les suggestions si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            const suggestionsContainer = document.getElementById('clientAddressSuggestions');
+            if (suggestionsContainer && !suggestionsContainer.contains(e.target) && e.target !== adresseInput && e.target !== codePostalInput && e.target !== villeInput) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+    }
+
+    if (adresseAdverseInput && codePostalAdverseInput && villeAdverseInput) {
+        adresseAdverseInput.addEventListener('input', handleAdverseInput);
+        codePostalAdverseInput.addEventListener('input', handleAdverseInput);
+        villeAdverseInput.addEventListener('input', handleAdverseInput);
+        // Optionnel: Cacher les suggestions si on clique ailleurs
+         document.addEventListener('click', (e) => {
+            const suggestionsContainer = document.getElementById('adverseAddressSuggestions');
+            if (suggestionsContainer && !suggestionsContainer.contains(e.target) && e.target !== adresseAdverseInput && e.target !== codePostalAdverseInput && e.target !== villeAdverseInput) {
+                suggestionsContainer.style.display = 'none';
+            }
+        });
+    }
+     console.log("Autocomplétion d'adresse initialisée.");
+}
+
+// Appeler setupAddressAutocomplete dans l'écouteur DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (autre code d'initialisation existant) ...
+    setupAddressAutocomplete();
+    // ...
+});
+
+// --- Fin : Code pour l'autocomplétion d'adresse ---
+
 // Afficher les clients dans la liste
 function afficherClients(clients) {
   const liste = document.getElementById('listeClients');
