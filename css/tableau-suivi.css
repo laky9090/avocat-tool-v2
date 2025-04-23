@@ -890,3 +890,73 @@ tr.deleting {
     border-top: 1px solid var(--border-color, #dee2e6);
 }
 
+/* Conteneur des filtres rapides */
+.quick-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap; /* Permet le retour à la ligne sur petits écrans */
+  width: 100%; /* Prend toute la largeur dans le flex column */
+  justify-content: center; /* Centre les boutons */
+  margin-top: 15px; /* Espace au-dessus */
+  margin-bottom: 10px; /* Espace en dessous */
+}
+
+/* Style des boutons de filtre rapide */
+.quick-filter-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--gray-300, #ccc); /* Ajout de fallback */
+  background-color: white;
+  color: var(--gray-700, #333); /* Ajout de fallback */
+  border-radius: 16px; /* Forme pilule */
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  white-space: nowrap; /* Empêche le texte de passer à la ligne */
+}
+
+.quick-filter-btn:hover {
+  background-color: var(--gray-100, #f0f0f0); /* Ajout de fallback */
+  border-color: var(--gray-400, #aaa); /* Ajout de fallback */
+}
+
+/* Style du bouton actif */
+.quick-filter-btn.active {
+  background-color: var(--primary-color, #007bff); /* Ajout de fallback */
+  color: white;
+  border-color: var(--primary-color, #007bff); /* Ajout de fallback */
+  font-weight: 500;
+}
+
+/* Mode sombre pour les filtres rapides (si vous avez un mode sombre) */
+[data-theme="dark"] .quick-filter-btn {
+  background-color: #2a2a2a;
+  border-color: var(--gray-700, #555);
+  color: var(--gray-300, #ccc);
+}
+[data-theme="dark"] .quick-filter-btn:hover {
+  background-color: #333;
+  border-color: var(--gray-600, #777);
+}
+[data-theme="dark"] .quick-filter-btn.active {
+  background-color: var(--primary-color, #0d6efd);
+  color: #fff; /* Texte blanc sur fond primaire sombre */
+  border-color: var(--primary-color, #0d6efd);
+}
+
+/* Classe CSS pour masquer les lignes de tâche filtrées */
+.quick-filter-hidden {
+    display: none !important; /* Important pour s'assurer qu'il masque la ligne */
+}
+
+/* Ajustement pour que search-and-filter permette le wrap */
+.search-and-filter {
+    display: flex; /* Assurez-vous qu'il est flex */
+    flex-wrap: wrap; /* Assure que les éléments peuvent passer à la ligne */
+    align-items: center; /* Aligner les éléments verticalement */
+    gap: 15px; /* Espace entre les conteneurs (recherche, tri, filtres) */
+}
+.search-container, .sort-container {
+    flex-grow: 1; /* Permet aux conteneurs de recherche/tri de grandir */
+    min-width: 250px; /* Largeur minimale pour éviter qu'ils soient trop écrasés */
+}
+

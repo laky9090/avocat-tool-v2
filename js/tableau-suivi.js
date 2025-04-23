@@ -37,6 +37,7 @@ let clients = [];
 let tasks = {};
 let currentSortType = 'client'; // <-- AJOUTER ICI (valeur par défaut)
 let currentSortOrder = 'asc';   // <-- AJOUTER ICI (valeur par défaut)
+let currentQuickFilter = 'all'; // Nouvelle variable globale pour le filtre actif
 
 // Fonction pour charger les données
 function loadData() {
@@ -484,6 +485,12 @@ function createSearchAndSortInterface() {
             </select>
             <button id="sortDirection" class="sort-direction" title="Inverser l'ordre de tri">▼</button>
         </div>
+        <div class="quick-filters">
+            <button class="quick-filter-btn active" data-filter="all">Tous</button>
+            <button class="quick-filter-btn" data-filter="pending">En attente</button>
+            <button class="quick-filter-btn" data-filter="completed">Terminés</button>
+            <button class="quick-filter-btn" data-filter="overdue">En retard</button>
+        </div>
     `;
     
     // Insérer au début du conteneur
@@ -771,37 +778,40 @@ function saveDate(taskId, dateValue, dateCell) {
 // Formater une date (YYYY-MM-DD → DD/MM/YYYY)
 function formatDate(dateString) {
     if (!dateString) return '—';
-    
     try {
-        const [year, month, day] = dateString.split('-');
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     } catch (e) {
-        console.error('Erreur de formatage de date:', e);
+        console.error('Erreur de formatage de date:', dateString, e);
         return dateString;
     }
 }
 
-// Ajouter cette fonction après la fonction formatDate existante
-
 // Vérifier si une date est dépassée
 function isDateOverdue(dateString) {
     if (!dateString || dateString === '—') return false;
-    
     try {
-        // Si le format est déjà DD/MM/YYYY, le convertir en YYYY-MM-DD
-        let isoDate = dateString;
+        let taskDate;
         if (dateString.includes('/')) {
-            const [day, month, year] = dateString.split('/');
-            isoDate = `${year}-${month}-${day}`;
+            const parts = dateString.split('/');
+            taskDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        } else {
+            taskDate = new Date(dateString + 'T00:00:00');
         }
-        
-        const date = new Date(isoDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Ignorer l'heure pour la comparaison
-        
-        return date < today;
+        if (isNaN(taskDate.getTime())) {
+            console.warn("Date invalide détectée dans isDateOverdue:", dateString);
+            return false;
+        }
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        taskDate.setHours(0, 0, 0, 0);
+        return taskDate < now;
     } catch (e) {
-        console.error('Erreur lors de la vérification de date:', e);
+        console.error("Erreur dans isDateOverdue:", dateString, e);
         return false;
     }
 }
@@ -1544,29 +1554,198 @@ function saveTasks() {
     }
 }
 
-// *** MODIFIER renderFlatTaskView pour accepter le type de tri ***
-function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
-    console.log(`Rendu de la vue plate des tâches, tri par ${sortType} (${sortOrder})`); // Log mis à jour
+// Nouvelle fonction pour appliquer les filtres rapides
+function applyQuickFilters() {
+    console.log(`Application du filtre rapide: ${currentQuickFilter}`);
     const container = document.getElementById('tasksContainer');
     if (!container) return;
 
-    container.innerHTML = ''; // Vider le conteneur
+    const isFlatView = container.querySelector('.flat-task-view');
+    const rowsSelector = isFlatView ? '.flat-task-view tbody tr' : '.task-group .task-table tbody tr';
+    const taskRows = container.querySelectorAll(rowsSelector);
 
-    // 1. Collecter TOUTES les tâches ... (inchangé) ...
+    console.log(`Application du filtre sur ${taskRows.length} lignes (Sélecteur: ${rowsSelector})`);
+
+    taskRows.forEach(row => {
+        let showRow = false;
+        const isCompleted = row.classList.contains('task-completed');
+        const dateTextElement = row.querySelector('.date-text');
+        const dateText = dateTextElement ? dateTextElement.textContent.trim() : '';
+        const taskId = row.dataset.taskId; // Pour debug
+
+        let taskDueDate = '';
+        const clientId = row.closest('[data-client-id]')?.dataset.clientId || row.dataset.clientId;
+        if(clientId && taskId && tasks[clientId]) {
+            const taskData = tasks[clientId].find(t => t.id === taskId);
+            if (taskData) {
+                taskDueDate = taskData.dueDate;
+            }
+        }
+        const dateToCheck = taskDueDate || dateText;
+        const isOverdue = isDateOverdue(dateToCheck);
+
+        switch (currentQuickFilter) {
+            case 'overdue':
+                showRow = !isCompleted && isOverdue;
+                break;
+            case 'completed':
+                showRow = isCompleted;
+                break;
+            case 'pending':
+                showRow = !isCompleted;
+                break;
+            case 'all':
+            default:
+                showRow = true;
+                break;
+        }
+
+        if (showRow) {
+            row.classList.remove('quick-filter-hidden');
+        } else {
+            row.classList.add('quick-filter-hidden');
+        }
+    });
+
+    if (!isFlatView) {
+        container.querySelectorAll('.task-group').forEach(group => {
+            const visibleRows = group.querySelectorAll('tbody tr:not(.quick-filter-hidden)');
+            const isFiltered = currentQuickFilter !== 'all' || container.classList.contains('filtered');
+            if (isFiltered) {
+                 group.style.display = visibleRows.length === 0 ? 'none' : '';
+            } else {
+                 group.style.display = '';
+            }
+        });
+    }
+     console.log("Filtres rapides appliqués.");
+}
+
+// *** MODIFIER performSort pour appeler applyQuickFilters à la fin ***
+function performSort() {
+    console.log(`--- Début Tri: ${currentSortType} (${currentSortOrder}) ---`);
+    const container = document.getElementById('tasksContainer');
+    if (!container) return;
+
+    const sortTypeLabels = {
+        'client': 'nom de client (groupé)',
+        'date': 'date d\'échéance (liste globale)',
+        'status': 'statut des tâches (liste globale)'
+    };
+    let sortIndicator = container.querySelector('.sort-indicator');
+    if (!sortIndicator) {
+        sortIndicator = document.createElement('div');
+        sortIndicator.className = 'sort-indicator';
+        sortIndicator.style.padding = '8px';
+        sortIndicator.style.margin = '10px 0';
+        sortIndicator.style.backgroundColor = 'var(--input-bg-color, #e9f5ff)';
+        sortIndicator.style.border = '1px solid var(--border-color, #c2e0ff)';
+        sortIndicator.style.borderRadius = '4px';
+        sortIndicator.style.textAlign = 'center';
+        sortIndicator.style.fontWeight = 'bold';
+        sortIndicator.style.color = 'var(--text-color, #333)';
+        const searchFilterElement = container.querySelector('.search-and-filter');
+        if (searchFilterElement) {
+            searchFilterElement.parentNode.insertBefore(sortIndicator, searchFilterElement.nextSibling);
+        } else {
+            container.insertBefore(sortIndicator, container.firstChild);
+        }
+    }
+    sortIndicator.textContent = `Trié par : ${sortTypeLabels[currentSortType]} (${currentSortOrder === 'asc' ? 'croissant' : 'décroissant'})`;
+
+    if (currentSortType === 'status' || currentSortType === 'date') {
+        renderFlatTaskView(currentSortOrder, currentSortType);
+    } else {
+        const isGroupedView = container.querySelector('.task-group');
+        if (!isGroupedView) {
+            console.log("Passage à la vue groupée, reconstruction...");
+            renderTaskGroups();
+        } else {
+            console.log("Vue déjà groupée, tri des groupes existants.");
+        }
+
+        const taskGroups = Array.from(container.querySelectorAll(':scope > .task-group:not(.search-no-match)'));
+        if (!taskGroups.length) {
+            console.warn('Aucun groupe à trier dans la vue groupée.');
+            return;
+        }
+        console.log(`Nombre de groupes à trier: ${taskGroups.length}`);
+
+        const groupsWithValues = [];
+        taskGroups.forEach((group, index) => {
+            const clientId = group.dataset.clientId;
+            const clientNameElement = group.querySelector('.client-name-header .client-name');
+            const clientName = clientNameElement ? clientNameElement.textContent : `Client Inconnu ${index}`;
+            let value;
+            let rawValueForLog = '';
+
+            try {
+                value = clientName.toLowerCase();
+                rawValueForLog = value;
+
+            } catch (error) {
+                console.error(`Erreur calcul valeur pour ${clientName}:`, error);
+                value = '';
+                rawValueForLog = `ERREUR (${value})`;
+            }
+            console.log(` -> [${index}] Client: ${clientName}, Type: ${currentSortType}, Valeur brute: ${rawValueForLog}, Valeur pour tri groupe: ${value}`);
+            groupsWithValues.push({ group, value, clientName });
+        });
+
+        try {
+            groupsWithValues.sort((a, b) => {
+                const valA = a.value;
+                const valB = b.value;
+                const comparison = valA.localeCompare(valB);
+                return currentSortOrder === 'asc' ? comparison : -comparison;
+            });
+        } catch (sortError) {
+            console.error("Erreur pendant le tri des groupes:", sortError);
+            return;
+        }
+
+        console.log('Ordre des groupes APRÈS tri:', groupsWithValues.map(item => item.clientName));
+
+        console.log("Début réorganisation DOM des GROUPES...");
+        groupsWithValues.forEach(({ group, clientName }) => {
+            console.log(` -> Déplacement/Ajout du GROUPE: ${clientName}`);
+            container.appendChild(group);
+        });
+        console.log("Fin réorganisation DOM des GROUPES.");
+    }
+
+    applyQuickFilters();
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && searchInput.value.trim() !== '') {
+        console.log("Réapplication de la recherche après tri/filtrage.");
+        performSearch();
+    }
+
+    console.log(`--- Fin Tri: ${currentSortType} (${currentSortOrder}) ---`);
+}
+
+// *** MODIFIER renderFlatTaskView pour accepter le type de tri ***
+function renderFlatTaskView(sortOrder, sortType) {
+    console.log(`Rendu de la vue plate des tâches, tri par ${sortType} (${sortOrder})`);
+    const container = document.getElementById('tasksContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+
     let allTasksList = [];
     clients.forEach(client => {
         const clientTasks = tasks[client.id] || [];
         clientTasks.forEach(task => {
             allTasksList.push({
-                ...task, // Copier les propriétés de la tâche
-                clientName: `${client.nom || ''} ${client.prenom || ''}`.trim(), // Ajouter le nom du client
-                originalClientId: client.id // Garder l'ID original pour les actions
+                ...task,
+                clientName: `${client.nom || ''} ${client.prenom || ''}`.trim(),
+                originalClientId: client.id
             });
         });
     });
     console.log(`Total de ${allTasksList.length} tâches collectées.`);
 
-    // 2. Trier la liste globale en fonction de sortType
     allTasksList.sort((a, b) => {
         let comparison = 0;
         if (sortType === 'status') {
@@ -1574,25 +1753,21 @@ function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
             const valueB = b.completed ? 1 : 0;
             comparison = valueA - valueB;
         } else if (sortType === 'date') {
-            // Convertir les dates en timestamps pour comparaison
-            // Mettre les dates invalides/absentes à la fin (Infinity)
             const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
             const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
             const timeA = isNaN(dateA) ? Infinity : dateA;
             const timeB = isNaN(dateB) ? Infinity : dateB;
 
             if (timeA === Infinity && timeB === Infinity) comparison = 0;
-            else if (timeA === Infinity) comparison = 1; // a (Infinity) est plus grand
-            else if (timeB === Infinity) comparison = -1; // b (Infinity) est plus grand
-            else comparison = timeA - timeB; // Tri numérique des timestamps
+            else if (timeA === Infinity) comparison = 1;
+            else if (timeB === Infinity) comparison = -1;
+            else comparison = timeA - timeB;
         }
-        // Inverser si ordre descendant
         return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     console.log(`Tâches triées globalement par ${sortType}.`);
 
-    // 3. Créer un seul grand tableau ... (inchangé) ...
     const flatTable = document.createElement('table');
     flatTable.className = 'task-table flat-task-view';
     flatTable.innerHTML = `
@@ -1606,18 +1781,16 @@ function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
                 <th class="task-actions-header">Actions</th>
             </tr>
         </thead>
-    `; // En-tête inchangé
+    `;
 
     const tbody = document.createElement('tbody');
 
-    // 4. Créer une ligne <tr> pour chaque tâche triée ... (inchangé) ...
     allTasksList.forEach(task => {
         const row = document.createElement('tr');
         if (task.completed) {
             row.classList.add('task-completed');
         }
         row.dataset.taskId = task.id;
-        // Utiliser l'ID client original pour les data-attributes si nécessaire
         row.dataset.clientId = task.originalClientId;
 
         row.innerHTML = `
@@ -1658,7 +1831,6 @@ function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
     flatTable.appendChild(tbody);
     container.appendChild(flatTable);
 
-    // 5. Réattacher les gestionnaires d'événements ... (inchangé) ...
     addEditableFieldListeners();
     attachCheckboxListeners();
     attachDeleteButtonListeners();
@@ -1666,218 +1838,106 @@ function renderFlatTaskView(sortOrder, sortType) { // Ajout de sortType
     console.log('Vue plate rendue et écouteurs attachés.');
 }
 
-// Nouvelle fonction pour trier les lignes <tr> dans un tbody
-function sortInternalTableRows(tbody, sortOrder) {
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-
-    rows.sort((a, b) => {
-        const isCheckedA = a.querySelector('.task-checkbox')?.checked ?? false;
-        const isCheckedB = b.querySelector('.task-checkbox')?.checked ?? false;
-
-        // Convertir booléen en nombre pour comparaison (false=0, true=1)
-        const valueA = isCheckedA ? 1 : 0;
-        const valueB = isCheckedB ? 1 : 0;
-
-        let comparison = valueA - valueB; // Tri numérique
-
-        // Inverser si ordre descendant (mettre les cochés en premier)
-        return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-    // Réinsérer les lignes dans le tbody dans le nouvel ordre
-    rows.forEach(row => tbody.appendChild(row)); // Déplace la ligne à la fin
-}
-
-// *** MODIFIER performSort pour utiliser les différentes vues ***
-function performSort() {
-    console.log(`--- Début Tri: ${currentSortType} (${currentSortOrder}) ---`);
-    const container = document.getElementById('tasksContainer');
-    if (!container) return;
-
-    // --- Mise à jour de l'indicateur de tri (déplacé au début) ---
-    const sortTypeLabels = {
-        'client': 'nom de client (groupé)',
-        'date': 'date d\'échéance (liste globale)', // Mis à jour
-        'status': 'statut des tâches (liste globale)'
-    };
-    let sortIndicator = container.querySelector('.sort-indicator');
-    if (!sortIndicator) {
-        sortIndicator = document.createElement('div');
-        sortIndicator.className = 'sort-indicator';
-        sortIndicator.style.padding = '8px';
-        sortIndicator.style.margin = '10px 0';
-        sortIndicator.style.backgroundColor = 'var(--input-bg-color, #e9f5ff)';
-        sortIndicator.style.border = '1px solid var(--border-color, #c2e0ff)';
-        sortIndicator.style.borderRadius = '4px';
-        sortIndicator.style.textAlign = 'center';
-        sortIndicator.style.fontWeight = 'bold';
-        sortIndicator.style.color = 'var(--text-color, #333)';
-        const searchFilterElement = container.querySelector('.search-and-filter');
-        if (searchFilterElement) {
-            searchFilterElement.parentNode.insertBefore(sortIndicator, searchFilterElement.nextSibling);
-        } else {
-            container.insertBefore(sortIndicator, container.firstChild);
-        }
-    }
-    sortIndicator.textContent = `Trié par : ${sortTypeLabels[currentSortType]} (${currentSortOrder === 'asc' ? 'croissant' : 'décroissant'})`;
-    // --- Fin Mise à jour indicateur ---
-
-    // --- Logique de tri principale ---
-    if (currentSortType === 'status' || currentSortType === 'date') {
-        // Afficher la vue plate triée par statut OU date
-        renderFlatTaskView(currentSortOrder, currentSortType); // Passer aussi le type de tri
-
-    } else {
-        // Afficher la vue groupée et trier les groupes (client uniquement maintenant)
-
-        // 1. S'assurer que la vue groupée est affichée
-        const isGroupedView = container.querySelector('.task-group');
-        if (!isGroupedView) {
-            console.log("Passage à la vue groupée, reconstruction...");
-            renderTaskGroups();
-        } else {
-            console.log("Vue déjà groupée, tri des groupes existants.");
-        }
-
-        // 2. Trier les groupes existants (uniquement par client maintenant)
-        const taskGroups = Array.from(container.querySelectorAll(':scope > .task-group:not(.search-no-match)'));
-        if (!taskGroups.length) {
-            console.warn('Aucun groupe à trier dans la vue groupée.');
-            return;
-        }
-        console.log(`Nombre de groupes à trier: ${taskGroups.length}`);
-
-        const groupsWithValues = [];
-        taskGroups.forEach((group, index) => {
-            const clientId = group.dataset.clientId;
-            const clientNameElement = group.querySelector('.client-name-header .client-name');
-            const clientName = clientNameElement ? clientNameElement.textContent : `Client Inconnu ${index}`;
-            let value;
-            let rawValueForLog = '';
-
-            try {
-                value = clientName.toLowerCase();
-                rawValueForLog = value;
-
-            } catch (error) {
-                console.error(`Erreur calcul valeur pour ${clientName}:`, error);
-                value = ''; // Fallback pour client
-                rawValueForLog = `ERREUR (${value})`;
-            }
-            console.log(` -> [${index}] Client: ${clientName}, Type: ${currentSortType}, Valeur brute: ${rawValueForLog}, Valeur pour tri groupe: ${value}`);
-            groupsWithValues.push({ group, value, clientName });
-        });
-
-        // Trier les groupes (logique de comparaison simplifiée car seulement par string)
-        try {
-            groupsWithValues.sort((a, b) => {
-                const valA = a.value;
-                const valB = b.value;
-                const comparison = valA.localeCompare(valB);
-                return currentSortOrder === 'asc' ? comparison : -comparison;
-            });
-        } catch (sortError) {
-            console.error("Erreur pendant le tri des groupes:", sortError);
-            return;
-        }
-
-        console.log('Ordre des groupes APRÈS tri:', groupsWithValues.map(item => item.clientName));
-
-        // Réorganisation DOM des groupes
-        console.log("Début réorganisation DOM des GROUPES...");
-        groupsWithValues.forEach(({ group, clientName }) => {
-            console.log(` -> Déplacement/Ajout du GROUPE: ${clientName}`);
-            container.appendChild(group);
-        });
-        console.log("Fin réorganisation DOM des GROUPES.");
-    }
-
-    console.log(`--- Fin Tri: ${currentSortType} (${currentSortOrder}) ---`);
-}
-
 // Fonctionnalités de recherche et de tri
 function initSearchAndSort() {
-    // Forcer le style du bouton pour le rendre visible
-    const sortDirection = document.getElementById('sortDirection');
-    if (sortDirection) {
-        // Forcer un contenu visible
-        sortDirection.textContent = "▼";
-        sortDirection.style.fontSize = "16px";
-        sortDirection.style.fontWeight = "bold";
-        console.log("Bouton de tri configuré manuellement");
-    } else {
-        console.error("Bouton de tri non trouvé dans le DOM");
-    }
-    
-    console.log('Initialisation de la recherche et du tri');
+    console.log('Initialisation de la recherche, du tri et des filtres rapides');
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
     const sortSelect = document.getElementById('sortOptions');
     const sortDirectionButton = document.getElementById('sortDirection');
-    
-    // Fonctionnalité de recherche
+    const quickFilterButtons = document.querySelectorAll('.quick-filter-btn');
+
     function performSearch() {
         const searchTerm = searchInput.value.toLowerCase().trim();
         const tasksContainer = document.getElementById('tasksContainer');
-        
+        const isFlatView = tasksContainer.querySelector('.flat-task-view');
+
+        document.querySelectorAll('.highlight').forEach(el => {
+            el.outerHTML = el.textContent;
+        });
+        document.querySelectorAll('.search-no-match').forEach(el => {
+            el.classList.remove('search-no-match');
+        });
+        tasksContainer.classList.remove('filtered');
+
         if (!searchTerm) {
-            // Si aucun terme de recherche, afficher tout
-            tasksContainer.classList.remove('filtered');
-            document.querySelectorAll('.highlight').forEach(el => {
-                const text = el.textContent;
-                el.outerHTML = text;
-            });
+            console.log("Recherche vidée.");
+            if (!isFlatView) {
+                document.querySelectorAll('.task-group').forEach(group => group.style.display = '');
+            }
+            applyQuickFilters();
             return;
         }
-        
+
         console.log(`Recherche: "${searchTerm}"`);
         tasksContainer.classList.add('filtered');
-        
-        // Parcourir tous les groupes de tâches
-        document.querySelectorAll('.task-group').forEach(group => {
-            // Récupérer le nom du client
-            const clientName = group.querySelector('.client-name-header').textContent.toLowerCase();
-            
-            // Rechercher dans les descriptions et commentaires des tâches
-            const taskTexts = Array.from(group.querySelectorAll('.description-text, .comment-text'))
-                .map(el => el.textContent.toLowerCase());
-            
-            // Vérifier si le terme de recherche correspond
-            const matchesClient = clientName.includes(searchTerm);
-            const matchesTask = taskTexts.some(text => text.includes(searchTerm));
-            
-            if (matchesClient || matchesTask) {
-                group.classList.add('search-match');
-                
-                // Mettre en évidence les correspondances
-                group.querySelectorAll('.description-text, .comment-text, .client-name-header').forEach(el => {
-                    if (!el.textContent.toLowerCase().includes(searchTerm)) return;
-                    
-                    const text = el.textContent;
-                    const regex = new RegExp(`(${searchTerm})`, 'gi');
-                    el.innerHTML = text.replace(regex, '<span class="highlight">$1</span>');
-                });
-            } else {
-                group.classList.remove('search-match');
-            }
-        });
+
+        if (isFlatView) {
+            tasksContainer.querySelectorAll('.flat-task-view tbody tr').forEach(row => {
+                const clientName = row.querySelector('.task-client')?.textContent.toLowerCase() || '';
+                const description = row.querySelector('.description-text')?.textContent.toLowerCase() || '';
+                const comment = row.querySelector('.comment-text:not(.empty-comment)')?.textContent.toLowerCase() || '';
+                const matches = clientName.includes(searchTerm) || description.includes(searchTerm) || comment.includes(searchTerm);
+                row.classList.toggle('search-no-match', !matches);
+            });
+        } else {
+            document.querySelectorAll('.task-group').forEach(group => {
+                const clientNameHeader = group.querySelector('.client-name-header .client-name');
+                const clientName = clientNameHeader ? clientNameHeader.textContent.toLowerCase() : '';
+                const taskTexts = Array.from(group.querySelectorAll('.description-text, .comment-text:not(.empty-comment)'))
+                    .map(el => el.textContent.toLowerCase());
+                const matchesClient = clientName.includes(searchTerm);
+                const matchesTask = taskTexts.some(text => text.includes(searchTerm));
+                const groupMatches = matchesClient || matchesTask;
+
+                group.classList.toggle('search-no-match', !groupMatches);
+                group.style.display = groupMatches ? '' : 'none';
+            });
+        }
+        console.log("Recherche appliquée.");
+        applyQuickFilters();
     }
-    
-    // Fonctionnalité de tri
-    sortSelect.addEventListener('change', function() {
-        currentSortType = this.value; // Modifie la variable globale
-        performSort();
-    });
-    
-    sortDirectionButton.addEventListener('click', function() {
-        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc'; // Modifie la variable globale
-        
-        // Mise à jour visuelle du bouton
-        this.innerHTML = currentSortOrder === 'asc' ? '▼' : '▲';
-        
-        // Appliquer le tri
-        performSort();
-        
-        console.log(`Direction de tri changée à: ${currentSortOrder}`);
-    });
+
+    if (searchButton && searchInput) {
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') performSearch(); });
+        searchInput.addEventListener('input', () => { if (searchInput.value === '') performSearch(); });
+    } else {
+        console.error("Éléments de recherche non trouvés!");
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            currentSortType = this.value;
+            performSort();
+        });
+    } else {
+         console.error("Élément sortSelect non trouvé!");
+    }
+    if (sortDirectionButton) {
+        sortDirectionButton.addEventListener('click', function() {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            this.textContent = currentSortOrder === 'asc' ? '▼' : '▲';
+            performSort();
+            console.log(`Direction de tri changée à: ${currentSortOrder}`);
+        });
+    } else {
+         console.error("Élément sortDirectionButton non trouvé!");
+    }
+
+    if (quickFilterButtons.length > 0) {
+        quickFilterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                quickFilterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                currentQuickFilter = this.dataset.filter;
+                applyQuickFilters();
+            });
+        });
+    } else {
+        console.error("Aucun bouton de filtre rapide trouvé!");
+    }
+
+    applyQuickFilters();
 }
