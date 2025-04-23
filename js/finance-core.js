@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Chemins des fichiers
-const invoicesPath = path.join(__dirname, 'invoices.json');
-const clientsPath = path.join(__dirname, 'clients.json');
+const invoicesPath = path.resolve(__dirname, '..', 'invoices.json');
+const clientsPath = path.resolve(__dirname, '..', 'clients.json');
 
 // Fonction d'initialisation principale
 function initializeApp() {

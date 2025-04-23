@@ -1,64 +1,180 @@
 // Gestion des factures
 
-// Remplacer la fonction handleInvoiceSubmission
+const { ipcRenderer } = require('electron');
+const { jsPDF } = require("jspdf"); // <-- AJOUTER CETTE LIGNE
 
+// Remplacer la fonction handleInvoiceSubmission
 function handleInvoiceSubmission(event) {
     event.preventDefault();
-    
+
     try {
         // Récupérer les données du formulaire
         const data = getFormData();
         if (!data) return;
-        
+
         // Générer un numéro de facture unique
         const invoiceNumber = generateInvoiceNumber(data.client.numeroDossier);
-        
+        if (!invoiceNumber) {
+            throw new Error("Impossible de générer un numéro de facture.");
+        }
+
         // Créer l'objet facture
         const invoice = {
             number: invoiceNumber,
-            client: data.client,
+            client: data.client, // Contient nom, prenom, numeroDossier, etc.
             date: new Date().toISOString(),
             prestations: data.prestations,
             totalHT: data.totalHT,
             totalTTC: data.totalHT * 1.2, // TVA 20%
             status: 'sent' // Par défaut
         };
-        
+
+        // --- Début Génération PDF ---
+        try {
+            console.log('Début de la génération du PDF...');
+            // 1. Construire le chemin du répertoire client
+            // Assumant une structure comme: AvocatTool/clients_data/dossier_NUM_NOM_PRENOM/
+            // __dirname est le dossier 'js', donc on remonte d'un niveau
+            const clientDirName = `dossier_${invoice.client.numeroDossier}_${invoice.client.nom}_${invoice.client.prenom}`
+                                    .replace(/[^a-zA-Z0-9_]/g, '_'); // Nettoyer le nom du dossier
+            const baseClientDataPath = path.resolve(__dirname, '..', 'clients_data'); // Chemin vers le dossier parent des clients
+            const clientDirPath = path.join(baseClientDataPath, clientDirName);
+
+            // 2. S'assurer que le répertoire de base et celui du client existent
+            if (!fs.existsSync(baseClientDataPath)) {
+                fs.mkdirSync(baseClientDataPath, { recursive: true });
+                console.log(`Répertoire de base clients créé: ${baseClientDataPath}`);
+            }
+            if (!fs.existsSync(clientDirPath)) {
+                fs.mkdirSync(clientDirPath, { recursive: true });
+                console.log(`Répertoire client créé: ${clientDirPath}`);
+            }
+
+            // 3. Définir le nom et chemin complet du fichier PDF
+            const pdfFileName = `Facture_${invoice.number}.pdf`;
+            const pdfFilePath = path.join(clientDirPath, pdfFileName);
+
+            // 4. Générer le contenu du PDF avec jsPDF
+            const doc = new jsPDF();
+
+            // --- Contenu du PDF (Exemple basique) ---
+            doc.setFontSize(18);
+            doc.text(`FACTURE N°: ${invoice.number}`, 105, 20, { align: 'center' }); // Centré
+
+            doc.setFontSize(12);
+            doc.text(`Date: ${new Date(invoice.date).toLocaleDateString('fr-FR')}`, 190, 30, { align: 'right' });
+
+            // Infos Client (à gauche)
+            doc.text('Client:', 20, 40);
+            doc.text(`${invoice.client.nom} ${invoice.client.prenom}`, 20, 47);
+            doc.text(`N° Dossier: ${invoice.client.numeroDossier}`, 20, 54);
+            // Ajouter adresse, etc. si disponible dans invoice.client
+            // doc.text(invoice.client.adresse || '', 20, 61);
+            // doc.text(`${invoice.client.codePostal || ''} ${invoice.client.ville || ''}`, 20, 68);
+
+            // Infos Avocat (à droite - à adapter)
+            doc.text('Maître Candice ROVERA', 190, 40, { align: 'right' });
+            doc.text('Avocate au Barreau de Paris', 190, 47, { align: 'right' });
+            // Ajouter adresse cabinet, SIRET, etc.
+            // doc.text('Adresse Cabinet', 190, 54, { align: 'right' });
+            // doc.text('SIRET: ...', 190, 61, { align: 'right' });
+
+            // Tableau des prestations
+            let yPos = 85;
+            doc.setFontSize(14);
+            doc.text('Description', 20, yPos);
+            doc.text('Montant HT', 190, yPos, { align: 'right' });
+            yPos += 7;
+            doc.setLineWidth(0.2);
+            doc.line(20, yPos, 190, yPos); // Ligne sous les titres
+            yPos += 7;
+            doc.setFontSize(12);
+
+            invoice.prestations.forEach((p) => {
+                // Gestion simple du retour à la ligne pour la description
+                const splitDesc = doc.splitTextToSize(p.description, 140); // Largeur max description
+                doc.text(splitDesc, 20, yPos);
+                doc.text(`${p.amount.toFixed(2)} €`, 190, yPos, { align: 'right' });
+                yPos += (splitDesc.length * 5) + 3; // Ajuster l'espacement vertical
+
+                if (yPos > 260) { // Gestion simple de la pagination
+                    doc.addPage();
+                    yPos = 20;
+                    // Redessiner les en-têtes si nécessaire sur la nouvelle page
+                }
+            });
+
+            yPos = Math.max(yPos, 200); // Assurer que les totaux sont en bas
+            doc.line(20, yPos, 190, yPos); // Ligne avant totaux
+            yPos += 7;
+
+            // Totaux
+            doc.setFontSize(12);
+            doc.text('Total HT:', 140, yPos);
+            doc.text(`${invoice.totalHT.toFixed(2)} €`, 190, yPos, { align: 'right' });
+            yPos += 7;
+            doc.text('TVA (20%):', 140, yPos);
+            doc.text(`${(invoice.totalHT * 0.2).toFixed(2)} €`, 190, yPos, { align: 'right' });
+            yPos += 7;
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Total TTC:', 140, yPos);
+            doc.text(`${invoice.totalTTC.toFixed(2)} €`, 190, yPos, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            // --- Fin Contenu PDF ---
+
+            // 5. Sauvegarder le PDF dans le fichier
+            const pdfOutput = doc.output('arraybuffer'); // Obtenir le contenu binaire
+            fs.writeFileSync(pdfFilePath, Buffer.from(pdfOutput)); // Écrire le buffer dans le fichier
+
+            console.log(`Facture PDF générée avec succès: ${pdfFilePath}`);
+
+        } catch (pdfError) {
+            console.error('ERREUR lors de la génération/sauvegarde du PDF:', pdfError);
+            // Informer l'utilisateur que le PDF a échoué mais que la facture est créée
+            alert(`Facture ${invoiceNumber} créée, mais une erreur est survenue lors de la génération du fichier PDF.\nErreur: ${pdfError.message}`);
+            // On continue quand même pour sauvegarder la facture dans le JSON
+        }
+        // --- Fin Génération PDF ---
+
+
         // S'assurer que window.invoices est un tableau
         if (!Array.isArray(window.invoices)) {
             console.warn('window.invoices n\'est pas un tableau, initialisation...');
             window.invoices = [];
         }
-        
-        // Ajouter la facture à la liste
+
+        // Ajouter la facture à la liste en mémoire
         window.invoices.push(invoice);
         console.log(`Facture ${invoiceNumber} ajoutée en mémoire`);
-        
-        // Sauvegarder immédiatement
-        const saveResult = window.saveInvoicesToFile();
-        console.log('Résultat de la sauvegarde:', saveResult);
-        
-        // Mettre à jour l'interface avant de fermer la modale
+
+        // Sauvegarder la liste des factures (y compris la nouvelle) dans invoices.json
+        const saveResult = window.saveInvoicesToFile(); // Utilise la fonction existante
+        console.log('Résultat de la sauvegarde JSON:', saveResult ? 'Succès' : 'Échec');
+        if (!saveResult) {
+             // Si la sauvegarde JSON échoue, on pourrait vouloir annuler ou notifier davantage
+             throw new Error("La sauvegarde des données de facturation (JSON) a échoué.");
+        }
+
+        // Mettre à jour l'interface (liste, stats, graphiques)
         updateInvoicesList();
         updateFinancialStats();
         updateCharts();
-        
+
         // Fermer la modale et donner un retour à l'utilisateur
-        closeInvoiceModal();
-        alert(`Facture ${invoiceNumber} créée avec succès`);
-        
-        // Rafraîchir la fenêtre
-        setTimeout(() => {
-            if (typeof forceWindowRefresh === 'function') {
-                forceWindowRefresh();
-            }
-        }, 200);
-        
+        closeInvoiceModal(); // Assurez-vous que cette fonction existe
+        alert(`Facture ${invoiceNumber} créée avec succès.`); // Message simplifié, le PDF est géré dans le bloc try/catch
+
+        // Optionnel: Rafraîchir la fenêtre si nécessaire (peut-être pas utile ici)
+        // setTimeout(() => { ... }, 200);
+
     } catch (error) {
-        console.error('Erreur lors de la création de facture:', error);
-        alert('Erreur: ' + error.message);
+        console.error('Erreur lors de la création de la facture (globale):', error);
+        alert('Erreur lors de la création de la facture: ' + error.message);
     }
 }
+
+
 
 // Récupérer les données du formulaire
 function getFormData() {
@@ -864,7 +980,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser le tri par colonne
     initSortableTable();
     
-    // Autres initialisation existantes...
+    const invoiceForm = document.getElementById('invoiceForm'); // Assurez-vous que l'ID de votre formulaire est bien 'invoiceForm'
+    if (invoiceForm) {
+        invoiceForm.addEventListener('submit', handleInvoiceSubmission);
+        console.log('Listener ajouté au formulaire de facture.');
+    } else {
+        console.error('Formulaire de facture #invoiceForm non trouvé!');
+    }
     
     // Initialisation des graphiques après un délai plus long
     setTimeout(function() {
