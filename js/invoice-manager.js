@@ -32,8 +32,6 @@ function getAppRootPath() {
     }
 }
 
-
-
 // Remplacer la fonction handleInvoiceSubmission
 function handleInvoiceSubmission(event) {
     event.preventDefault();
@@ -42,7 +40,6 @@ function handleInvoiceSubmission(event) {
         // Récupérer les données du formulaire
         const data = getFormData();
         if (!data) return;
-
 
         // Générer un numéro de facture unique
         const invoiceNumber = generateInvoiceNumber(data.client.numeroDossier);
@@ -253,7 +250,6 @@ function handleInvoiceSubmission(event) {
 
             // --- Fin Contenu PDF ---
 
-
             // 5. Sauvegarder le PDF dans le fichier
             const pdfOutput = doc.output('arraybuffer'); // Obtenir le contenu binaire
             fs.writeFileSync(pdfFilePath, Buffer.from(pdfOutput)); // Écrire le buffer dans le fichier
@@ -267,7 +263,6 @@ function handleInvoiceSubmission(event) {
             // On continue quand même pour sauvegarder la facture dans le JSON
         }
         // --- Fin Génération PDF ---
-
 
         // S'assurer que window.invoices est un tableau
         if (!Array.isArray(window.invoices)) {
@@ -304,8 +299,6 @@ function handleInvoiceSubmission(event) {
         alert('Erreur lors de la création de la facture: ' + error.message);
     }
 }
-
-
 
 // Récupérer les données du formulaire
 function getFormData() {
@@ -348,30 +341,82 @@ function getFormData() {
 
 // Supprimer une facture
 function deleteInvoice(invoiceNumber) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-        const index = window.invoices.findIndex(inv => inv.number === invoiceNumber);
-        if (index !== -1) {
-            // Supprimer la facture
-            window.invoices.splice(index, 1);
-            saveInvoicesToFile();
-            updateInvoicesList();
-            
-            // Déclencher l'événement et mettre à jour les statistiques
-            document.dispatchEvent(new CustomEvent('invoicesUpdated'));
-            if (typeof updateInvoiceStats === 'function') {
-                updateInvoiceStats();
-            }
-            
-            alert('Facture supprimée avec succès');
-            
-            // Forcer le rafraîchissement de la fenêtre
-            setTimeout(() => {
-                if (typeof forceWindowRefresh === 'function') {
-                    forceWindowRefresh();
-                }
-            }, 200);
-        }
+    const confirmation = confirm(`Êtes-vous sûr de vouloir supprimer la facture ${invoiceNumber} ? Cette action supprimera également le fichier PDF associé et est irréversible.`);
+    if (!confirmation) {
+        return;
     }
+
+    console.log(`Suppression demandée pour la facture : ${invoiceNumber}`);
+    const invoiceIndex = window.invoices.findIndex(inv => inv.number === invoiceNumber);
+
+    if (invoiceIndex === -1) {
+        alert(`Erreur : Facture ${invoiceNumber} non trouvée.`);
+        return;
+    }
+
+    const invoiceToDelete = window.invoices[invoiceIndex];
+    let fileError = false;
+    let saveError = false;
+
+    // --- Logique de suppression du fichier PDF ---
+    const appRootPath = getAppRootPath();
+    const fs = window.fs;
+    const path = window.path;
+
+    if (appRootPath === 'CHEMIN_RACINE_INCONNU' || !fs || !path) {
+         console.error("Erreur critique : Impossible de déterminer le chemin racine ou modules fs/path manquants pour supprimer le fichier PDF.");
+         fileError = true;
+    } else if (invoiceToDelete.client && invoiceToDelete.client.nom && invoiceToDelete.client.prenom) {
+        try {
+            const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
+            const clientFolderName = `${invoiceToDelete.client.nom}_${invoiceToDelete.client.prenom}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            const facturesSubDir = '2-Factures';
+            const pdfFileName = `Facture_${invoiceToDelete.number}.pdf`;
+            const pdfFilePath = path.join(baseDossiersPath, clientFolderName, facturesSubDir, pdfFileName);
+
+            if (fs.existsSync(pdfFilePath)) {
+                console.log(`Tentative de suppression du fichier : ${pdfFilePath}`);
+                fs.unlinkSync(pdfFilePath);
+                console.log(`Fichier ${pdfFileName} supprimé avec succès.`);
+            } else {
+                console.warn(`Le fichier PDF pour la facture ${invoiceToDelete.number} n'a pas été trouvé à l'emplacement ${pdfFilePath}. Suppression de l'entrée uniquement.`);
+            }
+        } catch (error) {
+            console.error(`Erreur lors de la suppression du fichier PDF pour la facture ${invoiceToDelete.number}:`, error);
+            fileError = true;
+        }
+    } else {
+        console.warn(`Données client manquantes pour la facture ${invoiceToDelete.number}. Impossible de déterminer le chemin du fichier PDF à supprimer.`);
+        fileError = true;
+    }
+    // --- Fin logique suppression fichier ---
+
+    // Supprimer la facture du tableau en mémoire
+    window.invoices.splice(invoiceIndex, 1);
+
+    // Sauvegarder les modifications
+    const saveResult = saveInvoicesToFile();
+    if (!saveResult) {
+        saveError = true;
+    }
+    console.log('Résultat de la sauvegarde JSON après suppression individuelle:', saveResult ? 'Succès' : 'Échec');
+
+    // Mettre à jour l'interface
+    updateInvoicesList(); // Redessine le tableau
+    if (typeof updateFinancialStats === 'function') updateFinancialStats();
+    if (typeof updateCharts === 'function') updateCharts();
+    // Mettre à jour l'UI de sélection au cas où la facture supprimée était sélectionnée
+    updateDeleteSelectionUI();
+
+    // Message final
+    let message = `Facture ${invoiceNumber} supprimée avec succès.`;
+    if (fileError) {
+        message += `\nUne erreur est survenue lors de la suppression du fichier PDF associé (voir console pour détails).`;
+    }
+    if (saveError) {
+        message += `\nATTENTION : La sauvegarde des modifications dans le fichier JSON a échoué !`;
+    }
+    alert(message);
 }
 
 // Générer un numéro de facture unique pour un client
@@ -521,120 +566,159 @@ function loadInvoices() {
 
 // Mise à jour de la liste des factures dans l'interface
 function updateInvoicesList() {
-    console.log('Mise à jour de la liste des factures...');
-    
-    // Récupérer le tableau des factures
-    const tableBody = document.querySelector('#invoicesTable tbody');
+    const tableBody = document.getElementById('invoicesTableBody');
+    const noInvoicesMessage = document.getElementById('noInvoicesMessage');
+
     if (!tableBody) {
-        console.error('Tableau des factures non trouvé dans le DOM');
+        console.error("ERREUR: Élément #invoicesTableBody non trouvé !");
         return;
     }
-    
-    // Vider le tableau
+    if (!noInvoicesMessage) {
+        console.error("ERREUR: Élément #noInvoicesMessage non trouvé !");
+    }
+
     tableBody.innerHTML = '';
-    
-    // Vérifier que window.invoices existe et est un tableau
-    if (!window.invoices || !Array.isArray(window.invoices)) {
-        console.warn('window.invoices n\'est pas défini ou n\'est pas un tableau');
-        window.invoices = [];
+
+    if (noInvoicesMessage) {
+        tableBody.appendChild(noInvoicesMessage);
+        noInvoicesMessage.style.display = 'none';
     }
-    
-    console.log(`Affichage de ${window.invoices.length} factures`);
-    
-    // Pas de factures à afficher
-    if (window.invoices.length === 0) {
-        const emptyRow = document.createElement('tr');
-        emptyRow.innerHTML = '<td colspan="8" class="text-center">Aucune facture disponible</td>';
-        tableBody.appendChild(emptyRow);
+
+    if (!window.invoices || window.invoices.length === 0) {
+        if (noInvoicesMessage) {
+            noInvoicesMessage.style.display = 'table-row';
+        }
+        const deleteBtn = document.getElementById('deleteSelectedInvoicesBtn');
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        const selectAllCheckbox = document.getElementById('selectAllInvoicesCheckbox');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
         return;
     }
-    
-    // Trier les factures selon la colonne et la direction actuelles
+
+    // --- DÉBUT MODIFICATION TRI ---
+    // Utiliser les variables globales pour le tri
+    const sortColumn = window.currentSortColumn || 'date'; // 'date' par défaut si non défini
+    const sortDirection = window.currentSortDirection || 'desc'; // 'desc' par défaut
+
     const sortedInvoices = [...window.invoices].sort((a, b) => {
-        let comparison = 0;
-        
-        switch (window.currentSortColumn) {
+        let valA, valB;
+
+        // Récupérer les valeurs à comparer en fonction de la colonne
+        switch (sortColumn) {
             case 'number':
-                comparison = a.number.localeCompare(b.number);
+                valA = a.number || '';
+                valB = b.number || '';
                 break;
             case 'client':
-                const clientA = a.client ? (a.client.nom + ' ' + a.client.prenom) : '';
-                const clientB = b.client ? (b.client.nom + ' ' + b.client.prenom) : '';
-                comparison = clientA.localeCompare(clientB);
+                valA = (a.client ? `${a.client.nom} ${a.client.prenom}` : '').toLowerCase();
+                valB = (b.client ? `${b.client.nom} ${b.client.prenom}` : '').toLowerCase();
                 break;
             case 'description':
-                const descA = a.prestations && a.prestations.length > 0 ? a.prestations[0].description : '';
-                const descB = b.prestations && b.prestations.length > 0 ? b.prestations[0].description : '';
-                comparison = descA.localeCompare(descB);
+                valA = (a.prestations && a.prestations.length > 0 ? a.prestations[0].description : '').toLowerCase();
+                valB = (b.prestations && b.prestations.length > 0 ? b.prestations[0].description : '').toLowerCase();
                 break;
             case 'date':
-                comparison = new Date(a.date) - new Date(b.date);
+                // Convertir en objets Date pour une comparaison correcte
+                valA = a.date ? new Date(a.date) : new Date(0); // Date très ancienne si nulle
+                valB = b.date ? new Date(b.date) : new Date(0);
                 break;
             case 'totalHT':
-                comparison = parseFloat(a.totalHT || 0) - parseFloat(b.totalHT || 0);
+                valA = parseFloat(a.totalHT || 0);
+                valB = parseFloat(b.totalHT || 0);
                 break;
             case 'totalTTC':
-                const ttcA = parseFloat(a.totalTTC || a.totalHT * 1.2 || 0);
-                const ttcB = parseFloat(b.totalTTC || b.totalHT * 1.2 || 0);
-                comparison = ttcA - ttcB;
+                valA = parseFloat(a.totalTTC || 0);
+                valB = parseFloat(b.totalTTC || 0);
                 break;
             case 'status':
-                comparison = (a.status || '').localeCompare(b.status || '');
+                valA = a.status || '';
+                valB = b.status || '';
                 break;
             default:
-                comparison = new Date(b.date) - new Date(a.date); // Tri par défaut: date décroissante
+                // Si colonne inconnue, ne pas trier (ou trier par défaut)
+                return 0;
         }
-        
-        // Inverser l'ordre si le tri est descendant
-        return window.currentSortDirection === 'asc' ? comparison : -comparison;
+
+        // Comparaison
+        let comparison = 0;
+        if (valA > valB) {
+            comparison = 1;
+        } else if (valA < valB) {
+            comparison = -1;
+        }
+
+        // Inverser si direction descendante
+        return (sortDirection === 'desc') ? (comparison * -1) : comparison;
     });
-    
-    // Ajouter chaque facture au tableau
+    // --- FIN MODIFICATION TRI ---
+
     sortedInvoices.forEach(invoice => {
-        const row = document.createElement('tr');
-        
-        // Formater la date
-        const date = new Date(invoice.date);
-        const formattedDate = date.toLocaleDateString('fr-FR');
-        
-        // Calculer le montant total
-        const totalHT = invoice.totalHT || 0;
-        const totalTTC = invoice.totalTTC || totalHT * 1.2;
-        
-        // Extraire une description à partir de la première prestation
-        let description = "Pas de description";
-        if (invoice.prestations && invoice.prestations.length > 0) {
-            description = invoice.prestations[0].description;
-            // Si la description est trop longue, la tronquer
-            if (description.length > 40) {
-                description = description.substring(0, 40) + '...';
-            }
+        // --- MODIFIER L'INSERTION DE LIGNE ---
+        // Insérer à la fin pour respecter l'ordre du tableau trié
+        const row = tableBody.insertRow();
+        // --- FIN MODIFICATION INSERTION ---
+        row.setAttribute('data-invoice-number', invoice.number);
+
+        // 1. Case à cocher
+        const cellCheckbox = row.insertCell();
+        cellCheckbox.innerHTML = `<input type="checkbox" class="invoice-select-checkbox" value="${invoice.number}">`;
+
+        // 2. Numéro
+        const cellNumber = row.insertCell();
+        cellNumber.textContent = invoice.number || 'N/A';
+
+        // 3. Client
+        const cellClient = row.insertCell();
+        cellClient.textContent = invoice.client ? `${invoice.client.nom} ${invoice.client.prenom}` : 'Client inconnu';
+
+        // 4. Description
+        const cellDescription = row.insertCell();
+        const firstPrestationDesc = invoice.prestations && invoice.prestations.length > 0 ? invoice.prestations[0].description : 'N/A';
+        cellDescription.textContent = firstPrestationDesc.length > 50 ? firstPrestationDesc.substring(0, 47) + '...' : firstPrestationDesc;
+        cellDescription.title = firstPrestationDesc;
+
+        // 5. Date
+        const cellDate = row.insertCell();
+        cellDate.textContent = invoice.date ? new Date(invoice.date).toLocaleDateString('fr-FR') : 'N/A';
+
+        // 6. Montant HT
+        const cellAmountHT = row.insertCell();
+        cellAmountHT.textContent = invoice.totalHT ? `${invoice.totalHT.toFixed(2)} €` : 'N/A';
+        cellAmountHT.style.textAlign = 'right';
+
+        // 7. Montant TTC
+        const cellAmountTTC = row.insertCell();
+        cellAmountTTC.textContent = invoice.totalTTC ? `${invoice.totalTTC.toFixed(2)} €` : 'N/A';
+        cellAmountTTC.style.textAlign = 'right';
+
+        // 8. Statut
+        const cellStatus = row.insertCell();
+        cellStatus.innerHTML = `<select class="form-select form-select-sm status-select" data-invoice-number="${invoice.number}">
+                                    <option value="draft" ${invoice.status === 'draft' ? 'selected' : ''}>Brouillon</option>
+                                    <option value="sent" ${invoice.status === 'sent' ? 'selected' : ''}>Envoyée</option>
+                                    <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Payée</option>
+                                    <option value="cancelled" ${invoice.status === 'cancelled' ? 'selected' : ''}>Annulée</option>
+                                </select>`;
+        const statusSelect = cellStatus.querySelector('.status-select');
+        if (statusSelect && typeof updateInvoiceStatus === 'function') {
+             statusSelect.addEventListener('change', (e) => {
+                 updateInvoiceStatus(e.target.dataset.invoiceNumber, e.target.value);
+             });
         }
-        
-        // Créer le contenu de la ligne
-        row.innerHTML = `
-            <td>${invoice.number}</td>
-            <td>${invoice.client ? (invoice.client.nom + ' ' + invoice.client.prenom) : 'Client inconnu'}</td>
-            <td>${description}</td>
-            <td>${formattedDate}</td>
-            <td>${totalHT.toFixed(2)} €</td>
-            <td>${totalTTC.toFixed(2)} €</td>
-            <td>
-                <select class="status-select" onchange="updateInvoiceStatus('${invoice.number}', this.value)">
-                    <option value="sent" ${invoice.status === 'sent' ? 'selected' : ''}>Envoyée</option>
-                    <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Payée</option>
-                </select>
-            </td>
-            <td style="text-align: center;">
-                <button class="icon-btn email-btn" title="Envoyer par email" onclick="showEmailModal('${invoice.number}')">📧</button>
-                <button class="icon-btn delete-btn" title="Supprimer la facture" onclick="deleteInvoice('${invoice.number}')">🗑️</button>
-            </td>
+
+        // 9. Actions
+        const cellActions = row.insertCell();
+        cellActions.classList.add('actions-cell');
+        cellActions.style.textAlign = 'center';
+        cellActions.innerHTML = `
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="showEmailModalWrapper('${invoice.number}')" title="Envoyer par email">📧</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" onclick="viewInvoicePDFWrapper('${invoice.number}')" title="Voir PDF">📄</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteInvoice('${invoice.number}')" title="Supprimer">🗑️</button>
         `;
-        
-        tableBody.appendChild(row);
     });
-    
-    console.log('Liste des factures mise à jour avec succès');
+
+    updateDeleteSelectionUI();
+    console.log(`Liste des factures mise à jour et triée par ${sortColumn} (${sortDirection}).`);
 }
 
 // Exposer globalement
@@ -1108,79 +1192,239 @@ function ensureChartsAreLoaded() {
 
 // Modifier le gestionnaire DOMContentLoaded pour l'inclure
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser le tri par colonne
-    initSortableTable();
-    
-    const invoiceForm = document.getElementById('invoiceForm'); // Assurez-vous que l'ID de votre formulaire est bien 'invoiceForm'
-    if (invoiceForm) {
+    console.log("DOM Chargé - Initialisation principale de invoice-manager.js");
+
+    // Charger les factures d'abord (ce qui appelle updateInvoicesList)
+    if (typeof loadInvoices === 'function') {
+        loadInvoices(); // Cette fonction devrait appeler updateInvoicesList à la fin
+    } else {
+        console.error("La fonction loadInvoices n'est pas définie !");
+        // Essayer d'appeler updateInvoicesList directement au cas où window.invoices serait déjà chargé autrement
+        if (typeof updateInvoicesList === 'function') {
+            updateInvoicesList();
+        }
+    }
+
+    // Initialiser le tri par colonne (si la fonction existe)
+    if (typeof initSortableTable === 'function') {
+        initSortableTable();
+    }
+
+    // AJOUTER CET APPEL ICI, après que la liste soit potentiellement chargée et affichée
+    setupMultiSelectListeners();
+
+    // Attacher l'écouteur au formulaire de facture
+    const invoiceForm = document.getElementById('invoiceForm');
+    if (invoiceForm && typeof handleInvoiceSubmission === 'function') {
         invoiceForm.addEventListener('submit', handleInvoiceSubmission);
         console.log('Listener ajouté au formulaire de facture.');
     } else {
-        console.error('Formulaire de facture #invoiceForm non trouvé!');
+        if (!invoiceForm) console.error('Formulaire de facture #invoiceForm non trouvé!');
+        if (typeof handleInvoiceSubmission !== 'function') console.error('Fonction handleInvoiceSubmission non trouvée!');
     }
-    
-    // Initialisation des graphiques après un délai plus long
-    setTimeout(function() {
-        console.log('Initialisation des graphiques...');
-        
-        if (typeof updateCharts === 'function') {
+
+    // Initialisation des graphiques (si les fonctions existent)
+    if (typeof updateCharts === 'function' && typeof ensureChartsAreLoaded === 'function') {
+        setTimeout(function() {
+            console.log('Initialisation différée des graphiques...');
             try {
                 updateCharts();
-                console.log('Graphiques initialisés avec succès');
+                console.log('Graphiques initialisés avec succès via updateCharts.');
+                // Vérification supplémentaire
+                setTimeout(ensureChartsAreLoaded, 500);
             } catch (error) {
                 console.error('Erreur lors de l\'initialisation des graphiques:', error);
-                // Tentative de récupération
-                setTimeout(updateCharts, 500);
             }
+        }, 1500); // Augmenter le délai si nécessaire
+    } else {
+         console.warn("Fonctions updateCharts ou ensureChartsAreLoaded non disponibles.");
+    }
+
+    // Ajouter des wrappers pour les fonctions appelées par onclick si elles ne sont pas globales
+    window.showEmailModalWrapper = function(invoiceNumber) {
+        if (typeof showEmailModal === 'function') {
+            showEmailModal(invoiceNumber);
         } else {
-            console.error('Fonction updateCharts non disponible');
+            console.error('Fonction showEmailModal non trouvée.');
         }
-    }, 1000);
-    
-    // Après le chargement des factures et la mise à jour de l'interface
-    setTimeout(function() {
-        console.log('Vérification des graphiques après chargement...');
-        ensureChartsAreLoaded();
-    }, 1000);
+    }
+    window.viewInvoicePDFWrapper = function(invoiceNumber) {
+        if (typeof viewInvoicePDF === 'function') {
+            viewInvoicePDF(invoiceNumber);
+        } else {
+            console.error('Fonction viewInvoicePDF non trouvée.');
+        }
+    }
+     // deleteInvoice est déjà définie globalement dans ce fichier, pas besoin de wrapper normalement
+
 });
 
-// Ajouter cette fonction à la fin du fichier
+// --- AJOUT POUR SÉLECTION/SUPPRESSION MULTIPLE (À METTRE À LA FIN DU FICHIER) ---
 
-// Fonction pour mettre à jour le statut d'une facture
-function updateInvoiceStatus(invoiceNumber, newStatus) {
-    console.log(`Mise à jour du statut de la facture ${invoiceNumber} à ${newStatus}`);
-    
-    // Trouver la facture dans la liste
-    const invoiceIndex = window.invoices.findIndex(invoice => invoice.number === invoiceNumber);
-    
-    if (invoiceIndex === -1) {
-        console.error(`Facture ${invoiceNumber} non trouvée`);
-        return;
+// Fonction pour mettre à jour l'UI de sélection multiple
+function updateDeleteSelectionUI() {
+    const checkboxes = document.querySelectorAll('.invoice-select-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.invoice-select-checkbox:checked');
+    const deleteBtn = document.getElementById('deleteSelectedInvoicesBtn');
+    const selectAllCheckbox = document.getElementById('selectAllInvoicesCheckbox');
+    const countSpan = document.getElementById('selectedInvoiceCount');
+
+    // Vérifier si les éléments existent avant de les manipuler
+    if (deleteBtn && countSpan) {
+        if (checkedCheckboxes.length > 0) {
+            deleteBtn.style.display = 'inline-block'; // Afficher le bouton
+            countSpan.textContent = checkedCheckboxes.length; // Mettre à jour le compteur
+        } else {
+            deleteBtn.style.display = 'none'; // Cacher le bouton
+        }
     }
-    
-    // Mettre à jour le statut
-    window.invoices[invoiceIndex].status = newStatus;
-    
-    // Sauvegarder les modifications
-    saveInvoicesToFile();
-    
-    // Déclencher l'événement de mise à jour des factures
-    document.dispatchEvent(new CustomEvent('invoicesUpdated'));
-    
-    // Mettre à jour directement les statistiques si la fonction existe
-    if (typeof updateInvoiceStats === 'function') {
-        updateInvoiceStats();
+
+    if (selectAllCheckbox) {
+        // Mettre à jour l'état de "Tout sélectionner"
+        selectAllCheckbox.checked = checkboxes.length > 0 && checkedCheckboxes.length === checkboxes.length;
+        // Indeterminate si certains mais pas tous sont cochés
+        selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < checkboxes.length;
     }
-    
-    // Notification optionnelle
-    const statusText = newStatus === 'paid' ? 'Payée' : 'Envoyée';
-    console.log(`Statut de la facture ${invoiceNumber} mis à jour: ${statusText}`);
 }
 
-// Exposer la fonction globalement
-window.updateInvoiceStatus = updateInvoiceStatus;
+// Fonction pour gérer la suppression multiple
+async function handleDeleteSelectedInvoices() {
+    const checkedCheckboxes = document.querySelectorAll('.invoice-select-checkbox:checked');
+    const invoiceNumbersToDelete = Array.from(checkedCheckboxes).map(cb => cb.value);
 
-// Ajouter à la fin du fichier
+    if (invoiceNumbersToDelete.length === 0) {
+        alert("Aucune facture sélectionnée.");
+        return;
+    }
+
+    const confirmation = confirm(`Êtes-vous sûr de vouloir supprimer définitivement ${invoiceNumbersToDelete.length} facture(s) ? Cette action supprimera également les fichiers PDF associés et est irréversible.`);
+
+    if (!confirmation) {
+        return;
+    }
+
+    console.log(`Suppression demandée pour les factures : ${invoiceNumbersToDelete.join(', ')}`);
+    let deletedCount = 0;
+    let fileErrors = 0;
+    let saveError = false;
+    const invoicesToKeep = []; // On va reconstruire la liste
+
+    const appRootPath = getAppRootPath(); // Obtenir le chemin racine une seule fois
+    const fs = window.fs; // Accéder à fs via window
+    const path = window.path; // Accéder à path via window
+
+    if (appRootPath === 'CHEMIN_RACINE_INCONNU' || !fs || !path) {
+         alert("Erreur critique : Impossible de déterminer le chemin racine ou modules fs/path manquants pour supprimer les fichiers PDF.");
+         return;
+    }
+
+    for (const invoice of window.invoices) {
+        if (invoiceNumbersToDelete.includes(invoice.number)) {
+            // Cette facture doit être supprimée
+            console.log(`Traitement de la suppression pour ${invoice.number}...`);
+
+            // 1. Supprimer le fichier PDF associé
+            if (invoice.client && invoice.client.nom && invoice.client.prenom) {
+                try {
+                    const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
+                    const clientFolderName = `${invoice.client.nom}_${invoice.client.prenom}`.replace(/[^a-zA-Z0-9_]/g, '_');
+                    const facturesSubDir = '2-Factures';
+                    const pdfFileName = `Facture_${invoice.number}.pdf`;
+                    const pdfFilePath = path.join(baseDossiersPath, clientFolderName, facturesSubDir, pdfFileName);
+
+                    if (fs.existsSync(pdfFilePath)) {
+                        console.log(`Tentative de suppression du fichier : ${pdfFilePath}`);
+                        fs.unlinkSync(pdfFilePath); // Supprime le fichier
+                        console.log(`Fichier ${pdfFileName} supprimé avec succès.`);
+                    } else {
+                        console.warn(`Le fichier PDF pour la facture ${invoice.number} n'a pas été trouvé à l'emplacement ${pdfFilePath}. Suppression de l'entrée uniquement.`);
+                    }
+                } catch (error) {
+                    console.error(`Erreur lors de la suppression du fichier PDF pour la facture ${invoice.number}:`, error);
+                    fileErrors++;
+                }
+            } else {
+                console.warn(`Données client manquantes pour la facture ${invoice.number}. Impossible de déterminer le chemin du fichier PDF à supprimer.`);
+                fileErrors++;
+            }
+
+            deletedCount++;
+        } else {
+            // Cette facture doit être conservée
+            invoicesToKeep.push(invoice);
+        }
+    }
+
+    // Mettre à jour la liste globale des factures
+    window.invoices = invoicesToKeep;
+
+    // Sauvegarder les modifications dans le fichier JSON
+    const saveResult = saveInvoicesToFile();
+    if (!saveResult) {
+        saveError = true;
+    }
+    console.log('Résultat de la sauvegarde JSON après suppression multiple:', saveResult ? 'Succès' : 'Échec');
+
+    // Mettre à jour l'interface utilisateur
+    updateInvoicesList(); // Redessine le tableau
+    if (typeof updateFinancialStats === 'function') updateFinancialStats(); // Mettre à jour les stats si la fonction existe
+    if (typeof updateCharts === 'function') updateCharts(); // Mettre à jour les graphiques si la fonction existe
+
+    // Réinitialiser l'UI de sélection
+    const selectAllCheckbox = document.getElementById('selectAllInvoicesCheckbox');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+    updateDeleteSelectionUI(); // Cache le bouton et met à jour le compteur (qui sera à 0)
+
+    // Message final
+    let message = `${deletedCount} facture(s) supprimée(s) avec succès.`;
+    if (fileErrors > 0) {
+        message += `\n${fileErrors} erreur(s) lors de la suppression des fichiers PDF associés (voir console pour détails).`;
+    }
+    if (saveError) {
+        message += `\nATTENTION : La sauvegarde des modifications dans le fichier JSON a échoué !`;
+    }
+    alert(message);
+}
+
+// Fonction pour ajouter les écouteurs d'événements pour la sélection multiple
+function setupMultiSelectListeners() {
+    const tableBody = document.getElementById('invoicesTableBody');
+    const selectAllCheckbox = document.getElementById('selectAllInvoicesCheckbox');
+    const deleteBtn = document.getElementById('deleteSelectedInvoicesBtn');
+
+    // Écouteur sur le corps du tableau pour les cases individuelles (délégation)
+    if (tableBody) {
+        tableBody.addEventListener('change', (event) => {
+            if (event.target.classList.contains('invoice-select-checkbox')) {
+                updateDeleteSelectionUI();
+            }
+        });
+    } else {
+        console.error("Élément #invoicesTableBody non trouvé pour attacher l'écouteur de changement.");
+    }
+
+    // Écouteur sur la case "Tout sélectionner"
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (event) => {
+            const isChecked = event.target.checked;
+            const checkboxes = document.querySelectorAll('.invoice-select-checkbox');
+            checkboxes.forEach(cb => cb.checked = isChecked);
+            updateDeleteSelectionUI();
+        });
+    } else {
+        console.error("Élément #selectAllInvoicesCheckbox non trouvé pour attacher l'écouteur.");
+    }
+
+    // Écouteur sur le bouton "Supprimer la sélection"
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', handleDeleteSelectedInvoices);
+    } else {
+        console.error("Élément #deleteSelectedInvoicesBtn non trouvé pour attacher l'écouteur.");
+    }
+    console.log("Écouteurs pour la sélection multiple configurés (ou tentative)."); // Log pour vérifier
+}
+
+// --- FIN AJOUT POUR SÉLECTION/SUPPRESSION MULTIPLE ---
 
 // Variables globales pour le tri
 window.currentSortColumn = 'date'; // Par défaut, tri par date

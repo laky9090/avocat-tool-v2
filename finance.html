@@ -116,12 +116,22 @@
         <div class="invoices-section">
             <h2>Gestion des factures</h2>
             <button id="createInvoiceBtn" class="primary-button">Créer une nouvelle facture</button>
-            
+
+            <!-- AJOUTER CE BOUTON ICI -->
+            <button id="deleteSelectedInvoicesBtn" style="display: none; margin-bottom: 10px;" class="btn btn-danger">
+              Supprimer la sélection (<span id="selectedInvoiceCount">0</span>)
+            </button>
+            <!-- FIN AJOUT BOUTON -->
+
             <!-- Liste des factures -->
             <div class="invoices-list">
                 <table id="invoicesTable">
                     <thead>
                         <tr>
+                            <!-- AJOUTER CETTE CELLULE D'EN-TÊTE AU DÉBUT -->
+                            <th style="width: 3%;"><input type="checkbox" id="selectAllInvoicesCheckbox" title="Tout sélectionner/désélectionner"></th>
+                            <!-- FIN AJOUT CELLULE -->
+
                             <th class="sortable" data-sort="number">N° Facture</th>
                             <th class="sortable" data-sort="client">Client</th>
                             <th class="sortable" data-sort="description">Description</th>
@@ -132,7 +142,13 @@
                             <th style="text-align: center;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="invoicesTableBody"> <!-- Assurez-vous que l'ID est bien 'invoicesTableBody' -->
+                        <!-- AJOUTER CETTE LIGNE POUR LE MESSAGE SI VIDE -->
+                        <tr id="noInvoicesMessage" style="display: none;">
+                            <td colspan="9" class="text-center">Aucune facture à afficher.</td> <!-- colspan="9" car 9 colonnes maintenant -->
+                        </tr>
+                        <!-- Les lignes de factures seront insérées ici par JavaScript -->
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -690,3 +706,4 @@ Avocate au Barreau de Paris</textarea>
     </script>
 </body>
 </html>
+`
