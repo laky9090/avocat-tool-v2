@@ -1,22 +1,66 @@
 {
-  "name": "avocattool",
+  "name": "avocat-tool",
   "version": "1.0.0",
+  "description": "Votre description d'application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "pack": "npx electron-builder --dir",
+    "dist": "npx electron-builder",
     "package-mac": "electron-packager . AvocatTool --platform=darwin --arch=x64 --icon=icon.icns --overwrite"
   },
   "keywords": [],
-  "author": "",
+  "author": "Lakhdar DAMAR H",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@electron/remote": "^2.1.2",
-    "electron": "^28.0.0",
     "nodemailer": "^6.10.1",
     "pdfkit": "^0.16.0"
   },
   "devDependencies": {
-    "electron-packager": "^17.1.2"
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.votreentreprise.avocattool",
+    "productName": "AvocatTool",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!{dist,release,.git,.vscode}",
+      "!*.{iml,log,hprof,orig}",
+      "!node_modules/.cache"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icone.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.business",
+      "icon": "icone.icns"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
