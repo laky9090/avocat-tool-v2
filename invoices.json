@@ -104,5 +104,66 @@
     "totalHT": 150,
     "totalTTC": 180,
     "status": "paid"
+  },
+  {
+    "number": "2025-001-06",
+    "client": {
+      "numeroDossier": "2025-001",
+      "nom": "DAMAR",
+      "prenom": "Lakhdar",
+      "adresse": "15 Rue de la Véga",
+      "codePostal": "75012",
+      "ville": "Paris",
+      "complementAdresse": "",
+      "telephone": "0753770320",
+      "email": "dhllaky@gmail.com",
+      "profession": "Chef de projet",
+      "tribunal": "Tribunal judiciaire de Paris",
+      "type": "Première instance - Ordonnance de protection",
+      "role": "",
+      "dateAudience": "2025-04-22",
+      "dateContact": "2025-04-12",
+      "dateEcheance": "2025-03-15",
+      "commentaire": "",
+      "nomAdverse": "Jean-Luc",
+      "prenomAdverse": "BIGARD",
+      "adresseAdverse": "11 Rue Ampère",
+      "codePostalAdverse": "68000",
+      "villeAdverse": "Colmar",
+      "complementAdresseAdverse": "",
+      "telephoneAdverse": "0604115278",
+      "emailAdverse": "test1@gmail.com",
+      "professionAdverse": "Eboueur",
+      "aideJuridictionnelle": "non",
+      "montantTotal": "3000",
+      "montantPaye": "",
+      "tags": [],
+      "notes": [
+        {
+          "content": "Rien de spécial",
+          "date": "2025-04-12T10:32:55.903Z",
+          "id": 1744453975903
+        }
+      ],
+      "archived": false
+    },
+    "date": "2025-04-24T10:10:37.340Z",
+    "prestations": [
+      {
+        "description": "ligne 1",
+        "amount": 100
+      },
+      {
+        "description": "ligne 2",
+        "amount": 200
+      },
+      {
+        "description": "ligne 3",
+        "amount": 300
+      }
+    ],
+    "totalHT": 600,
+    "totalTTC": 720,
+    "status": "sent"
   }
 ]

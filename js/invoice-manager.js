@@ -727,10 +727,7 @@ function updateInvoicesList() {
     // --- FIN MODIFICATION TRI ---
 
     sortedInvoices.forEach(invoice => {
-        // --- MODIFIER L'INSERTION DE LIGNE ---
-        // Insérer à la fin pour respecter l'ordre du tableau trié
         const row = tableBody.insertRow();
-        // --- FIN MODIFICATION INSERTION ---
         row.setAttribute('data-invoice-number', invoice.number);
 
         // 1. Case à cocher
@@ -747,9 +744,36 @@ function updateInvoicesList() {
 
         // 4. Description
         const cellDescription = row.insertCell();
-        const firstPrestationDesc = invoice.prestations && invoice.prestations.length > 0 ? invoice.prestations[0].description : 'N/A';
-        cellDescription.textContent = firstPrestationDesc.length > 50 ? firstPrestationDesc.substring(0, 47) + '...' : firstPrestationDesc;
-        cellDescription.title = firstPrestationDesc;
+        cellDescription.classList.add('description-cell'); // Ajouter une classe pour le ciblage facile
+        let fullDescription = 'N/A';
+        let firstLineDescription = 'N/A';
+
+        if (invoice.prestations && invoice.prestations.length > 0) {
+            // Concaténer les descriptions
+            const allDescriptions = invoice.prestations
+                .map(p => (p.description || '').trim())
+                .filter(desc => desc !== '');
+
+            if (allDescriptions.length > 0) {
+                fullDescription = allDescriptions.join('\n');
+                // Prendre la première ligne pour l'affichage par défaut
+                firstLineDescription = allDescriptions[0];
+            }
+        }
+
+        // Mettre la première ligne (ou version tronquée) par défaut
+        cellDescription.textContent = firstLineDescription.length > 60 ? firstLineDescription.substring(0, 57) + '...' : firstLineDescription; // Ajuster la longueur si besoin
+        cellDescription.title = fullDescription; // Title pour le survol
+
+        // Stocker la description complète et la version courte
+        cellDescription.dataset.fullDescription = fullDescription;
+        cellDescription.dataset.shortDescription = cellDescription.textContent;
+
+        // Ajouter la classe 'expandable' si la description complète est différente de la courte
+        // ou si elle contient des retours à la ligne
+        if (fullDescription !== cellDescription.textContent || fullDescription.includes('\n')) {
+            cellDescription.classList.add('expandable');
+        }
 
         // 5. Date
         const cellDate = row.insertCell();
@@ -775,7 +799,6 @@ function updateInvoicesList() {
                                 </select>`;
 
         const statusSelect = cellStatus.querySelector('.status-select');
-        // --- DÉBUT REMPLACEMENT ---
         if (statusSelect) { // On vérifie juste que la liste déroulante existe
              statusSelect.addEventListener('change', (e) => {
                  const invNumber = e.target.dataset.invoiceNumber;
@@ -796,13 +819,11 @@ function updateInvoicesList() {
                      if (!saveResult) {
                          console.error("Échec de la sauvegarde après mise à jour du statut.");
                          alert("Attention: La sauvegarde du changement de statut a échoué !");
-                         // Optionnel: Revenir à l'ancien statut dans l'UI ?
-                         // e.target.value = window.invoices[invoiceIndex].status; // Revert UI (peut être déroutant)
                      } else {
                          console.log("Sauvegarde réussie après changement de statut.");
                      }
 
-                     // 4. Mettre à jour les statistiques (C'EST L'APPEL IMPORTANT)
+                     // 4. Mettre à jour les statistiques
                      if (typeof window.updateInvoiceStats === 'function') {
                          window.updateInvoiceStats();
                          console.log("Statistiques mises à jour après changement de statut.");
@@ -824,7 +845,6 @@ function updateInvoicesList() {
             console.error("Élément select.status-select non trouvé dans la cellule.");
         }
 
-
         // 9. Actions
         const cellActions = row.insertCell();
         cellActions.classList.add('actions-cell');
@@ -838,6 +858,42 @@ function updateInvoicesList() {
 
     updateDeleteSelectionUI();
     console.log(`Liste des factures mise à jour et triée par ${sortColumn} (${sortDirection}).`);
+
+    setupDescriptionToggle();
+}
+
+// --- AJOUTER CETTE FONCTION ---
+let isDescriptionListenerAttached = false; // Pour éviter d'ajouter l'écouteur plusieurs fois
+
+function setupDescriptionToggle() {
+    if (isDescriptionListenerAttached) return;
+
+    const tableBody = document.getElementById('invoicesTableBody');
+    if (tableBody) {
+        tableBody.addEventListener('click', function(event) {
+            const targetCell = event.target.closest('td.description-cell.expandable');
+            if (targetCell) {
+                const parentRow = targetCell.closest('tr'); // Obtenir la ligne parente
+                const isExpanded = targetCell.classList.contains('description-expanded');
+
+                if (isExpanded) {
+                    // Réduire
+                    targetCell.textContent = targetCell.dataset.shortDescription;
+                    targetCell.classList.remove('description-expanded');
+                    if (parentRow) parentRow.classList.remove('row-expanded'); // Retirer la classe de la ligne
+                } else {
+                    // Développer
+                    targetCell.textContent = targetCell.dataset.fullDescription;
+                    targetCell.classList.add('description-expanded');
+                    if (parentRow) parentRow.classList.add('row-expanded'); // Ajouter la classe à la ligne
+                }
+            }
+        });
+        isDescriptionListenerAttached = true;
+        console.log("Écouteur pour le développement de la description ajouté.");
+    } else {
+        console.error("Impossible d'ajouter l'écouteur pour la description : #invoicesTableBody non trouvé.");
+    }
 }
 
 // Exposer globalement
@@ -1331,6 +1387,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // AJOUTER CET APPEL ICI, après que la liste soit potentiellement chargée et affichée
     setupMultiSelectListeners();
+    setupDescriptionToggle();
 
     // Attacher l'écouteur au formulaire de facture
     const invoiceForm = document.getElementById('invoiceForm');

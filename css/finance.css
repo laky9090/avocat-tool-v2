@@ -180,20 +180,23 @@ header {
     overflow: visible;
     text-overflow: clip;
     padding: 12px 10px; /* Garder le padding cohérent */
-    vertical-align: middle; /* Alignement vertical */
+    text-align: center;
 
-    /* --- Utiliser Flexbox pour centrer les boutons --- */
-    display: flex;
-    justify-content: center; /* Centrer horizontalement les éléments flex (boutons) */
-    align-items: center; /* Centrer verticalement les éléments flex (boutons) */
-    gap: 5px; /* Ajouter un petit espace entre les boutons si nécessaire */
-    /* text-align: center; n'est plus nécessaire ici car flexbox gère l'alignement */
 }
+
+
+/* --- AJOUTER CETTE RÈGLE --- */
+/* Forcer l'alignement en haut pour TOUTES les cellules d'une ligne développée */
+#invoicesTable tr.row-expanded td {
+    vertical-align: top;
+}
+/* --- FIN AJOUT --- */
 
 /* Assurez-vous que les boutons eux-mêmes n'ont pas de marges excessives */
 #invoicesTable td:last-child button {
-    margin: 0; /* Supprimer les marges par défaut des boutons si elles existent */
-    /* Les styles .icon-btn ou .action-btn peuvent déjà gérer cela */
+    margin: 0 2px; /* Ajouter une petite marge horizontale si gap est supprimé */
+    display: inline-block; /* Ou inline-flex si les boutons contiennent des icônes à aligner */
+    vertical-align: middle; /* Essayer d'aligner les boutons eux-mêmes au milieu */
 }
 
 /* --- AJUSTER LES COLONNES NON-CENTRÉES --- */
@@ -219,15 +222,76 @@ header {
     text-align: right;
 }
 
+/* Comportement par défaut pour la plupart des colonnes (UNE ligne, ellipsis) */
+#invoicesTable th:not(:nth-child(4)):not(:last-child),
+#invoicesTable td:not(:nth-child(4)):not(:last-child) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle; /* Centrer verticalement par défaut */
+}
+
+/* --- MODIFIER LA COLONNE DESCRIPTION --- */
+/* En-tête Description */
+#invoicesTable th:nth-child(4) {
+    width: 15%;
+    text-align: left;
+    vertical-align: middle; /* Aligner au milieu */
+    white-space: nowrap;
+    overflow: visible;
+}
+/* Cellule Description - Comportement par défaut (une ligne) */
+#invoicesTable td:nth-child(4) {
+    width: 15%;
+    text-align: left;
+    vertical-align: middle; /* Aligner au milieu par défaut */
+    white-space: nowrap; /* Forcer une seule ligne */
+    overflow: hidden; /* Cacher le dépassement */
+    text-overflow: ellipsis; /* Ajouter "..." */
+    cursor: default; /* Curseur normal par défaut */
+    position: relative; /* Pour positionner un éventuel indicateur */
+    /* Transition pour un effet plus doux (optionnel) */
+    /* transition: all 0.2s ease-in-out; */
+}
+
+/* Style pour indiquer qu'une cellule est développable */
+#invoicesTable td:nth-child(4).expandable {
+    cursor: pointer; /* Curseur main pour indiquer cliquable */
+}
+/* Optionnel: Ajouter un petit indicateur visuel */
+#invoicesTable td:nth-child(4).expandable::after {
+    content: '▼'; /* Flèche vers le bas pour indiquer "développer" */
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em; /* Ajuster la taille si besoin */
+    color: var(--text-secondary);
+    opacity: 0.7;
+    pointer-events: none; /* Ne pas interférer avec le clic sur la cellule */
+}
+
+/* Style pour la cellule développée */
+#invoicesTable td:nth-child(4).description-expanded {
+    white-space: pre-line; /* Conserver les sauts de ligne (\n) et permettre le retour à la ligne */
+    word-wrap: break-word; /* Garder la césure si une ligne est trop longue */
+    overflow: visible; /* Afficher tout le contenu */
+    text-overflow: clip; /* Pas d'ellipsis */
+    height: auto; /* Permettre à la hauteur de s'ajuster */
+    cursor: pointer; /* Garder le curseur pour pouvoir re-cliquer */
+}
+/* Optionnel: Changer l'indicateur quand développé */
+#invoicesTable td:nth-child(4).expandable.description-expanded::after {
+    content: '▲'; /* Flèche vers le haut pour indiquer "réduire" */
+    font-size: 0.8em; /* Garder la même taille */
+}
+
 /* Styles de base pour toutes les cellules - Standardiser le padding */
 #invoicesTable th,
 #invoicesTable td {
     padding: 12px 10px; /* Padding vertical 12px, horizontal 10px */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
+    vertical-align: middle; /* Garder comme défaut pour les cellules non-flex */
     text-align: center; /* Centrer par défaut */
 }
 
