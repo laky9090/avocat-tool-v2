@@ -419,6 +419,80 @@ function deleteInvoice(invoiceNumber) {
     alert(message);
 }
 
+
+function viewInvoicePDF(invoiceNumber) {
+    console.log(`Demande d'affichage du PDF pour la facture : ${invoiceNumber}`);
+
+    // 1. Trouver la facture
+    const invoice = window.invoices.find(inv => inv.number === invoiceNumber);
+    if (!invoice) {
+        alert(`Erreur : Facture ${invoiceNumber} non trouvée.`);
+        console.error(`Facture ${invoiceNumber} non trouvée pour affichage PDF.`);
+        return;
+    }
+
+    // 2. Vérifier les modules nécessaires et le chemin racine
+    const appRootPath = getAppRootPath();
+    const fs = window.fs;
+    const path = window.path;
+    const shell = remote.shell; // Assurez-vous que 'shell' est exposé via preload.js
+
+    if (appRootPath === 'CHEMIN_RACINE_INCONNU' || !fs || !path || !shell) {
+         const missing = [
+             !fs ? 'fs' : null,
+             !path ? 'path' : null,
+             !shell ? 'shell' : null,
+             appRootPath === 'CHEMIN_RACINE_INCONNU' ? 'chemin racine' : null
+         ].filter(Boolean).join(', ');
+         alert(`Erreur critique : Modules (${missing}) manquants ou chemin racine inconnu. Impossible d'ouvrir le PDF.`);
+         console.error(`Erreur critique : Modules (${missing}) manquants ou chemin racine inconnu.`);
+         return;
+    }
+
+    // 3. Reconstruire le chemin du PDF
+    if (!invoice.client || !invoice.client.nom || !invoice.client.prenom) {
+        alert(`Erreur : Données client manquantes pour la facture ${invoiceNumber}. Impossible de trouver le PDF.`);
+        console.warn(`Données client manquantes pour la facture ${invoiceNumber}.`);
+        return;
+    }
+
+    try {
+        const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
+        const clientFolderName = `${invoice.client.nom}_${invoice.client.prenom}`.replace(/[^a-zA-Z0-9_]/g, '_');
+        const facturesSubDir = '2-Factures';
+        const pdfFileName = `Facture_${invoice.number}.pdf`;
+        const pdfFilePath = path.join(baseDossiersPath, clientFolderName, facturesSubDir, pdfFileName);
+
+        console.log(`Tentative d'ouverture du fichier : ${pdfFilePath}`);
+
+        // 4. Vérifier si le fichier existe
+        if (!fs.existsSync(pdfFilePath)) {
+            alert(`Le fichier PDF pour la facture ${invoiceNumber} n'a pas été trouvé à l'emplacement attendu :\n${pdfFilePath}`);
+            console.error(`Fichier PDF non trouvé : ${pdfFilePath}`);
+            return;
+        }
+
+        // 5. Ouvrir le fichier avec le lecteur par défaut
+        shell.openPath(pdfFilePath).then(result => {
+            if (result) {
+                console.error(`Erreur lors de l'ouverture du fichier PDF ${pdfFilePath}: ${result}`);
+                alert(`Impossible d'ouvrir le fichier PDF.\nErreur: ${result}`);
+            } else {
+                console.log(`Fichier PDF ${pdfFilePath} ouvert avec succès.`);
+            }
+        }).catch(err => {
+             console.error(`Erreur inattendue lors de l'appel à shell.openPath pour ${pdfFilePath}:`, err);
+             alert(`Une erreur inattendue est survenue lors de la tentative d'ouverture du PDF.\nErreur: ${err.message}`);
+        });
+
+    } catch (error) {
+        console.error(`Erreur lors de la construction du chemin ou de la vérification du fichier PDF pour ${invoiceNumber}:`, error);
+        alert(`Une erreur est survenue lors de la préparation de l'ouverture du PDF.\nErreur: ${error.message}`);
+    }
+}
+
+
+
 // Générer un numéro de facture unique pour un client
 function generateInvoiceNumber(clientId) {
     if (!clientId) {
