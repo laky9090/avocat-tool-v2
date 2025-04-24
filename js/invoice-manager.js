@@ -699,12 +699,57 @@ function updateInvoicesList() {
                                     <option value="paid" ${invoice.status === 'paid' ? 'selected' : ''}>Payée</option>
                                     <option value="cancelled" ${invoice.status === 'cancelled' ? 'selected' : ''}>Annulée</option>
                                 </select>`;
+
         const statusSelect = cellStatus.querySelector('.status-select');
-        if (statusSelect && typeof updateInvoiceStatus === 'function') {
+        // --- DÉBUT REMPLACEMENT ---
+        if (statusSelect) { // On vérifie juste que la liste déroulante existe
              statusSelect.addEventListener('change', (e) => {
-                 updateInvoiceStatus(e.target.dataset.invoiceNumber, e.target.value);
+                 const invNumber = e.target.dataset.invoiceNumber;
+                 const newStatus = e.target.value;
+
+                 console.log(`Changement de statut demandé pour ${invNumber} vers ${newStatus}`);
+
+                 // 1. Trouver l'index de la facture
+                 const invoiceIndex = window.invoices.findIndex(inv => inv.number === invNumber);
+
+                 if (invoiceIndex !== -1) {
+                     // 2. Mettre à jour le statut dans le tableau en mémoire
+                     window.invoices[invoiceIndex].status = newStatus;
+                     console.log(`Statut mis à jour en mémoire pour ${invNumber}.`);
+
+                     // 3. Sauvegarder les modifications dans le fichier JSON
+                     const saveResult = saveInvoicesToFile(); // Appeler la fonction de sauvegarde
+                     if (!saveResult) {
+                         console.error("Échec de la sauvegarde après mise à jour du statut.");
+                         alert("Attention: La sauvegarde du changement de statut a échoué !");
+                         // Optionnel: Revenir à l'ancien statut dans l'UI ?
+                         // e.target.value = window.invoices[invoiceIndex].status; // Revert UI (peut être déroutant)
+                     } else {
+                         console.log("Sauvegarde réussie après changement de statut.");
+                     }
+
+                     // 4. Mettre à jour les statistiques (C'EST L'APPEL IMPORTANT)
+                     if (typeof window.updateInvoiceStats === 'function') {
+                         window.updateInvoiceStats();
+                         console.log("Statistiques mises à jour après changement de statut.");
+                     } else {
+                         console.warn("Fonction window.updateInvoiceStats non trouvée.");
+                     }
+
+                     // 5. Optionnel: Mettre à jour les graphiques
+                     if (typeof updateCharts === 'function') {
+                         updateCharts();
+                         console.log("Graphiques mis à jour après changement de statut.");
+                     }
+
+                 } else {
+                     console.error(`Facture ${invNumber} non trouvée en mémoire lors du changement de statut.`);
+                 }
              });
+        } else {
+            console.error("Élément select.status-select non trouvé dans la cellule.");
         }
+
 
         // 9. Actions
         const cellActions = row.insertCell();
