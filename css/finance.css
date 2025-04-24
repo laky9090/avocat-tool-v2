@@ -136,126 +136,67 @@ header {
     user-select: none;
 }
 
+/* --- MODIFICATION : Simplifier cette règle --- */
 #invoicesTable th:not(:last-child) {
-    cursor: move;
-}
-
-#invoicesTable th.dragging {
-    opacity: 0.5;
-    background-color: var(--hover-background);
-}
-
-#invoicesTable th.drag-over {
-    border-left: 2px solid var(--primary-color);
-}
-
-/* Indication visuelle pendant le drag */
-#invoicesTable th:not(:last-child::before) {
-    content: '⋮';
-    margin-right: 8px;
-    color: var(--text-secondary);
-    opacity: 0.5;
+    cursor: move; /* Garder le curseur move */
 }
 
 /* Styles pour les en-têtes de colonnes triables */
-#invoicesTable th:not(:last-child) {
+#invoicesTable th.sortable {
     cursor: pointer;
-    user-select: none;
-    position: relative;
-    padding: 12px;
-    padding-right: 25px; /* Réduit de 32px à 25px */
-    text-align: left;
+    position: relative; /* Nécessaire pour l'icône absolue */
 }
 
-/* Ajuster l'icône de tri */
-#invoicesTable th:not(:last-child::after) {
-    content: '⇕';
-    position: absolute;
-    right: 8px; /* Réduit de 12px à 8px */
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.5;
-    margin-left: 4px; /* Ajout d'une petite marge */
-}
-
-/* Ajuster les icônes de tri actives */
-#invoicesTable th.sort-asc::after,
-#invoicesTable th.sort-desc::after {
-    right: 8px; /* Maintenir l'alignement */
-}
-
-/* Remettre le padding normal pour la colonne Actions */
-#invoicesTable th:last-child {
-    padding: 12px;
-    cursor: default;
-}
-
-#invoicesTable th.sort-asc::after {
-    content: '↑';
-    opacity: 1;
-}
-
-#invoicesTable th.sort-desc::after {
-    content: '↓';
-    opacity: 1;
-}
-
-/* Styles de base pour toutes les cellules - Standardiser le padding */
-#invoicesTable th,
-#invoicesTable td {
-    padding: 12px 10px; /* Utiliser un padding horizontal cohérent (ex: 10px) */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: middle; /* Garder l'alignement vertical */
-    text-align: center; /* Centrer par défaut */
-}
-
-/* Styles pour les en-têtes de colonnes triables - Ajuster pour l'icône */
-#invoicesTable th.sortable { /* Cibler spécifiquement les en-têtes triables */
-    cursor: pointer;
-    user-select: none;
-    position: relative;
-    /* Le padding est hérité de la règle générale ci-dessus */
-    text-align: center; /* S'assurer que le texte de l'en-tête est centré */
-}
-
-/* Ajuster la position de l'icône pour moins gêner */
+/* Position de l'icône de tri */
 #invoicesTable th.sortable::after {
     content: '↕️';
     position: absolute;
-    right: 8px; /* Positionner l'icône près du bord droit */
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     opacity: 0.3;
     font-size: 0.8em;
-    /* Ne pas ajouter de margin-left ici, laisser le padding faire le travail */
 }
+#invoicesTable th.sortable.sort-asc::after { content: '↑'; opacity: 1; }
+#invoicesTable th.sortable.sort-desc::after { content: '↓'; opacity: 1; }
 
-/* Icônes actives */
-#invoicesTable th.sortable.sort-asc::after,
-#invoicesTable th.sortable.sort-desc::after {
-    right: 8px; /* Garder la même position */
-    opacity: 1;
-}
-#invoicesTable th.sortable.sort-asc::after { content: '↑'; }
-#invoicesTable th.sortable.sort-desc::after { content: '↓'; }
+/* --- Colonne ACTIONS : Nouvelle approche avec Flexbox --- */
 
-/* --- MODIFICATION POUR LA COLONNE ACTIONS --- */
-/* Cibler l'en-tête et la cellule de la dernière colonne (Actions) */
-#invoicesTable th:last-child,
-#invoicesTable td:last-child {
-    width: auto;
-    min-width: 130px;
-    text-align: center; /* Déjà centré */
-    white-space: nowrap;
+/* Style pour l'en-tête de la colonne Actions */
+#invoicesTable th:last-child {
+    width: auto; /* Laisser la largeur s'adapter ou utiliser min-width */
+    min-width: 130px; /* Espace minimum pour les boutons */
+    text-align: center; /* Centrer le texte de l'en-tête */
     overflow: visible;
     text-overflow: clip;
-    padding: 8px 10px; /* Utiliser le même padding horizontal que les autres */
+    padding: 12px 10px; /* Garder le padding cohérent */
+    vertical-align: middle; /* Alignement vertical */
 }
 
-/* --- AJUSTER LES COLONNES QUI NE DOIVENT PAS ÊTRE CENTRÉES --- */
+/* Style pour les cellules de la colonne Actions */
+#invoicesTable td:last-child {
+    width: auto; /* Doit correspondre au comportement de l'en-tête */
+    min-width: 130px; /* Garder le min-width */
+    overflow: visible;
+    text-overflow: clip;
+    padding: 12px 10px; /* Garder le padding cohérent */
+    vertical-align: middle; /* Alignement vertical */
+
+    /* --- Utiliser Flexbox pour centrer les boutons --- */
+    display: flex;
+    justify-content: center; /* Centrer horizontalement les éléments flex (boutons) */
+    align-items: center; /* Centrer verticalement les éléments flex (boutons) */
+    gap: 5px; /* Ajouter un petit espace entre les boutons si nécessaire */
+    /* text-align: center; n'est plus nécessaire ici car flexbox gère l'alignement */
+}
+
+/* Assurez-vous que les boutons eux-mêmes n'ont pas de marges excessives */
+#invoicesTable td:last-child button {
+    margin: 0; /* Supprimer les marges par défaut des boutons si elles existent */
+    /* Les styles .icon-btn ou .action-btn peuvent déjà gérer cela */
+}
+
+/* --- AJUSTER LES COLONNES NON-CENTRÉES --- */
 
 /* Colonne Client (Aligner à gauche) */
 #invoicesTable th:nth-child(3),
@@ -264,9 +205,10 @@ header {
 }
 
 /* Colonne Description (Aligner à gauche) */
-#invoicesTable th:nth-child(4),
+#invoicesTable th:nth-child(4), /* Description */
 #invoicesTable td:nth-child(4) {
-    text-align: left;
+    width: 15%; /* Réduire la largeur (était 25%) */
+    text-align: left; /* Garder l'alignement à gauche */
 }
 
 /* Colonnes Montant HT et TTC (Aligner à droite) */
@@ -275,6 +217,18 @@ header {
 #invoicesTable th:nth-child(7),
 #invoicesTable td:nth-child(7) {
     text-align: right;
+}
+
+/* Styles de base pour toutes les cellules - Standardiser le padding */
+#invoicesTable th,
+#invoicesTable td {
+    padding: 12px 10px; /* Padding vertical 12px, horizontal 10px */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    text-align: center; /* Centrer par défaut */
 }
 
 /* Alignement spécifique pour chaque colonne (largeurs) */
@@ -292,11 +246,6 @@ header {
 #invoicesTable td:nth-child(3) {
     width: 15%;
     text-align: left; /* Client souvent mieux à gauche */
-}
-
-#invoicesTable th:nth-child(4),
-#invoicesTable td:nth-child(4) {
-    width: 25%; /* Ajuster si besoin */
 }
 
 #invoicesTable th:nth-child(5), /* Date */
@@ -338,12 +287,6 @@ header {
 /* Amélioration de la lisibilité du tableau */
 #invoicesTable tr:hover {
     background-color: var(--hover-background);
-}
-
-/* Style pour la colonne Actions */
-#invoicesTable td:last-child {
-    text-align: center;
-    padding: 8px;
 }
 
 /* Style pour le bouton Supprimer */
