@@ -106,19 +106,25 @@ header {
     padding: 20px;
     border-radius: var(--border-radius);
     box-shadow: 0 2px 4px var(--shadow-color);
+    padding-right: 5px; /* Ou une autre petite valeur */
 }
 
 .invoices-list {
     margin-top: 15px;
     height: 400px;
     overflow-y: auto;
+    overflow-x: auto; /* Ajoute une barre de défilement horizontale si nécessaire */
+    -webkit-overflow-scrolling: touch; /* Améliore le défilement sur les appareils tactiles (optionnel) */
+    max-width: 100%; /* S'assure que le conteneur ne dépasse pas la largeur de son parent */
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
 }
 
 /* Styles de base pour la table */
 #invoicesTable {
-    width: 100%;
+    min-width: 900px; /* Définir une largeur minimale pour forcer le défilement si nécessaire. Ajustez cette valeur selon vos colonnes. */
+    width: 100%; /* Le tableau essaie de prendre toute la largeur disponible */
+    table-layout: auto; /* ou 'fixed' si vous définissez des largeurs de colonnes spécifiques */
     table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
@@ -202,6 +208,21 @@ header {
     overflow: hidden;
     text-overflow: ellipsis;
     border-bottom: 1px solid var(--border-color);
+    vertical-align: middle; /* Mieux aligner verticalement */
+}
+
+/* --- MODIFICATION POUR LA COLONNE ACTIONS --- */
+
+/* Cibler l'en-tête et la cellule de la dernière colonne (Actions) */
+#invoicesTable th:last-child,
+#invoicesTable td:last-child {
+    width: auto; /* Laisser le navigateur déterminer la largeur ou utiliser min-width */
+    min-width: 130px; /* Donner une largeur minimale fixe pour les 3 boutons. Ajustez si nécessaire. */
+    text-align: center;
+    white-space: nowrap; /* Garder les boutons sur une ligne */
+    overflow: visible; /* IMPORTANT: Permettre au contenu de déborder si absolument nécessaire (normalement min-width l'évite) */
+    text-overflow: clip; /* IMPORTANT: Ne pas afficher '...' */
+    padding: 8px; /* Ajuster le padding si besoin */
 }
 
 /* Alignement spécifique pour chaque colonne */
