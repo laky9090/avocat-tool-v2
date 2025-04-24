@@ -1342,22 +1342,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof handleInvoiceSubmission !== 'function') console.error('Fonction handleInvoiceSubmission non trouvée!');
     }
 
-    // Initialisation des graphiques (si les fonctions existent)
-    if (typeof updateCharts === 'function' && typeof ensureChartsAreLoaded === 'function') {
-        setTimeout(function() {
-            console.log('Initialisation différée des graphiques...');
-            try {
-                updateCharts();
-                console.log('Graphiques initialisés avec succès via updateCharts.');
-                // Vérification supplémentaire
-                setTimeout(ensureChartsAreLoaded, 500);
-            } catch (error) {
-                console.error('Erreur lors de l\'initialisation des graphiques:', error);
-            }
-        }, 1500); // Augmenter le délai si nécessaire
-    } else {
-         console.warn("Fonctions updateCharts ou ensureChartsAreLoaded non disponibles.");
-    }
+
 
     // Ajouter des wrappers pour les fonctions appelées par onclick si elles ne sont pas globales
     window.showEmailModalWrapper = function(invoiceNumber) {
