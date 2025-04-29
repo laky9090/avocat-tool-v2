@@ -31,7 +31,7 @@
     "id": "task_2025-001_1",
     "clientId": "2025-001",
     "description": "Préparer les conclusions ",
-    "dueDate": "2025-05-02",
+    "dueDate": "2025-05-30",
     "completed": true,
     "comment": "Vérifier les documents avant envoi"
   },
@@ -39,7 +39,7 @@
     "id": "task_2025-001_2",
     "clientId": "2025-001",
     "description": "Envoyer notification à l'adverse",
-    "dueDate": "2025-05-20",
+    "dueDate": "2025-05-17",
     "completed": true,
     "comment": "Notification envoyée par email"
   },
@@ -47,7 +47,7 @@
     "id": "task_1745150530856",
     "clientId": "2025-001",
     "description": "tache débile",
-    "dueDate": "2025-02-02",
+    "dueDate": "2025-03-05",
     "completed": false,
     "comment": "commentaire inutul"
   },
@@ -55,7 +55,7 @@
     "id": "task_2025-003_1",
     "clientId": "2025-003",
     "description": "Préparer les conclusions",
-    "dueDate": "2025-07-25",
+    "dueDate": "2025-04-29",
     "completed": false,
     "comment": "Vérifier les documents avant envoi"
   },
@@ -63,7 +63,7 @@
     "id": "task_2025-003_2",
     "clientId": "2025-003",
     "description": "Envoyer notification à l'adverse",
-    "dueDate": "2025-04-25",
+    "dueDate": "2025-05-03",
     "completed": true,
     "comment": "Notification envoyée par email"
   },
@@ -71,7 +71,7 @@
     "id": "task_1745150575863",
     "clientId": "2025-003",
     "description": "test nouvelle tache",
-    "dueDate": "2025-04-28",
+    "dueDate": "2025-03-01",
     "completed": false,
     "comment": "coucou"
   }

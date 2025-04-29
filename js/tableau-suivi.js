@@ -39,6 +39,72 @@ let currentSortType = 'client'; // <-- AJOUTER ICI (valeur par défaut)
 let currentSortOrder = 'asc';   // <-- AJOUTER ICI (valeur par défaut)
 let currentQuickFilter = 'all'; // Nouvelle variable globale pour le filtre actif
 
+// Fonction pour mettre à jour le statut d'une tâche en mémoire ET la barre de progression
+function updateTaskStatus(clientId, taskId, isCompleted) {
+    console.log(`updateTaskStatus: Client ${clientId}, Tâche ${taskId}, Complété: ${isCompleted}`);
+    if (!tasks || !tasks[clientId]) {
+        console.error(`updateTaskStatus: Client ${clientId} non trouvé dans tasks.`);
+        return false; // Indiquer l'échec
+    }
+    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+    if (taskIndex === -1) {
+        console.error(`updateTaskStatus: Tâche ${taskId} non trouvée pour client ${clientId}.`);
+        return false; // Indiquer l'échec
+    }
+
+    // Mettre à jour le statut dans la structure de données en mémoire
+    if (tasks[clientId][taskIndex].completed !== isCompleted) {
+        tasks[clientId][taskIndex].completed = isCompleted;
+        console.log(`Statut de la tâche ${taskId} mis à jour en mémoire.`);
+
+        // *** APPEL CRUCIAL pour mettre à jour l'affichage de la progression ***
+        updateProgressBar(clientId);
+
+        return true; // Indiquer le succès
+    } else {
+        console.log(`Statut de la tâche ${taskId} déjà à jour.`);
+        // On peut quand même rafraîchir la barre au cas où l'affichage initial était faux
+        updateProgressBar(clientId);
+        return true; // Considéré comme un succès car l'état est correct
+    }
+}
+
+// Fonction pour mettre à jour la barre de progression d'un client spécifique
+function updateProgressBar(clientId) {
+    console.log(`Mise à jour de la barre de progression pour le client ${clientId}`);
+    // Trouver le conteneur du groupe pour ce client
+    const group = document.querySelector(`.task-group[data-client-id="${clientId}"]`);
+    if (!group) {
+        // Si on est en vue plate, il n'y a pas de barre de progression à mettre à jour
+        if (document.querySelector('.flat-task-view')) {
+            console.log("Vue plate active, pas de barre de progression à mettre à jour.");
+            return;
+        }
+        console.warn(`Groupe non trouvé pour la mise à jour de la barre de progression (Client ID: ${clientId})`);
+        return;
+    }
+
+    // Récupérer les tâches pour ce client depuis la variable globale 'tasks'
+    const clientTasks = tasks[clientId] || [];
+    const totalTasks = clientTasks.length;
+    const completedTasks = clientTasks.filter(task => task.completed).length;
+    // Calculer le pourcentage (éviter division par zéro)
+    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    // Trouver les éléments de la barre de progression dans l'en-tête du groupe
+    const progressBar = group.querySelector('.progress-bar');
+    const progressNumber = group.querySelector('.progress-number');
+
+    if (progressBar && progressNumber) {
+        // Mettre à jour le style de la barre et le texte
+        progressBar.style.width = `${progressPercentage}%`;
+        progressNumber.textContent = `${progressPercentage}% (${completedTasks}/${totalTasks} tâches terminées)`;
+        console.log(`Barre de progression pour ${clientId} mise à jour: ${progressPercentage}%`);
+    } else {
+        console.warn(`Éléments de barre de progression (.progress-bar ou .progress-number) non trouvés pour le client ${clientId}`);
+    }
+}
+
 // Fonction pour charger les données
 function loadData() {
     console.log('Chargement des données clients...');
@@ -94,6 +160,29 @@ function loadData() {
     
     // Afficher les tâches
     renderTaskGroups();
+}
+
+function saveTasks() {
+    console.log('Tentative de sauvegarde des tâches dans:', tasksFilePath);
+    try {
+        // Convertir la structure groupée { clientId: [tasks] } en liste plate
+        let tasksToSave = [];
+        for (const clientId in tasks) {
+            if (tasks[clientId]) { // Vérifier si le client a des tâches
+                tasksToSave = tasksToSave.concat(tasks[clientId]);
+            }
+        }
+
+        // Écrire la liste plate dans le fichier JSON
+        fs.writeFileSync(tasksFilePath, JSON.stringify(tasksToSave, null, 2), 'utf8');
+        console.log(`Sauvegarde réussie: ${tasksToSave.length} tâches écrites dans ${tasksFilePath}`);
+        return true; // Indiquer le succès
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde des tâches:', error);
+        // Afficher une alerte ou un message d'erreur plus visible si nécessaire
+        alert(`Erreur critique lors de la sauvegarde des tâches: ${error.message}. Vérifiez les permissions du fichier.`);
+        return false; // Indiquer l'échec
+    }
 }
 
 // Fonction pour charger les tâches
@@ -325,7 +414,7 @@ function renderTaskGroups() {
     });
     
     // Ajouter les gestionnaires d'événements pour les cases à cocher, etc.
-    addEditableFieldListeners();
+    
     attachCheckboxListeners(); 
     attachDeleteButtonListeners();
     
@@ -616,6 +705,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ajouter l'initialisation de la recherche et du tri
     initSearchAndSort();
+
+    addEditableFieldListeners(); 
+
+    console.log("Initialisation DOMContentLoaded terminée.");
 });
 
 // Créer des exemples de tâches pour la démonstration
@@ -754,8 +847,6 @@ function refreshTaskList(clientId) {
     
     console.log('Corps de tableau mis à jour, ajout des gestionnaires d\'événements');
     
-    // Important: réattacher tous les gestionnaires d'événements
-    addEditableFieldListeners();
     
     // Gestionnaires spécifiques pour les cases à cocher et boutons de suppression
     taskGroup.querySelectorAll('.task-checkbox').forEach(checkbox => {
@@ -1028,11 +1119,6 @@ function addNewTask() {
                 // Rafraîchir uniquement les tâches du client concerné
                 refreshTaskList(clientId);
 
-                // Réattacher explicitement les gestionnaires d'événements
-                setTimeout(() => {
-                    addEditableFieldListeners();
-                    console.log('Gestionnaires d\'événements réattachés');
-                }, 50);
             } else {
                 console.error('Échec de la sauvegarde');
                 alert('La tâche a été créée mais n\'a pas pu être sauvegardée. Veuillez vérifier la console pour plus d\'informations.');
@@ -1213,501 +1299,429 @@ function deleteTask(taskId) {
     }
 }
 
-// Fonction pour initialiser les gestionnaires d'événements après le rendu du tableau
-
+// Nouvelle fonction addEditableFieldListeners (utilise la délégation)
 function addEditableFieldListeners() {
-    console.log('Initialisation des champs éditables...');
-    
-    // Gestionnaires pour l'édition des descriptions
-    document.querySelectorAll('.task-description').forEach(cell => {
-        cell.addEventListener('click', function(e) {
-            // Empêcher l'édition si on clique sur un élément d'interface (comme un bouton)
-            if (e.target.closest('.action-btn')) return;
-            
-            console.log('Clic sur description');
-            const taskId = this.dataset.taskId;
-            const textElement = this.querySelector('.description-text');
-            
-            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
-            if (!textElement || this.querySelector('.description-input')) {
-                return;
-            }
-            
-            const currentText = textElement.textContent || '';
-            
-            // Créer un champ de saisie
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'description-input';
-            input.value = currentText;
-            input.dataset.originalValue = currentText; // Stocker la valeur originale
-            
-            // Cacher le texte et ajouter l'input
-            textElement.style.display = 'none';
-            this.appendChild(input);
-            
-            // Focus sur le champ et sélectionner le texte
-            input.focus();
-            input.select();
-            
-            // Empêcher que le clic se propage pour éviter des déclenchements multiples
-            e.stopPropagation();
-            
-            // Gestionnaire pour la touche Entrée
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    saveField(this, textElement, 'description', taskId);
-                } else if (e.key === 'Escape') {
-                    // Annuler l'édition et restaurer la valeur d'origine
-                    textElement.style.display = '';
-                    this.remove();
-                }
-            });
-            
-            // Gestionnaire pour la perte de focus
-            input.addEventListener('blur', function() {
-                saveField(this, textElement, 'description', taskId);
-            });
-        });
-    });
-    
-    // Gestionnaires pour l'édition des dates
-    document.querySelectorAll('.task-date').forEach(cell => {
-        cell.addEventListener('click', function(e) {
-            // Empêcher l'édition si on clique sur un bouton
-            if (e.target.closest('.action-btn')) return;
-            
-            console.log('Clic sur date');
-            const taskId = this.dataset.taskId;
-            const textElement = this.querySelector('.date-text');
-            
-            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
-            if (!textElement || this.querySelector('.date-input')) {
-                return;
-            }
-            
-            const currentText = textElement.textContent || '';
-            
-            // Convertir la date du format affiché vers format ISO pour l'input
-            let dateValue = '';
-            if (currentText && currentText !== '—') {
-                try {
-                    const [day, month, year] = currentText.split('/');
-                    dateValue = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                } catch (e) {
-                    console.error('Erreur de conversion de date:', e);
-                }
-            }
-            
-            // Créer un champ date
-            const input = document.createElement('input');
-            input.type = 'date';
-            input.className = 'date-input';
-            input.value = dateValue;
-            input.dataset.originalValue = currentText; // Stocker la valeur originale
-            
-            // Cacher le texte et ajouter l'input
-            textElement.style.display = 'none';
-            this.appendChild(input);
-            
-            // Focus sur le champ
-            input.focus();
-            
-            // Empêcher que le clic se propage
-            e.stopPropagation();
-            
-            // Gestionnaire pour la touche Échap (annuler)
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    textElement.style.display = '';
-                    this.remove();
-                }
-            });
-            
-            // Gestionnaires pour sauvegarder
-            input.addEventListener('change', function() {
-                saveField(this, textElement, 'date', taskId);
-            });
-            
-            input.addEventListener('blur', function() {
-                saveField(this, textElement, 'date', taskId);
-            });
-        });
-    });
-    
-    // Gestionnaires pour l'édition des commentaires
-    document.querySelectorAll('.task-comment').forEach(cell => {
-        cell.addEventListener('click', function(e) {
-            // Empêcher l'édition si on clique sur un bouton
-            if (e.target.closest('.action-btn')) return;
-            
-            console.log('Clic sur commentaire');
-            const taskId = this.dataset.taskId;
-            const textElement = this.querySelector('.comment-text');
-            
-            // Si l'élément n'existe pas ou est déjà en mode édition, ne rien faire
-            if (!textElement || this.querySelector('.comment-input')) {
-                return;
-            }
-            
-            const currentText = textElement.textContent || '';
-            const isPlaceholder = textElement.classList.contains('comment-placeholder');
-            
-            // Créer un champ de saisie
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'comment-input';
-            input.value = isPlaceholder ? '' : currentText;
-            input.dataset.originalValue = currentText; // Stocker la valeur originale
-            
-            // Cacher le texte et ajouter l'input
-            textElement.style.display = 'none';
-            this.appendChild(input);
-            
-            // Focus sur le champ et sélectionner le texte
-            input.focus();
-            if (!isPlaceholder) {
-                input.select();
-            }
-            
-            // Empêcher que le clic se propage
-            e.stopPropagation();
-            
-            // Gestionnaire pour la touche Entrée
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    saveField(this, textElement, 'comment', taskId);
-                } else if (e.key === 'Escape') {
-                    // Annuler l'édition
-                    textElement.style.display = '';
-                    this.remove();
-                }
-            });
-            
-            // Gestionnaire pour la perte de focus
-            input.addEventListener('blur', function() {
-                saveField(this, textElement, 'comment', taskId);
-         
-            });
-        });
-    });
-    
-    console.log('Champs éditables initialisés avec succès');
+    console.log('Initialisation des champs éditables via délégation...');
+    const container = document.getElementById('tasksContainer');
+    if (!container) {
+        console.error("Conteneur #tasksContainer non trouvé pour délégation.");
+        return;
+    }
+
+    // --- CLICK Listener (Délégué) ---
+    // Détecte les clics sur les cellules éditables pour démarrer l'édition
+    container.removeEventListener('click', handleEditableClick); // Eviter doublons
+    container.addEventListener('click', handleEditableClick);
+
+    // --- BLUR Listener (Délégué) ---
+    // Détecte la perte de focus des inputs créés. Utilise la phase de capture car blur ne bulle pas.
+    container.removeEventListener('blur', handleEditableBlur, true); // Eviter doublons
+    container.addEventListener('blur', handleEditableBlur, true);
+
+    // --- KEYDOWN Listener (Délégué) ---
+    // Détecte Entrée/Échap dans les inputs créés
+    container.removeEventListener('keydown', handleEditableKeydown); // Eviter doublons
+    container.addEventListener('keydown', handleEditableKeydown);
+
+    // --- CHANGE Listener (Délégué) ---
+    // Détecte les changements explicites (ex: sélection date picker)
+    container.removeEventListener('change', handleEditableChange); // Eviter doublons
+    container.addEventListener('change', handleEditableChange);
+
+    console.log('Écouteurs délégués attachés à #tasksContainer');
 }
 
-// Fonction pour sauvegarder un champ modifié
+// --- Fonctions de Gestion (Handlers) ---
+
+// Gère le clic pour démarrer l'édition
+function handleEditableClick(e) {
+    const target = e.target;
+    const cell = target.closest('.task-description, .task-date, .task-comment');
+
+    if (!cell || target.closest('.action-btn') || cell.querySelector('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const taskId = cell.dataset.taskId;
+    if (!taskId) { // Vérification ajoutée
+         console.warn("Clic sur cellule sans data-task-id:", cell);
+         return;
+    }
+
+    let textElement, inputType, inputClassName, originalValue, valueForInput, fieldType;
+
+    if (cell.classList.contains('task-description')) {
+        fieldType = 'description';
+        textElement = cell.querySelector('.description-text');
+        if (!textElement) return;
+        inputType = 'text';
+        inputClassName = 'description-input';
+        originalValue = textElement.textContent || '';
+        valueForInput = originalValue;
+    } else if (cell.classList.contains('task-date')) {
+        fieldType = 'date';
+        textElement = cell.querySelector('.date-text');
+        if (!textElement) return;
+        inputType = 'date';
+        inputClassName = 'date-input';
+        // --- MODIFICATION CONVERSION DATE ---
+        originalValue = textElement.textContent?.trim() || ''; // Trim pour enlever les espaces
+        valueForInput = ''; // Valeur par défaut si échec ou vide
+
+        console.log(`handleEditableClick (date): Texte original affiché: "${originalValue}"`);
+
+        if (originalValue && originalValue !== '—') {
+            try {
+                const parts = originalValue.split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].trim();
+                    const month = parts[1].trim();
+                    const year = parts[2].trim();
+
+                    // Vérifier si les parties sont raisonnables (simpliste)
+                    if (day && month && year && !isNaN(parseInt(day)) && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
+                         valueForInput = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                         console.log(`handleEditableClick (date): Conversion réussie -> "${valueForInput}"`);
+                    } else {
+                         console.warn(`handleEditableClick (date): Parties de date invalides après split:`, parts);
+                    }
+                } else {
+                    console.warn(`handleEditableClick (date): Format de date inattendu (pas 3 parties après split '/'): "${originalValue}"`);
+                }
+            } catch (err) {
+                console.error(`handleEditableClick (date): Erreur pendant la conversion de "${originalValue}":`, err);
+            }
+        } else {
+             console.log(`handleEditableClick (date): Date originale vide ou "—".`);
+        }
+        // --- FIN MODIFICATION CONVERSION DATE ---
+
+    } else if (cell.classList.contains('task-comment')) {
+        fieldType = 'comment';
+        textElement = cell.querySelector('.comment-text');
+        if (!textElement) return;
+        inputType = 'text';
+        inputClassName = 'comment-input';
+        originalValue = textElement.textContent || '';
+        const isPlaceholder = textElement.classList.contains('comment-placeholder') || textElement.classList.contains('empty-comment');
+        valueForInput = isPlaceholder ? '' : originalValue;
+    } else {
+        return;
+    }
+
+    console.log(`Clic géré pour ${fieldType} (Tâche ${taskId})`);
+
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.className = inputClassName;
+    input.value = valueForInput;
+    console.log(`handleEditableClick: Assignation à input.value: "${input.value}"`);
+    input.dataset.originalDisplayValue = originalValue;
+    if (inputType === 'date') {
+        input.dataset.originalIsoValue = valueForInput;
+    }
+    input.dataset.fieldType = fieldType;
+
+    textElement.style.display = 'none';
+    cell.appendChild(input);
+
+    input.focus();
+    if (inputType === 'text' && valueForInput !== '' && fieldType !== 'comment') {
+        input.select();
+    }
+
+    e.stopPropagation();
+}
+
+// Gère la perte de focus pour sauvegarder
+function handleEditableBlur(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    // Retrouver l'élément texte correspondant (qui est caché)
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) {
+        console.error("Blur: Éléments/Données manquants pour sauvegarder.");
+        if (input.parentNode) input.remove(); // Nettoyer l'input si possible
+        return;
+    }
+
+    if (fieldType === 'date') {
+        console.log(`Blur détecté sur date (Tâche ${taskId}). Appel de saveField différé.`);
+        setTimeout(() => {
+            // Vérifier à nouveau si l'input existe avant d'appeler saveField
+            if (input.parentNode) {
+                 console.log(`Timeout Blur (date): Appel de saveField pour ${taskId}.`);
+                 saveField(input, textElement, fieldType, taskId);
+            } else {
+                 console.log(`Timeout Blur (date): Input déjà retiré pour ${taskId}, abandon.`);
+            }
+        }, 0); // setTimeout 0 exécute après la fin du cycle d'événements actuel
+    } else {
+
+    console.log(`Blur détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
+    // saveField contient la logique pour vérifier si la sauvegarde est nécessaire
+    saveField(input, textElement, fieldType, taskId); // Passer les bons arguments
+    } // <-- Ajout de la fermeture pour le 'else'
+} // <-- Ajout de la fermeture pour la fonction handleEditableBlur
+
+// Gère les touches Entrée et Échap
+function handleEditableKeydown(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+     if (!textElement || !fieldType || !taskId) {
+        console.error("Keydown: Éléments/Données manquants.");
+        return;
+    }
+
+    if (e.key === 'Enter') {
+        if (fieldType === 'description' || fieldType === 'comment') {
+             console.log(`Entrée sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
+             saveField(input, textElement, fieldType, taskId);
+        } else if (fieldType === 'date') {
+             input.blur(); // Pour la date, Entrée déclenche le blur qui sauvegarde
+        }
+    } else if (e.key === 'Escape') {
+        console.log(`Échap sur ${fieldType} (Tâche ${taskId}). Annulation.`);
+        textElement.style.display = '';
+        input.remove();
+    }
+}
+
+// Gère les changements explicites (surtout pour le date picker)
+function handleEditableChange(e) {
+    const input = e.target;
+    if (!input.matches('.date-input')) { // On ne gère que le 'change' de la date ici
+        return;
+    }
+
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType; // Devrait être 'date'
+    const textElement = cell.querySelector('.date-text');
+
+    if (!textElement || !fieldType || !taskId) {
+        console.error("Change: Éléments/Données manquants.");
+        return;
+    }
+
+    console.log(`Change détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
+    saveField(input, textElement, fieldType, taskId);
+}
+
+// --- AJOUTER OU RESTAURER CETTE FONCTION ---
 function saveField(inputElement, textElement, fieldType, taskId) {
-    console.log(`Sauvegarde du champ ${fieldType} pour la tâche ${taskId}`);
-    
-    // Si l'élément a déjà été retiré (pour éviter les appels multiples)
-    if (!inputElement.parentNode) return;
-    
-    // Récupérer la valeur et restaurer l'affichage du texte
-    let newValue = inputElement.value;
-    textElement.style.display = '';
-    
-    // Traitement spécifique selon le type de champ
+    console.log(`saveField: Début pour ${fieldType} tâche ${taskId}`);
+
+    // Si l'élément a déjà été retiré (par Escape ou un autre appel)
+    if (!inputElement || !inputElement.parentNode) { // Vérification renforcée
+        console.log("saveField: inputElement non trouvé ou sans parent, abandon.");
+        return;
+    }
+
+    // Récupérer la valeur ISO actuelle et la valeur affichée originale
+    let newValue = inputElement.value; // Valeur ISO pour date (YYYY-MM-DD ou ''), texte pour autres
+    const originalDisplayValue = inputElement.dataset.originalDisplayValue; // Ancienne valeur affichée (DD/MM/YYYY ou '—')
+
+    console.log(`saveField: Nouvelle valeur (input): '${newValue}', Ancienne valeur affichée: '${originalDisplayValue}'`);
+
+    let hasChanged = false;
+    let newDisplayValue = ''; // Nouvelle valeur à afficher
+    let valueToUpdate = newValue; // Valeur à stocker (ISO pour date)
+
     switch (fieldType) {
         case 'description':
-            // Validation: la description ne peut pas être vide
             if (!newValue.trim()) {
                 alert('La description ne peut pas être vide.');
-                textElement.textContent = inputElement.dataset.originalValue;
-                inputElement.remove();
-                return;
+                inputElement.focus(); // Remettre le focus pour correction
+                return; // Arrêter ici, ne pas sauvegarder ni retirer l'input
             }
-            textElement.textContent = newValue;
+            newDisplayValue = newValue;
+            hasChanged = (newDisplayValue !== originalDisplayValue);
+            valueToUpdate = newDisplayValue;
             break;
-            
+
         case 'date':
-            // Formater la date pour l'affichage ou afficher un tiret si vide
-            if (newValue) {
-                const date = new Date(newValue);
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const year = date.getFullYear();
-                textElement.textContent = `${day}/${month}/${year}`;
+            // Calculer la nouvelle valeur affichable (DD/MM/YYYY ou '—')
+            if (newValue) { // newValue est YYYY-MM-DD ou ''
+                try {
+                    const date = new Date(newValue + 'T00:00:00');
+                    if (isNaN(date.getTime())) throw new Error('Date invalide après parsing');
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Mois est 0-indexé
+                    const year = date.getFullYear();
+                    newDisplayValue = `${day}/${month}/${year}`;
+                } catch (e) {
+                    console.error("saveField: Erreur formatage nouvelle date:", newValue, e);
+                    newDisplayValue = originalDisplayValue; // Garder l'ancienne si erreur
+                }
             } else {
-                textElement.textContent = '—';
+                newDisplayValue = '—'; // Si newValue est vide, afficher '—'
             }
+
+            console.log(`saveField (date) - Comparaison pour hasChanged :`);
+            console.log(`   > Nouvelle valeur affichable (newDisplayValue): "${newDisplayValue}" (Type: ${typeof newDisplayValue})`);
+            console.log(`   > Ancienne valeur affichée (originalDisplayValue): "${originalDisplayValue}" (Type: ${typeof originalDisplayValue})`);
+
+            hasChanged = (newDisplayValue !== originalDisplayValue);
+            console.log(`   > Résultat (hasChanged): ${hasChanged}`);
+
+            valueToUpdate = newValue || null; // newValue est YYYY-MM-DD ou ''
+            console.log(`   > Valeur à sauvegarder (valueToUpdate):`, valueToUpdate);
             break;
-            
+
         case 'comment':
-            // Gérer le texte placeholder pour les commentaires vides
-            if (!newValue.trim()) {
-                textElement.textContent = 'Cliquez pour ajouter un commentaire';
-                textElement.classList.add('comment-placeholder');
+             const isOriginalPlaceholder = originalDisplayValue === 'Cliquez pour ajouter un commentaire' || originalDisplayValue === 'Ajouter un commentaire...'; // Gérer les deux placeholders
+             if (!newValue.trim()) {
+                 newDisplayValue = 'Ajouter un commentaire...'; // Utiliser un seul type de placeholder
+                 valueToUpdate = ''; // Sauvegarder une chaîne vide
+                 hasChanged = !isOriginalPlaceholder; // Changement si ce n'était pas un placeholder avant
+             } else {
+                 newDisplayValue = newValue;
+                 valueToUpdate = newValue;
+                 hasChanged = (newDisplayValue !== originalDisplayValue);
+             }
+            break;
+
+        default:
+             console.error(`saveField: Type de champ inconnu: ${fieldType}`);
+             if (textElement) textElement.style.display = '';
+             if (inputElement && inputElement.parentNode) inputElement.remove();
+             return;
+    }
+
+    // Mettre à jour l'affichage du texte AVANT de supprimer l'input
+    textElement.textContent = newDisplayValue;
+    if (fieldType === 'comment') { // Mise à jour classe placeholder
+        textElement.classList.toggle('comment-placeholder', newDisplayValue === 'Ajouter un commentaire...');
+        textElement.classList.toggle('empty-comment', newDisplayValue === 'Ajouter un commentaire...');
+    }
+    textElement.style.display = ''; // Réafficher le span
+
+    // Supprimer le champ d'édition (vérifier à nouveau s'il existe)
+    if (inputElement && inputElement.parentNode) {
+        inputElement.remove();
+        console.log("saveField: Input retiré, affichage mis à jour.");
+    } else {
+        console.log("saveField: Input déjà retiré avant la fin.");
+    }
+
+    // Sauvegarder uniquement si la valeur *affichable* a changé
+    if (hasChanged) {
+        console.log(`saveField: Changement confirmé pour ${fieldType}. Appel de updateTaskField...`);
+        const clientId = findClientIdByTaskId(taskId);
+        if (clientId) {
+            const updateSuccess = updateTaskField(clientId, taskId, fieldType, valueToUpdate);
+            if (updateSuccess) {
+                 console.log(`saveField: updateTaskField a réussi. Appel de saveTasks...`);
+                 saveTasks();
             } else {
-                textElement.textContent = newValue;
-                textElement.classList.remove('comment-placeholder');
+                 console.error("saveField: Echec de updateTaskField.");
+                 // Peut-être restaurer l'affichage original ?
+                 // textElement.textContent = originalDisplayValue;
+            }
+        } else {
+             console.error("saveField: ClientId non trouvé pour tâche", taskId, ", sauvegarde annulée.");
+        }
+    } else {
+        console.log(`saveField: Aucun changement détecté pour ${fieldType}. Pas de sauvegarde.`);
+    }
+    console.log(`saveField: Fin pour ${fieldType} tâche ${taskId}`);
+}
+
+// Assurez-vous que updateTaskField et findClientIdByTaskId existent aussi
+// (Elles étaient dans ma réponse précédente)
+
+function updateTaskField(clientId, taskId, fieldType, newValue) {
+    // ... (Code de la fonction updateTaskField) ...
+     console.log(`updateTaskField: Tentative maj champ '${fieldType}' pour tâche ${taskId} (client ${clientId}) avec valeur:`, newValue);
+
+    if (!tasks || !tasks[clientId]) {
+        console.error(`updateTaskField: Données client non trouvées pour ${clientId}`);
+        return false;
+    }
+
+    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+    if (taskIndex === -1) {
+        console.error(`updateTaskField: Tâche ${taskId} non trouvée pour client ${clientId}`);
+        return false;
+    }
+
+    let updated = false;
+    switch (fieldType) {
+        case 'description':
+            if (tasks[clientId][taskIndex].description !== newValue) {
+                tasks[clientId][taskIndex].description = newValue;
+                updated = true;
             }
             break;
+        case 'date':
+            if (tasks[clientId][taskIndex].dueDate !== newValue) {
+                tasks[clientId][taskIndex].dueDate = newValue; // newValue est YYYY-MM-DD ou null
+                updated = true;
+            }
+            break;
+        case 'comment':
+             // Gérer le cas où la valeur sauvegardée est '' mais affichée comme placeholder
+             const currentComment = tasks[clientId][taskIndex].comment || '';
+             const newComment = newValue || '';
+             if (currentComment !== newComment) {
+                 tasks[clientId][taskIndex].comment = newComment;
+                 updated = true;
+             }
+            break;
+        default:
+            console.error(`updateTaskField: Type de champ inconnu '${fieldType}'`);
+            return false;
     }
-    
-    // Supprimer le champ d'édition
-    inputElement.remove();
-    
-    // Enregistrer dans la structure de données (à implémenter)
-    // updateTaskInStorage(taskId, fieldType, newValue);
-    
-    // Log pour debug
-    console.log(`Champ ${fieldType} mis à jour: ${newValue}`);
-    
-    // Pour intégrer avec la persistance:
-    // 1. Trouver le client correspondant
-    const clientId = findClientIdByTaskId(taskId);
-    if (clientId) {
-        // 2. Mettre à jour la tâche dans la structure
-        updateTaskField(clientId, taskId, fieldType, newValue);
-        // 3. Sauvegarder les tâches
-        saveTasks();
+
+    if (updated) {
+        console.log(`updateTaskField: Champ '${fieldType}' mis à jour dans l'objet tasks.`);
+        if (fieldType === 'date') {
+            const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+            if (row) {
+                 const dateSpan = row.querySelector('.date-text');
+                 const isCompleted = row.classList.contains('task-completed');
+                 if(dateSpan) {
+                     dateSpan.classList.toggle('date-overdue', isDateOverdue(newValue) && !isCompleted);
+                 }
+            }
+        }
+        return true;
+    } else {
+        console.log(`updateTaskField: Aucune modification nécessaire pour '${fieldType}' (valeur identique).`);
+        return true;
     }
 }
 
-// Fonction pour trouver le clientId d'une tâche
 function findClientIdByTaskId(taskId) {
-    // Chercher dans le DOM (plus simple pour le demo)
-    const checkbox = document.querySelector(`.task-checkbox[data-task-id="${taskId}"]`);
-    if (checkbox && checkbox.dataset.clientId) {
-        return checkbox.dataset.clientId;
-    }
-    
-    // Alternative: chercher dans la structure de données
     for (const clientId in tasks) {
-        const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
-        if (taskIndex !== -1) {
+        if (tasks[clientId] && tasks[clientId].some(task => task.id === taskId)) { // Vérifier si tasks[clientId] existe
             return clientId;
         }
     }
-    
-    console.error(`Impossible de trouver le client pour la tâche ${taskId}`);
+    console.warn(`findClientIdByTaskId: Client non trouvé pour taskId: ${taskId}`); // Log si non trouvé
     return null;
 }
 
-// Fonction pour mettre à jour un champ de tâche dans la structure de données
-function updateTaskField(clientId, taskId, fieldType, value) {
-    if (!tasks[clientId]) {
-        console.error(`Client ${clientId} non trouvé dans les tâches`);
-        return false;
-    }
-    
-    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
-    if (taskIndex === -1) {
-        console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
-        return false;
-    }
-    
-    // Mettre à jour le champ approprié
-    switch (fieldType) {
-        case 'description':
-            tasks[clientId][taskIndex].description = value;
-            break;
-        case 'date':
-            tasks[clientId][taskIndex].dueDate = value || null;
-            break;
-        case 'comment':
-            tasks[clientId][taskIndex].comment = value === 'Cliquez pour ajouter un commentaire' ? '' : value;
-            break;
-        default:
-            console.error(`Type de champ inconnu: ${fieldType}`);
-            return false;
-    }
-    
-    console.log(`Champ ${fieldType} mis à jour dans la structure de données`);
-    return true;
-}
-
-// Fonction pour mettre à jour l'état d'une tâche
-function updateTaskStatus(clientId, taskId, isCompleted) {
-    console.log(`Mise à jour du statut de la tâche ${taskId} pour client ${clientId}: ${isCompleted}`);
-    
-    // Initialiser tasks[clientId] si nécessaire
-    if (!tasks) {
-        tasks = {};
-    }
-    
-    if (!tasks[clientId]) {
-        // Récupérer toutes les tâches visibles pour ce client
-        const taskElements = document.querySelectorAll(`[data-client-id='${clientId}'] tr[data-task-id]`);
-        tasks[clientId] = Array.from(taskElements).map(row => {
-            const taskId = row.dataset.taskId;
-            const description = row.querySelector('.description-text')?.textContent || '';
-            const dateText = row.querySelector('.date-text')?.textContent || '';
-            const isCompleted = row.classList.contains('task-completed');
-            const comment = row.querySelector('.comment-text')?.textContent || '';
-            
-            return {
-                id: taskId,
-                description,
-                dueDate: dateText !== '—' ? convertToIsoDate(dateText) : '',
-                completed: isCompleted,
-                comment: comment === 'Cliquez pour ajouter un commentaire' ? '' : comment
-            };
-        });
-    }
-    
-    // Trouver et mettre à jour la tâche
-    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-        tasks[clientId][taskIndex].completed = isCompleted;
-        
-        // Mettre à jour la barre de progression
-        const completedTasks = tasks[clientId].filter(task => task.completed).length;
-        const totalTasks = tasks[clientId].length;
-        updateProgressBar(clientId, completedTasks, totalTasks);
-        return true;
-    } else {
-        console.error(`Tâche ${taskId} non trouvée pour client ${clientId}`);
-        return false;
-    }
-}
-
-// Fonction auxiliaire pour convertir le format de date
-function convertToIsoDate(dateString) {
-    if (dateString === '—') return '';
-    const [day, month, year] = dateString.split('/');
-    return `${year}-${month}-${day}`;
-}
-
-// Fonction mise à jour pour gérer la barre de progression
-function updateProgressBar(clientId, completedTasks, totalTasks) {
-    const progressPercentage = Math.round((completedTasks / totalTasks) * 100) || 0;
-    const progressBar = document.querySelector(`.task-group[data-client-id="${clientId}"] .progress-bar`);
-    const progressNumber = document.querySelector(`.task-group[data-client-id="${clientId}"] .progress-number`);
-    
-    if (progressBar && progressNumber) {
-        progressBar.style.width = `${progressPercentage}%`;
-        progressNumber.textContent = `${progressPercentage}% (${completedTasks}/${totalTasks} tâches terminées)`;
-    } else {
-        console.error('Éléments de progression non trouvés pour le client', clientId);
-    }
-}
-
-// Fonction améliorée pour sauvegarder les tâches
-function saveTasks() {
-    console.log('Sauvegarde des tâches...');
-    
-    try {
-        // 1. Définir le chemin correct vers le fichier
-        const tasksFilePath = path.resolve(__dirname, 'taches.json');
-        
-        console.log('Chemin du fichier de tâches:', tasksFilePath);
-        
-        // 2. Convertir la structure interne en liste plate pour le fichier
-        const tasksList = [];
-        for (const clientId in tasks) {
-            const clientTasks = tasks[clientId] || [];
-            console.log(`Préparation des tâches pour client ${clientId}: ${clientTasks.length} tâches`);
-            
-            clientTasks.forEach(task => {
-                tasksList.push({
-                    ...task,
-                    clientId: clientId
-                });
-            });
-        }
-        
-        console.log(`Préparation de ${tasksList.length} tâches pour la sauvegarde`);
-        
-        // 3. Vérifier si fs est disponible (si on est dans un environnement Electron)
-        if (!fs || typeof fs.writeFileSync !== 'function') {
-            console.error('Module fs non disponible! Êtes-vous en mode développement web?');
-            
-            // Alternative: stockage local pour le développement
-            localStorage.setItem('tasks', JSON.stringify(tasksList));
-            console.log('Tâches sauvegardées dans localStorage (mode dev)');
-            return true;
-        }
-        
-        // 4. Créer le répertoire si nécessaire
-        const dir = path.dirname(tasksFilePath);
-        if (!fs.existsSync(dir)) {
-            console.log(`Création du répertoire: ${dir}`);
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        
-        // 5. Sauvegarder dans le fichier
-        const jsonContent = JSON.stringify(tasksList, null, 2);
-        console.log('Contenu JSON à sauvegarder:', jsonContent);
-        
-        fs.writeFileSync(tasksFilePath, jsonContent, 'utf8');
-        
-        console.log(`Tâches sauvegardées avec succès dans ${tasksFilePath}`);
-        return true;
-    } catch (error) {
-        console.error('Erreur lors de la sauvegarde des tâches:', error);
-        console.error('Stack trace:', error.stack);
-        alert(`Erreur lors de la sauvegarde des tâches: ${error.message}`);
-        return false;
-    }
-}
-
-// Nouvelle fonction pour appliquer les filtres rapides
-function applyQuickFilters() {
-    console.log(`Application du filtre rapide: ${currentQuickFilter}`);
-    const container = document.getElementById('tasksContainer');
-    if (!container) return;
-
-    const isFlatView = container.querySelector('.flat-task-view');
-    const rowsSelector = isFlatView ? '.flat-task-view tbody tr' : '.task-group .task-table tbody tr';
-    const taskRows = container.querySelectorAll(rowsSelector);
-
-    console.log(`Application du filtre sur ${taskRows.length} lignes (Sélecteur: ${rowsSelector})`);
-
-    taskRows.forEach(row => {
-        let showRow = false;
-        const isCompleted = row.classList.contains('task-completed');
-        const dateTextElement = row.querySelector('.date-text');
-        const dateText = dateTextElement ? dateTextElement.textContent.trim() : '';
-        const taskId = row.dataset.taskId; // Pour debug
-
-        let taskDueDate = '';
-        const clientId = row.closest('[data-client-id]')?.dataset.clientId || row.dataset.clientId;
-        if(clientId && taskId && tasks[clientId]) {
-            const taskData = tasks[clientId].find(t => t.id === taskId);
-            if (taskData) {
-                taskDueDate = taskData.dueDate;
-            }
-        }
-        const dateToCheck = taskDueDate || dateText;
-        const isOverdue = isDateOverdue(dateToCheck);
-
-        switch (currentQuickFilter) {
-            case 'overdue':
-                showRow = !isCompleted && isOverdue;
-                break;
-            case 'completed':
-                showRow = isCompleted;
-                break;
-            case 'pending':
-                showRow = !isCompleted;
-                break;
-            case 'all':
-            default:
-                showRow = true;
-                break;
-        }
-
-        if (showRow) {
-            row.classList.remove('quick-filter-hidden');
-        } else {
-            row.classList.add('quick-filter-hidden');
-        }
-    });
-
-    if (!isFlatView) {
-        container.querySelectorAll('.task-group').forEach(group => {
-            const visibleRows = group.querySelectorAll('tbody tr:not(.quick-filter-hidden)');
-            const isFiltered = currentQuickFilter !== 'all' || container.classList.contains('filtered');
-            if (isFiltered) {
-                 group.style.display = visibleRows.length === 0 ? 'none' : '';
-            } else {
-                 group.style.display = '';
-            }
-        });
-    }
-     console.log("Filtres rapides appliqués.");
-}
+// --- FIN DU BLOC À AJOUTER/RESTAURER ---
 
 // *** MODIFIER performSort pour appeler applyQuickFilters à la fin ***
 function performSort() {
@@ -1918,7 +1932,6 @@ function renderFlatTaskView(sortOrder, sortType) {
     flatTable.appendChild(tbody);
     container.appendChild(flatTable);
 
-    addEditableFieldListeners();
     attachCheckboxListeners();
     attachDeleteButtonListeners();
 
@@ -2027,4 +2040,71 @@ function initSearchAndSort() {
     }
 
     applyQuickFilters();
+}
+
+// Nouvelle fonction pour appliquer les filtres rapides
+function applyQuickFilters() {
+    console.log(`Application du filtre rapide: ${currentQuickFilter}`);
+    const container = document.getElementById('tasksContainer');
+    if (!container) return;
+
+    const isFlatView = container.querySelector('.flat-task-view');
+    const rowsSelector = isFlatView ? '.flat-task-view tbody tr' : '.task-group .task-table tbody tr';
+    const taskRows = container.querySelectorAll(rowsSelector);
+
+    console.log(`Application du filtre sur ${taskRows.length} lignes (Sélecteur: ${rowsSelector})`);
+
+    taskRows.forEach(row => {
+        let showRow = false;
+        const isCompleted = row.classList.contains('task-completed');
+        const dateTextElement = row.querySelector('.date-text');
+        const dateText = dateTextElement ? dateTextElement.textContent.trim() : '';
+        const taskId = row.dataset.taskId; // Pour debug
+
+        let taskDueDate = '';
+        const clientId = row.closest('[data-client-id]')?.dataset.clientId || row.dataset.clientId;
+        if(clientId && taskId && tasks[clientId]) {
+            const taskData = tasks[clientId].find(t => t.id === taskId);
+            if (taskData) {
+                taskDueDate = taskData.dueDate;
+            }
+        }
+        const dateToCheck = taskDueDate || dateText;
+        const isOverdue = isDateOverdue(dateToCheck);
+
+        switch (currentQuickFilter) {
+            case 'overdue':
+                showRow = !isCompleted && isOverdue;
+                break;
+            case 'completed':
+                showRow = isCompleted;
+                break;
+            case 'pending':
+                showRow = !isCompleted;
+                break;
+            case 'all':
+            default:
+                showRow = true;
+                break;
+        }
+
+        if (showRow) {
+            row.classList.remove('quick-filter-hidden');
+        } else {
+            row.classList.add('quick-filter-hidden');
+        }
+    });
+
+    if (!isFlatView) {
+        container.querySelectorAll('.task-group').forEach(group => {
+            const visibleRows = group.querySelectorAll('tbody tr:not(.quick-filter-hidden)');
+            const isFiltered = currentQuickFilter !== 'all' || container.classList.contains('filtered');
+            if (isFiltered) {
+                 group.style.display = visibleRows.length === 0 ? 'none' : '';
+            } else {
+                 group.style.display = '';
+            }
+        });
+    }
+     console.log("Filtres rapides appliqués.");
 }
