@@ -290,13 +290,12 @@ function renderTaskGroups() {
                     <span class="description-text">${task.description}</span>
                 </td>
                 <td class="task-date" data-task-id="${task.id}">
-                    <span class="date-text${isDateOverdue(task.dueDate) ? ' date-overdue' : ''}">
+                    <span class="date-text${isDateOverdue(task.dueDate) && !task.completed ? ' date-overdue' : ''}">
                         ${formatDate(task.dueDate)}
                     </span>
                 </td>
                 <td class="task-status">
                     <div class="status-container">
-                        <span class="status-dot ${task.completed ? 'completed' : 'pending'}"></span>
                         <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${client.id}" 
                             ${task.completed ? 'checked' : ''}>
                     </div>
@@ -336,26 +335,116 @@ function renderTaskGroups() {
 // Ajouter cette fonction juste après renderTaskGroups
 function attachCheckboxListeners() {
     console.log('Ajout des gestionnaires pour les cases à cocher...');
-    
+
     document.querySelectorAll('.task-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
+        // Vérifier si un listener est déjà attaché
+        if (checkbox.dataset.listenerAttached === 'true') {
+            return;
+        }
+        checkbox.dataset.listenerAttached = 'true';
+
+        // Utiliser une fonction async pour pouvoir utiliser await pour saveTasks
+        checkbox.addEventListener('change', async function() {
             const taskId = this.dataset.taskId;
             const isChecked = this.checked;
             const clientId = this.dataset.clientId;
-            
-            console.log(`Case à cocher changée: ${taskId}, état: ${isChecked}`);
-            
-            // Mettre à jour l'apparence
+
+            console.log(`Case à cocher changée: ${taskId}, état: ${isChecked}, client: ${clientId}`);
+
             const row = this.closest('tr');
-            row.classList.toggle('task-completed', isChecked);
-            
-            // Mettre à jour les données
-            updateTaskStatus(clientId, taskId, isChecked);
-            
-            // Sauvegarder le changement
-            saveTasks();
-        });
-    });
+            if (row) {
+                // 1. Mettre à jour la classe de la ligne (pour le style général de la tâche terminée)
+                row.classList.toggle('task-completed', isChecked);
+
+                // 2. Mettre à jour la classe 'date-overdue' sur le span de la date
+                const dateSpan = row.querySelector('.date-text');
+                if (dateSpan) {
+                    let taskDueDate = null;
+                    // Essayer de trouver la date d'échéance dans la structure de données 'tasks'
+                    if (tasks && tasks[clientId]) {
+                        const taskData = tasks[clientId].find(t => t.id === taskId);
+                        if (taskData) {
+                            taskDueDate = taskData.dueDate; // Récupère la date (ex: "2025-05-10")
+                        } else {
+                            console.warn(`Données de tâche non trouvées pour ${taskId} dans tasks[${clientId}]`);
+                        }
+                    } else {
+                         console.warn(`Données client non trouvées pour ${clientId} dans tasks`);
+                    }
+
+                    // Déterminer si la classe 'date-overdue' doit être appliquée
+                    const shouldBeOverdue = isDateOverdue(taskDueDate) && !isChecked;
+                    dateSpan.classList.toggle('date-overdue', shouldBeOverdue);
+                    console.log(`Mise à jour classe date-overdue pour ${taskId}: ${shouldBeOverdue} (Date: ${taskDueDate})`);
+
+                } else {
+                    console.warn(`Span de date (.date-text) non trouvé pour la tâche ${taskId}`);
+                }
+                // Fin de la mise à jour de la classe date-overdue
+
+            } else {
+                console.warn(`Impossible de trouver la ligne (tr) pour la tâche ${taskId}`);
+            } // Fin du if (row)
+
+            // 3. Mettre à jour les données en mémoire ET la barre de progression
+            // Cette fonction appelle updateProgressBar à l'intérieur
+            const statusUpdated = updateTaskStatus(clientId, taskId, isChecked);
+
+            // 4. Sauvegarder les tâches si la mise à jour en mémoire a réussi
+            if (statusUpdated) {
+                try {
+                    // Utiliser await car saveTasks peut être asynchrone (si vous avez fait les modifs IPC)
+                    await saveTasks();
+                } catch (saveError) {
+                    console.error("Erreur lors de la sauvegarde après changement de statut:", saveError);
+                    alert("Erreur lors de la sauvegarde du statut de la tâche.");
+                }
+            } else {
+                console.error("Le statut de la tâche n'a pas pu être mis à jour dans les données (updateTaskStatus a retourné false).");
+                // Peut-être décocher la case pour refléter l'échec ?
+                // this.checked = !isChecked;
+                // row.classList.toggle('task-completed', !isChecked);
+                // Mettre à jour à nouveau la classe date-overdue si on annule
+            }
+        }); // Fin de l'addEventListener
+    }); // Fin du forEach
+    console.log('Gestionnaires pour les cases à cocher ajoutés/vérifiés.');
+}
+
+// Assurez-vous que isDateOverdue gère correctement les dates null/undefined/vides
+function isDateOverdue(dateString) {
+    // Si dateString est null, undefined, vide ou '—', ce n'est pas en retard
+    if (!dateString || dateString === '—') return false;
+    try {
+        let taskDate;
+        // Gérer les formats YYYY-MM-DD et DD/MM/YYYY
+        if (dateString.includes('/')) {
+            const parts = dateString.split('/');
+            // Attention: Mois est 0-indexé dans new Date()
+            taskDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        } else {
+            // S'assurer que l'heure est à minuit pour comparer les jours
+            // Utiliser Z pour UTC ou ajuster selon le fuseau horaire si nécessaire
+            // Si vos dates sont locales, ne pas mettre 'Z'
+            taskDate = new Date(dateString + 'T00:00:00');
+        }
+
+        // Vérifier si la date est valide
+        if (isNaN(taskDate.getTime())) {
+            console.warn("Date invalide détectée dans isDateOverdue:", dateString);
+            return false;
+        }
+
+        const now = new Date();
+        // Mettre l'heure actuelle à minuit pour comparer uniquement les jours
+        now.setHours(0, 0, 0, 0);
+        taskDate.setHours(0, 0, 0, 0); // Assurer la comparaison au même fuseau
+
+        return taskDate < now;
+    } catch (e) {
+        console.error("Erreur dans isDateOverdue:", dateString, e);
+        return false;
+    }
 }
 
 // Ajouter cette fonction après attachCheckboxListeners
@@ -626,13 +715,12 @@ function refreshTaskList(clientId) {
                 <span class="description-text">${task.description}</span>
             </td>
             <td class="task-date" data-task-id="${task.id}">
-                <span class="date-text${isDateOverdue(task.dueDate) ? ' date-overdue' : ''}">
+                <span class="date-text${isDateOverdue(task.dueDate) && !task.completed ? ' date-overdue' : ''}">
                     ${formatDate(task.dueDate)}
                 </span>
             </td>
             <td class="task-status">
                 <div class="status-container">
-                    <span class="status-dot ${task.completed ? 'completed' : 'pending'}"></span>
                     <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${clientId}" 
                         ${task.completed ? 'checked' : ''}>
                 </div>
@@ -1799,13 +1887,12 @@ function renderFlatTaskView(sortOrder, sortType) {
                 <span class="description-text">${task.description}</span>
             </td>
             <td class="task-date" data-task-id="${task.id}">
-                <span class="date-text${isDateOverdue(task.dueDate) ? ' date-overdue' : ''}">
+                <span class="date-text${isDateOverdue(task.dueDate) && !task.completed ? ' date-overdue' : ''}">
                     ${formatDate(task.dueDate)}
                 </span>
             </td>
             <td class="task-status">
                 <div class="status-container">
-                    <span class="status-dot ${task.completed ? 'completed' : 'pending'}"></span>
                     <input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-client-id="${task.originalClientId}"
                         ${task.completed ? 'checked' : ''}>
                 </div>

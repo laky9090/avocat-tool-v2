@@ -32,7 +32,7 @@
     "clientId": "2025-001",
     "description": "Préparer les conclusions ",
     "dueDate": "2025-05-02",
-    "completed": false,
+    "completed": true,
     "comment": "Vérifier les documents avant envoi"
   },
   {
@@ -47,7 +47,7 @@
     "id": "task_1745150530856",
     "clientId": "2025-001",
     "description": "tache débile",
-    "dueDate": "2025-02-10",
+    "dueDate": "2025-02-02",
     "completed": false,
     "comment": "commentaire inutul"
   },
@@ -56,7 +56,7 @@
     "clientId": "2025-003",
     "description": "Préparer les conclusions",
     "dueDate": "2025-07-25",
-    "completed": true,
+    "completed": false,
     "comment": "Vérifier les documents avant envoi"
   },
   {
@@ -71,7 +71,7 @@
     "id": "task_1745150575863",
     "clientId": "2025-003",
     "description": "test nouvelle tache",
-    "dueDate": "2024-04-02",
+    "dueDate": "2025-04-28",
     "completed": false,
     "comment": "coucou"
   }
