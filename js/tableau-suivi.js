@@ -1331,200 +1331,37 @@ function addEditableFieldListeners() {
     console.log('Écouteurs délégués attachés à #tasksContainer');
 }
 
-// --- Fonctions de Gestion (Handlers) ---
+/**
+ * Tente de parser une chaîne en objet Date.
+ * Accepte les formats YYYY-MM-DD et DD/MM/YYYY.
+ * @param {string} dateString La chaîne à parser.
+ * @returns {Date|null} Un objet Date valide ou null si le parsing échoue.
+ */
+function parseDateString(dateString) {
+    if (!dateString) return null;
+    dateString = dateString.trim();
 
-// Gère le clic pour démarrer l'édition
-function handleEditableClick(e) {
-    const target = e.target;
-    const cell = target.closest('.task-description, .task-date, .task-comment');
+    let date = null;
 
-    if (!cell || target.closest('.action-btn') || cell.querySelector('.description-input, .date-input, .comment-input')) {
-        return;
+    // Essayer format YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        date = new Date(dateString + 'T00:00:00'); // Ajouter T00:00:00 pour éviter les pbs de fuseau
+    }
+    // Essayer format DD/MM/YYYY
+    else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
+        const parts = dateString.split('/');
+        // Attention: Mois est 0-indexé dans new Date()
+        date = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
     }
 
-    const taskId = cell.dataset.taskId;
-    if (!taskId) { // Vérification ajoutée
-         console.warn("Clic sur cellule sans data-task-id:", cell);
-         return;
+    // Vérifier si la date résultante est valide
+    if (date && !isNaN(date.getTime())) {
+        return date;
     }
 
-    let textElement, inputType, inputClassName, originalValue, valueForInput, fieldType;
-
-    if (cell.classList.contains('task-description')) {
-        fieldType = 'description';
-        textElement = cell.querySelector('.description-text');
-        if (!textElement) return;
-        inputType = 'text';
-        inputClassName = 'description-input';
-        originalValue = textElement.textContent || '';
-        valueForInput = originalValue;
-    } else if (cell.classList.contains('task-date')) {
-        fieldType = 'date';
-        textElement = cell.querySelector('.date-text');
-        if (!textElement) return;
-        inputType = 'date';
-        inputClassName = 'date-input';
-        // --- MODIFICATION CONVERSION DATE ---
-        originalValue = textElement.textContent?.trim() || ''; // Trim pour enlever les espaces
-        valueForInput = ''; // Valeur par défaut si échec ou vide
-
-        console.log(`handleEditableClick (date): Texte original affiché: "${originalValue}"`);
-
-        if (originalValue && originalValue !== '—') {
-            try {
-                const parts = originalValue.split('/');
-                if (parts.length === 3) {
-                    const day = parts[0].trim();
-                    const month = parts[1].trim();
-                    const year = parts[2].trim();
-
-                    // Vérifier si les parties sont raisonnables (simpliste)
-                    if (day && month && year && !isNaN(parseInt(day)) && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
-                         valueForInput = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                         console.log(`handleEditableClick (date): Conversion réussie -> "${valueForInput}"`);
-                    } else {
-                         console.warn(`handleEditableClick (date): Parties de date invalides après split:`, parts);
-                    }
-                } else {
-                    console.warn(`handleEditableClick (date): Format de date inattendu (pas 3 parties après split '/'): "${originalValue}"`);
-                }
-            } catch (err) {
-                console.error(`handleEditableClick (date): Erreur pendant la conversion de "${originalValue}":`, err);
-            }
-        } else {
-             console.log(`handleEditableClick (date): Date originale vide ou "—".`);
-        }
-        // --- FIN MODIFICATION CONVERSION DATE ---
-
-    } else if (cell.classList.contains('task-comment')) {
-        fieldType = 'comment';
-        textElement = cell.querySelector('.comment-text');
-        if (!textElement) return;
-        inputType = 'text';
-        inputClassName = 'comment-input';
-        originalValue = textElement.textContent || '';
-        const isPlaceholder = textElement.classList.contains('comment-placeholder') || textElement.classList.contains('empty-comment');
-        valueForInput = isPlaceholder ? '' : originalValue;
-    } else {
-        return;
-    }
-
-    console.log(`Clic géré pour ${fieldType} (Tâche ${taskId})`);
-
-    const input = document.createElement('input');
-    input.type = inputType;
-    input.className = inputClassName;
-    input.value = valueForInput;
-    console.log(`handleEditableClick: Assignation à input.value: "${input.value}"`);
-    input.dataset.originalDisplayValue = originalValue;
-    if (inputType === 'date') {
-        input.dataset.originalIsoValue = valueForInput;
-    }
-    input.dataset.fieldType = fieldType;
-
-    textElement.style.display = 'none';
-    cell.appendChild(input);
-
-    input.focus();
-    if (inputType === 'text' && valueForInput !== '' && fieldType !== 'comment') {
-        input.select();
-    }
-
-    e.stopPropagation();
+    return null; // Échec du parsing
 }
 
-// Gère la perte de focus pour sauvegarder
-function handleEditableBlur(e) {
-    const input = e.target;
-    if (!input.matches('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType;
-    // Retrouver l'élément texte correspondant (qui est caché)
-    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
-
-    if (!textElement || !fieldType || !taskId) {
-        console.error("Blur: Éléments/Données manquants pour sauvegarder.");
-        if (input.parentNode) input.remove(); // Nettoyer l'input si possible
-        return;
-    }
-
-    if (fieldType === 'date') {
-        console.log(`Blur détecté sur date (Tâche ${taskId}). Appel de saveField différé.`);
-        setTimeout(() => {
-            // Vérifier à nouveau si l'input existe avant d'appeler saveField
-            if (input.parentNode) {
-                 console.log(`Timeout Blur (date): Appel de saveField pour ${taskId}.`);
-                 saveField(input, textElement, fieldType, taskId);
-            } else {
-                 console.log(`Timeout Blur (date): Input déjà retiré pour ${taskId}, abandon.`);
-            }
-        }, 0); // setTimeout 0 exécute après la fin du cycle d'événements actuel
-    } else {
-
-    console.log(`Blur détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
-    // saveField contient la logique pour vérifier si la sauvegarde est nécessaire
-    saveField(input, textElement, fieldType, taskId); // Passer les bons arguments
-    } // <-- Ajout de la fermeture pour le 'else'
-} // <-- Ajout de la fermeture pour la fonction handleEditableBlur
-
-// Gère les touches Entrée et Échap
-function handleEditableKeydown(e) {
-    const input = e.target;
-    if (!input.matches('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType;
-    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
-
-     if (!textElement || !fieldType || !taskId) {
-        console.error("Keydown: Éléments/Données manquants.");
-        return;
-    }
-
-    if (e.key === 'Enter') {
-        if (fieldType === 'description' || fieldType === 'comment') {
-             console.log(`Entrée sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
-             saveField(input, textElement, fieldType, taskId);
-        } else if (fieldType === 'date') {
-             input.blur(); // Pour la date, Entrée déclenche le blur qui sauvegarde
-        }
-    } else if (e.key === 'Escape') {
-        console.log(`Échap sur ${fieldType} (Tâche ${taskId}). Annulation.`);
-        textElement.style.display = '';
-        input.remove();
-    }
-}
-
-// Gère les changements explicites (surtout pour le date picker)
-function handleEditableChange(e) {
-    const input = e.target;
-    if (!input.matches('.date-input')) { // On ne gère que le 'change' de la date ici
-        return;
-    }
-
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType; // Devrait être 'date'
-    const textElement = cell.querySelector('.date-text');
-
-    if (!textElement || !fieldType || !taskId) {
-        console.error("Change: Éléments/Données manquants.");
-        return;
-    }
-
-    console.log(`Change détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
-    saveField(input, textElement, fieldType, taskId);
-}
 
 // --- AJOUTER OU RESTAURER CETTE FONCTION ---
 function saveField(inputElement, textElement, fieldType, taskId) {
@@ -1559,63 +1396,65 @@ function saveField(inputElement, textElement, fieldType, taskId) {
             break;
 
         case 'date':
-            // Calculer la nouvelle valeur affichable (DD/MM/YYYY ou '—')
-            if (newValue) { // newValue est YYYY-MM-DD ou ''
-                try {
-                    const date = new Date(newValue + 'T00:00:00');
-                    if (isNaN(date.getTime())) throw new Error('Date invalide après parsing');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Mois est 0-indexé
-                    const year = date.getFullYear();
-                    newDisplayValue = `${day}/${month}/${year}`;
-                } catch (e) {
-                    console.error("saveField: Erreur formatage nouvelle date:", newValue, e);
-                    newDisplayValue = originalDisplayValue; // Garder l'ancienne si erreur
-                }
-            } else {
-                newDisplayValue = '—'; // Si newValue est vide, afficher '—'
-            }
-
+            // --- VÉRIFICATION LOGS ---
             console.log(`saveField (date) - Comparaison pour hasChanged :`);
             console.log(`   > Nouvelle valeur affichable (newDisplayValue): "${newDisplayValue}" (Type: ${typeof newDisplayValue})`);
             console.log(`   > Ancienne valeur affichée (originalDisplayValue): "${originalDisplayValue}" (Type: ${typeof originalDisplayValue})`);
 
+            if (newValue) {
+                try {
+                    const parsedDate = parseDateString(newValue);
+                    if (!parsedDate) throw new Error('Date invalide depuis input[type=date]');
+                    const day = parsedDate.getDate().toString().padStart(2, '0');
+                    const month = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
+                    const year = parsedDate.getFullYear();
+                    newDisplayValue = `${day}/${month}/${year}`;
+                    valueToUpdate = newValue;
+                    console.log(`saveField (date): Input date valide -> Affichage: ${newDisplayValue}, Sauvegarde: ${valueToUpdate}`);
+                } catch (e) {
+                    console.error("saveField (date): Erreur conversion date depuis input:", newValue, e);
+                    newDisplayValue = originalDisplayValue;
+                    valueToUpdate = (parseDateString(originalDisplayValue)) ? `${originalDisplayValue.split('/')[2]}-${originalDisplayValue.split('/')[1]}-${originalDisplayValue.split('/')[0]}` : null;
+                    hasChanged = false;
+                }
+            } else {
+                newDisplayValue = '—';
+                valueToUpdate = null;
+                console.log('saveField (date): Champ date vidé ou invalide.');
+            }
+
             hasChanged = (newDisplayValue !== originalDisplayValue);
             console.log(`   > Résultat (hasChanged): ${hasChanged}`);
-
-            valueToUpdate = newValue || null; // newValue est YYYY-MM-DD ou ''
             console.log(`   > Valeur à sauvegarder (valueToUpdate):`, valueToUpdate);
             break;
 
         case 'comment':
-             const isOriginalPlaceholder = originalDisplayValue === 'Cliquez pour ajouter un commentaire' || originalDisplayValue === 'Ajouter un commentaire...'; // Gérer les deux placeholders
-             if (!newValue.trim()) {
-                 newDisplayValue = 'Ajouter un commentaire...'; // Utiliser un seul type de placeholder
-                 valueToUpdate = ''; // Sauvegarder une chaîne vide
-                 hasChanged = !isOriginalPlaceholder; // Changement si ce n'était pas un placeholder avant
-             } else {
-                 newDisplayValue = newValue;
-                 valueToUpdate = newValue;
-                 hasChanged = (newDisplayValue !== originalDisplayValue);
-             }
+            const isOriginalPlaceholder = originalDisplayValue === 'Cliquez pour ajouter un commentaire' || originalDisplayValue === 'Ajouter un commentaire...';
+            if (!newValue.trim()) {
+                newDisplayValue = 'Ajouter un commentaire...';
+                valueToUpdate = '';
+                hasChanged = !isOriginalPlaceholder;
+            } else {
+                newDisplayValue = newValue;
+                valueToUpdate = newValue;
+                hasChanged = (newDisplayValue !== originalDisplayValue);
+            }
             break;
 
         default:
-             console.error(`saveField: Type de champ inconnu: ${fieldType}`);
-             if (textElement) textElement.style.display = '';
-             if (inputElement && inputElement.parentNode) inputElement.remove();
-             return;
+            console.error(`saveField: Type de champ inconnu: ${fieldType}`);
+            if (textElement) textElement.style.display = '';
+            if (inputElement && inputElement.parentNode) inputElement.remove();
+            return;
     }
 
-    // Mettre à jour l'affichage du texte AVANT de supprimer l'input
     textElement.textContent = newDisplayValue;
-    if (fieldType === 'comment') { // Mise à jour classe placeholder
+    if (fieldType === 'comment') {
         textElement.classList.toggle('comment-placeholder', newDisplayValue === 'Ajouter un commentaire...');
         textElement.classList.toggle('empty-comment', newDisplayValue === 'Ajouter un commentaire...');
     }
-    textElement.style.display = ''; // Réafficher le span
+    textElement.style.display = '';
 
-    // Supprimer le champ d'édition (vérifier à nouveau s'il existe)
     if (inputElement && inputElement.parentNode) {
         inputElement.remove();
         console.log("saveField: Input retiré, affichage mis à jour.");
@@ -1623,22 +1462,19 @@ function saveField(inputElement, textElement, fieldType, taskId) {
         console.log("saveField: Input déjà retiré avant la fin.");
     }
 
-    // Sauvegarder uniquement si la valeur *affichable* a changé
     if (hasChanged) {
         console.log(`saveField: Changement confirmé pour ${fieldType}. Appel de updateTaskField...`);
         const clientId = findClientIdByTaskId(taskId);
         if (clientId) {
             const updateSuccess = updateTaskField(clientId, taskId, fieldType, valueToUpdate);
             if (updateSuccess) {
-                 console.log(`saveField: updateTaskField a réussi. Appel de saveTasks...`);
-                 saveTasks();
+                console.log(`saveField: updateTaskField a réussi. Appel de saveTasks...`);
+                saveTasks();
             } else {
-                 console.error("saveField: Echec de updateTaskField.");
-                 // Peut-être restaurer l'affichage original ?
-                 // textElement.textContent = originalDisplayValue;
+                console.error("saveField: Echec de updateTaskField.");
             }
         } else {
-             console.error("saveField: ClientId non trouvé pour tâche", taskId, ", sauvegarde annulée.");
+            console.error("saveField: ClientId non trouvé pour tâche", taskId, ", sauvegarde annulée.");
         }
     } else {
         console.log(`saveField: Aucun changement détecté pour ${fieldType}. Pas de sauvegarde.`);
@@ -1647,11 +1483,8 @@ function saveField(inputElement, textElement, fieldType, taskId) {
 }
 
 // Assurez-vous que updateTaskField et findClientIdByTaskId existent aussi
-// (Elles étaient dans ma réponse précédente)
-
 function updateTaskField(clientId, taskId, fieldType, newValue) {
-    // ... (Code de la fonction updateTaskField) ...
-     console.log(`updateTaskField: Tentative maj champ '${fieldType}' pour tâche ${taskId} (client ${clientId}) avec valeur:`, newValue);
+    console.log(`updateTaskField: Tentative maj champ '${fieldType}' pour tâche ${taskId} (client ${clientId}) avec valeur:`, newValue);
 
     if (!tasks || !tasks[clientId]) {
         console.error(`updateTaskField: Données client non trouvées pour ${clientId}`);
@@ -1674,18 +1507,17 @@ function updateTaskField(clientId, taskId, fieldType, newValue) {
             break;
         case 'date':
             if (tasks[clientId][taskIndex].dueDate !== newValue) {
-                tasks[clientId][taskIndex].dueDate = newValue; // newValue est YYYY-MM-DD ou null
+                tasks[clientId][taskIndex].dueDate = newValue;
                 updated = true;
             }
             break;
         case 'comment':
-             // Gérer le cas où la valeur sauvegardée est '' mais affichée comme placeholder
-             const currentComment = tasks[clientId][taskIndex].comment || '';
-             const newComment = newValue || '';
-             if (currentComment !== newComment) {
-                 tasks[clientId][taskIndex].comment = newComment;
-                 updated = true;
-             }
+            const currentComment = tasks[clientId][taskIndex].comment || '';
+            const newComment = newValue || '';
+            if (currentComment !== newComment) {
+                tasks[clientId][taskIndex].comment = newComment;
+                updated = true;
+            }
             break;
         default:
             console.error(`updateTaskField: Type de champ inconnu '${fieldType}'`);
@@ -1697,11 +1529,11 @@ function updateTaskField(clientId, taskId, fieldType, newValue) {
         if (fieldType === 'date') {
             const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
             if (row) {
-                 const dateSpan = row.querySelector('.date-text');
-                 const isCompleted = row.classList.contains('task-completed');
-                 if(dateSpan) {
-                     dateSpan.classList.toggle('date-overdue', isDateOverdue(newValue) && !isCompleted);
-                 }
+                const dateSpan = row.querySelector('.date-text');
+                const isCompleted = row.classList.contains('task-completed');
+                if (dateSpan) {
+                    dateSpan.classList.toggle('date-overdue', isDateOverdue(newValue) && !isCompleted);
+                }
             }
         }
         return true;
@@ -1713,15 +1545,13 @@ function updateTaskField(clientId, taskId, fieldType, newValue) {
 
 function findClientIdByTaskId(taskId) {
     for (const clientId in tasks) {
-        if (tasks[clientId] && tasks[clientId].some(task => task.id === taskId)) { // Vérifier si tasks[clientId] existe
+        if (tasks[clientId] && tasks[clientId].some(task => task.id === taskId)) {
             return clientId;
         }
     }
-    console.warn(`findClientIdByTaskId: Client non trouvé pour taskId: ${taskId}`); // Log si non trouvé
+    console.warn(`findClientIdByTaskId: Client non trouvé pour taskId: ${taskId}`);
     return null;
 }
-
-// --- FIN DU BLOC À AJOUTER/RESTAURER ---
 
 // *** MODIFIER performSort pour appeler applyQuickFilters à la fin ***
 function performSort() {
@@ -2107,4 +1937,166 @@ function applyQuickFilters() {
         });
     }
      console.log("Filtres rapides appliqués.");
+}
+
+// Gère le clic pour démarrer l'édition
+function handleEditableClick(e) {
+    const target = e.target;
+    const cell = target.closest('.task-description, .task-date, .task-comment');
+
+    if (!cell || target.closest('.action-btn') || cell.querySelector('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const taskId = cell.dataset.taskId;
+    if (!taskId) {
+         console.warn("handleEditableClick: Clic sur cellule sans data-task-id:", cell);
+         return;
+    }
+
+    let textElement, inputType, inputClassName, originalValue, valueForInput, fieldType;
+
+    if (cell.classList.contains('task-description')) {
+        fieldType = 'description';
+    } else if (cell.classList.contains('task-date')) {
+        fieldType = 'date';
+        textElement = cell.querySelector('.date-text');
+        if (!textElement) {
+             console.error('handleEditableClick (date): .date-text non trouvé dans la cellule!');
+             return;
+        }
+        inputType = 'date';
+        inputClassName = 'date-input';
+        originalValue = textElement.textContent?.trim() || '';
+        valueForInput = '';
+
+        if (originalValue && originalValue !== '—') {
+            try {
+                const parts = originalValue.split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].trim();
+                    const month = parts[1].trim();
+                    const year = parts[2].trim();
+                    if (day && month && year && !isNaN(parseInt(day)) && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
+                         valueForInput = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                }
+            } catch (err) {
+                console.error(`handleEditableClick (date): Erreur pendant la conversion de "${originalValue}":`, err);
+            }
+        }
+    } else if (cell.classList.contains('task-comment')) {
+        fieldType = 'comment';
+    } else {
+        return;
+    }
+
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.className = inputClassName;
+    input.value = valueForInput;
+    input.dataset.originalDisplayValue = originalValue;
+    input.dataset.fieldType = fieldType;
+
+    textElement.style.display = 'none';
+    cell.appendChild(input);
+    input.focus();
+
+    e.stopPropagation();
+}
+
+// Gère le changement explicite (ex: date picker)
+function handleEditableChange(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) {
+        console.error("Change: Éléments/Données manquants pour sauvegarder.");
+        if (input.parentNode) input.remove();
+        return;
+    }
+    // Pour les champs de type 'date', l'événement 'change' peut se déclencher
+    // trop tôt pendant la frappe clavier dans certains navigateurs.
+    // Nous allons ignorer 'change' pour les dates et nous fier uniquement
+    // à l'événement 'blur' (perte de focus ou touche Entrée) pour sauvegarder.
+    if (fieldType === 'date') {
+        console.log(`Change détecté sur date (Tâche ${taskId}). Sauvegarde sera gérée par blur.`);
+        return; // Ne pas appeler saveField ici pour les dates
+    }
+
+    // Pour les autres types (description, comment), on peut sauvegarder sur 'change'
+    console.log(`Change détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
+    saveField(input, textElement, fieldType, taskId);
+}
+
+// Gère la perte de focus pour sauvegarder
+function handleEditableBlur(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) {
+        console.error("Blur: Éléments/Données manquants pour sauvegarder.");
+        if (input.parentNode) input.remove();
+        return;
+    }
+
+    if (fieldType === 'date') {
+        setTimeout(() => {
+            if (input.parentNode) {
+                 saveField(input, textElement, fieldType, taskId);
+            }
+        }, 0);
+    } else {
+        saveField(input, textElement, fieldType, taskId);
+    }
+}
+
+// Gère les touches Entrée/Échap
+function handleEditableKeydown(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) return;
+
+    if (e.key === 'Enter') {
+        if (fieldType === 'description' || fieldType === 'comment') {
+             saveField(input, textElement, fieldType, taskId);
+        } else if (fieldType === 'date') {
+             input.blur();
+        }
+    } else if (e.key === 'Escape') {
+        textElement.textContent = input.dataset.originalDisplayValue;
+        if (fieldType === 'comment') {
+             const isEmpty = !input.dataset.originalDisplayValue || input.dataset.originalDisplayValue === 'Ajouter un commentaire...' || input.dataset.originalDisplayValue === 'Cliquez pour ajouter un commentaire';
+             textElement.classList.toggle('comment-placeholder', isEmpty);
+             textElement.classList.toggle('empty-comment', isEmpty);
+             if (isEmpty) textElement.textContent = 'Ajouter un commentaire...';
+        }
+        textElement.style.display = '';
+        if (input.parentNode) {
+            input.remove();
+        }
+    }
 }
