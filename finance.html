@@ -300,10 +300,25 @@ Avocate au Barreau de Paris</textarea>
                     <input type="checkbox" id="attachPDF" checked>
                     <label for="attachPDF">Joindre la facture en PDF</label>
                 </div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn-cancel" onclick="closeEmailModal()">Annuler</button>
-                    <button type="submit" class="btn-primary">Envoyer</button>
+
+                <!-- Bloc pour les pièces jointes supplémentaires -->
+                <div class="mb-3" id="additionalAttachmentsSection">
+                    <label for="additionalAttachmentsInput" class="form-label">Pièces jointes supplémentaires :</label>
+                    <input type="file" id="additionalAttachmentsInput" multiple style="display: none;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="document.getElementById('additionalAttachmentsInput').click();">
+                        <i class="fas fa-paperclip"></i> Choisir des fichiers...
+                    </button>
+                    <ul id="additionalAttachmentsList" class="list-unstyled mt-2 mb-0" style="font-size: 0.8em; color: #6c757d;">
+                        <!-- Les noms des fichiers seront ajoutés ici par JavaScript -->
+                    </ul>
+                </div>
+                <!-- Fin Bloc pièces jointes supplémentaires -->
+
+                <!-- Boutons d'action (Envoyer / Annuler) -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeEmailModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Envoyer</button>
                 </div>
             </form>
         </div>
@@ -706,4 +721,3 @@ Avocate au Barreau de Paris</textarea>
     </script>
 </body>
 </html>
-`

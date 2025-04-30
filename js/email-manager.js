@@ -115,7 +115,39 @@ Site internet : https://candicerovera-avocat.fr/`;
     
     // Réinitialiser la pièce jointe client
     clientAttachment = null;
-    
+
+    // --- AJOUT GESTION PIÈCES JOINTES SUPPLÉMENTAIRES ---
+    const attachmentsInput = document.getElementById('additionalAttachmentsInput');
+    const attachmentsList = document.getElementById('additionalAttachmentsList');
+
+    if (attachmentsInput && attachmentsList) {
+        // 1. Réinitialiser le champ et la liste
+        attachmentsInput.value = ''; // Important pour pouvoir resélectionner
+        attachmentsList.innerHTML = '';
+
+        // 2. Écouter les changements sur l'input
+        // Utiliser une fonction nommée pour pouvoir la supprimer si besoin
+        const handleAttachmentChange = function(event) {
+            attachmentsList.innerHTML = ''; // Vider la liste précédente
+            if (event.target.files.length > 0) {
+                Array.from(event.target.files).forEach(file => {
+                    const li = document.createElement('li');
+                    li.textContent = file.name;
+                    li.style.fontSize = '0.8em'; // Plus petit pour la liste
+                    attachmentsList.appendChild(li);
+                });
+            }
+        };
+        // Nettoyer l'ancien écouteur avant d'en ajouter un nouveau
+        attachmentsInput.removeEventListener('change', attachmentsInput.__currentListener);
+        attachmentsInput.addEventListener('change', handleAttachmentChange);
+        attachmentsInput.__currentListener = handleAttachmentChange; // Stocker la référence
+
+    } else {
+        console.warn("Éléments #additionalAttachmentsInput ou #additionalAttachmentsList non trouvés.");
+    }
+    // --- FIN AJOUT ---
+
     // Afficher la modal
     document.getElementById('emailModal').style.display = 'flex';
 }
@@ -270,13 +302,10 @@ async function sendInvoiceEmail(event) {
 
         // Log pour débogage
         console.log(`Type d'email: ${isClientEmail ? 'Client' : 'Facture'}`);
-        console.log('Interface client visible:', clientAttachmentBtn && clientAttachmentBtn.style.display !== 'none');
-        
+
         // POUR LES EMAILS DE FACTURE
         if (!isClientEmail) {
-            // Code existant pour les factures...
-            
-            // Ajouter le RIB uniquement pour les factures
+            // --- Code existant pour ajouter le RIB ---
             try {
                 const fs = window.require('fs');
                 const path = window.require('path');
@@ -305,29 +334,25 @@ async function sendInvoiceEmail(event) {
             } catch (error) {
                 console.error('Erreur lors de l\'ajout du RIB:', error);
             }
-            
-            // --- AJOUT POUR JOINDRE LA FACTURE PDF ---
+
+            // --- Code existant pour ajouter la FACTURE PDF PRINCIPALE ---
             try {
                 const fs = window.require('fs');
                 const path = window.require('path');
 
-                // 1. Récupérer l'objet facture complet via son numéro
                 const invoice = window.invoices.find(inv => inv.number === invoiceNumber);
                 if (!invoice) {
-                    // Si la facture n'est pas trouvée en mémoire, on ne peut pas construire le chemin
                     throw new Error(`Facture ${invoiceNumber} non trouvée dans window.invoices.`);
                 }
                 if (!invoice.client || !invoice.client.nom || !invoice.client.prenom) {
                     throw new Error(`Données client manquantes pour la facture ${invoiceNumber}.`);
                 }
 
-                // 2. Obtenir le chemin racine
-                const appRootPath = getAppRootPath(); // Utilise la fonction ajoutée/existante
+                const appRootPath = getAppRootPath();
                 if (appRootPath === 'CHEMIN_RACINE_INCONNU') {
                     throw new Error("Impossible de déterminer le chemin racine pour joindre la facture PDF.");
                 }
 
-                // 3. Reconstruire le chemin exact du fichier PDF (identique à invoice-manager.js)
                 const baseDossiersPath = path.join(appRootPath, 'Dossiers en cours');
                 const clientFolderName = `${invoice.client.nom}_${invoice.client.prenom}`.replace(/[^a-zA-Z0-9_]/g, '_');
                 const facturesSubDir = '2-Factures';
@@ -336,52 +361,77 @@ async function sendInvoiceEmail(event) {
 
                 console.log(`Recherche de la facture PDF à joindre: ${pdfFilePath}`);
 
-                // 4. Vérifier si le fichier PDF existe
                 if (fs.existsSync(pdfFilePath)) {
-                    // 5. Lire le contenu du fichier PDF
                     const pdfContent = fs.readFileSync(pdfFilePath);
-                    // 6. Convertir en Base64 pour l'attachement
                     const pdfBase64 = Buffer.from(pdfContent).toString('base64');
 
-                    // 7. Ajouter la facture aux pièces jointes
                     attachments.push({
-                        filename: pdfFileName, // Nom du fichier tel qu'il apparaîtra dans l'email
+                        filename: pdfFileName,
                         content: pdfBase64,
                         encoding: 'base64'
                     });
                     console.log(`Facture PDF ajoutée avec succès à l'email: ${pdfFileName}`);
                 } else {
-                    // Si le fichier n'existe pas, logguer une erreur et informer l'utilisateur
                     console.error(`ERREUR: Le fichier PDF de la facture est introuvable: ${pdfFilePath}`);
                     alert(`Attention : Le fichier PDF de la facture ${pdfFileName} n'a pas été trouvé à l'emplacement attendu et ne sera pas joint à l'e-mail.`);
                 }
 
             } catch (error) {
-                // Gérer les erreurs potentielles (facture non trouvée, chemin racine inconnu, etc.)
                 console.error('Erreur lors de la tentative d\'ajout de la facture PDF:', error);
                 alert(`Une erreur est survenue lors de la tentative d'ajout de la facture PDF à l'e-mail : ${error.message}`);
-                // On continue quand même l'envoi sans le PDF si une erreur survient ici (sauf si on veut l'annuler)
             }
-            // --- FIN AJOUT FACTURE PDF ---
+
+            // --- AJOUT POUR LES PIÈCES JOINTES SUPPLÉMENTAIRES ---
+            try {
+                const attachmentsInput = document.getElementById('additionalAttachmentsInput');
+                const additionalFiles = attachmentsInput ? attachmentsInput.files : null;
+                const fs = window.require('fs');
+
+                if (additionalFiles && additionalFiles.length > 0) {
+                    console.log(`[PJ Supp] Traitement de ${additionalFiles.length} fichier(s) supplémentaire(s)...`);
+                    for (let i = 0; i < additionalFiles.length; i++) {
+                        const file = additionalFiles[i];
+                        if (file.path && fs.existsSync(file.path)) {
+                            try {
+                                console.log(`[PJ Supp] Lecture de: ${file.path}`);
+                                const fileContent = fs.readFileSync(file.path);
+                                const fileBase64 = Buffer.from(fileContent).toString('base64');
+
+                                attachments.push({
+                                    filename: file.name,
+                                    content: fileBase64,
+                                    encoding: 'base64'
+                                });
+                                console.log(`[PJ Supp] Fichier ajouté: ${file.name}`);
+                            } catch (readError) {
+                                console.error(`[PJ Supp] Erreur lors de la lecture du fichier ${file.name}:`, readError);
+                                alert(`Erreur lors de la lecture du fichier supplémentaire ${file.name}. Il ne sera pas joint.`);
+                            }
+                        } else {
+                            console.warn(`[PJ Supp] Le fichier ${file.name} n'a pas de chemin valide ou n'existe pas (${file.path}). Ignoré.`);
+                        }
+                    }
+                } else {
+                     console.log("[PJ Supp] Aucun fichier supplémentaire sélectionné.");
+                }
+            } catch (error) {
+                console.error('[PJ Supp] Erreur lors du traitement des fichiers supplémentaires:', error);
+                alert("Une erreur est survenue lors de l'ajout des pièces jointes supplémentaires.");
+            }
+            // --- FIN AJOUT PIÈCES JOINTES SUPPLÉMENTAIRES ---
 
         }
-
-
-        
-        // POUR LES EMAILS CLIENT
+        // POUR LES EMAILS CLIENT (logique existante inchangée)
         else {
             console.log('Email client - aucun RIB ne sera ajouté');
             
-            // Debug pour vérifier que nous sommes bien dans la branche client
             console.log('Debug - clientAttachment:', clientAttachment ? clientAttachment.name : 'aucun');
             
-            // Vérifier si un document a été sélectionné via le bouton
             if (clientAttachment) {
                 try {
                     const fs = window.require('fs');
                     const path = window.require('path');
                     
-                    // Lire le contenu du fichier
                     const fileContent = fs.readFileSync(clientAttachment.path);
                     const fileBase64 = Buffer.from(fileContent).toString('base64');
                     
@@ -401,11 +451,9 @@ async function sendInvoiceEmail(event) {
             }
         }
 
-        // Récupérer les données de configuration
         const fromEmail = window.emailConfig ? window.emailConfig.email : document.getElementById('emailFrom')?.value;
         const appPassword = window.emailConfig ? window.emailConfig.appPassword : '';
 
-        // Vérifier si les données d'envoi d'email sont configurées
         if (!fromEmail || !appPassword) {
             const configurer = confirm('La configuration d\'email n\'est pas complète. Voulez-vous configurer votre email maintenant?');
             if (configurer) {
@@ -420,7 +468,6 @@ async function sendInvoiceEmail(event) {
             return;
         }
 
-        // Préparer les données de l'email
         const emailData = {
             from: fromEmail,
             to: toEmail,
@@ -435,13 +482,11 @@ async function sendInvoiceEmail(event) {
             subject: emailData.subject, 
             attachmentsCount: emailData.attachments.length 
         });
+        console.log('Noms des pièces jointes:', emailData.attachments.map(a => a.filename));
 
-        // Envoyer l'email via le backend
-        // Pour Electron, nous utilisons l'IPC pour communiquer avec le processus principal
         if (window.require) {
             const { ipcRenderer } = window.require('electron');
             
-            // Timeout de sécurité pour déverrouiller le bouton si aucune réponse n'est reçue
             const safetyTimeout = setTimeout(() => {
                 console.log('Timeout de sécurité: déverrouillage forcé');
                 emailSendingInProgress = false;
@@ -452,20 +497,17 @@ async function sendInvoiceEmail(event) {
                 }
                 
                 alert('L\'envoi d\'email a pris trop de temps. Veuillez réessayer.');
-            }, 15000); // 15 secondes max
+            }, 15000);
             
             ipcRenderer.send('send-email', emailData);
             
             ipcRenderer.once('email-sent', (event, response) => {
-                // Annuler le timeout de sécurité
                 clearTimeout(safetyTimeout);
                 
                 console.log('Réponse du processus principal:', response);
                 
-                // IMPORTANT: déverrouiller immédiatement
                 emailSendingInProgress = false;
                 
-                // Restaurer le bouton IMMÉDIATEMENT
                 if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.textContent = originalText;
@@ -474,10 +516,8 @@ async function sendInvoiceEmail(event) {
                 if (response.success) {
                     alert('Email envoyé avec succès !');
                     
-                    // Fermer la modal APRÈS avoir restauré le bouton
                     closeEmailModal();
                     
-                    // Pour les factures: mettre à jour le statut à "sent"
                     if (!isClientEmail && typeof updateInvoiceStatus === 'function') {
                         try {
                             updateInvoiceStatus(invoiceNumber, 'sent');
@@ -486,7 +526,6 @@ async function sendInvoiceEmail(event) {
                         }
                     }
                     
-                    // Forcer le rafraîchissement de la fenêtre 
                     setTimeout(() => {
                         if (typeof forceWindowRefresh === 'function') {
                             try {
@@ -501,7 +540,6 @@ async function sendInvoiceEmail(event) {
                 }
             });
         } else {
-            // Si on n'est pas dans Electron, afficher un message d'erreur
             alert('L\'envoi d\'emails n\'est pas disponible dans cette version de l\'application');
             emailSendingInProgress = false;
             if (submitBtn) {
@@ -510,7 +548,18 @@ async function sendInvoiceEmail(event) {
             }
         }
     } catch (error) {
-        // Reste du code inchangé...
+        console.error('Erreur globale dans sendInvoiceEmail:', error);
+        alert(`Une erreur inattendue est survenue: ${error.message}`);
+        emailSendingInProgress = false;
+        lastRequestTimestamp = 0;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+        const emailForm = document.getElementById('emailForm');
+        if (emailForm) {
+            emailForm.removeAttribute('data-submitting');
+        }
     }
 }
 
