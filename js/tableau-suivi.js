@@ -415,9 +415,6 @@ function renderTaskGroups() {
     
     // Ajouter les gestionnaires d'événements pour les cases à cocher, etc.
     
-    attachCheckboxListeners(); 
-    attachDeleteButtonListeners();
-    
     console.log('Rendu terminé');
 }
 
@@ -705,8 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ajouter l'initialisation de la recherche et du tri
     initSearchAndSort();
-
-    addEditableFieldListeners(); 
+    addEditableFieldListeners(); // Appeler la fonction mise à jour
 
     console.log("Initialisation DOMContentLoaded terminée.");
 });
@@ -1299,6 +1295,82 @@ function deleteTask(taskId) {
     }
 }
 
+// Gère la perte de focus pour sauvegarder (utilisé par le listener délégué)
+function handleEditableBlur(e) {
+    const input = e.target;
+    // Vérifier si c'est bien un input de notre système éditable
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) {
+        console.error("Blur: Éléments/Données manquants pour sauvegarder.");
+        // Ne pas retirer l'input ici, saveField le fera si nécessaire
+        return;
+    }
+
+    // Utiliser setTimeout pour les dates pour éviter conflit avec 'change'
+    // et pour permettre au clic sur le calendrier de fonctionner
+    if (fieldType === 'date') {
+        console.log(`Blur détecté sur date (Tâche ${taskId}). Appel de saveField différé.`);
+        setTimeout(() => {
+            // Vérifier si l'input existe toujours (n'a pas été retiré par Echap par ex.)
+            // et s'il est toujours dans le DOM
+            if (input && input.closest('body')) {
+                 console.log(`Timeout Blur (date): Appel de saveField pour ${taskId}.`);
+                 saveField(input, textElement, fieldType, taskId);
+            } else {
+                 console.log(`Timeout Blur (date): Input déjà retiré pour ${taskId}, abandon.`);
+            }
+        }, 150); // Léger délai pour le date picker
+    } else {
+        console.log(`Blur détecté sur ${fieldType} (Tâche ${taskId}). Appel direct de saveField.`);
+        // Pour les autres champs, on peut sauvegarder directement sur blur
+        saveField(input, textElement, fieldType, taskId);
+    }
+}
+
+// Gère les touches Entrée/Échap (utilisé par le listener délégué)
+function handleEditableKeydown(e) {
+    const input = e.target;
+    if (!input.matches('.description-input, .date-input, .comment-input')) {
+        return;
+    }
+    const cell = input.closest('td');
+    if (!cell) return;
+    const taskId = cell.dataset.taskId;
+    const fieldType = input.dataset.fieldType;
+    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+    if (!textElement || !fieldType || !taskId) return;
+
+    if (e.key === 'Enter') {
+        console.log(`Entrée sur ${fieldType} (Tâche ${taskId}). Déclenchement du blur.`);
+        input.blur(); // Déclencher blur pour sauvegarder (géré par handleEditableBlur)
+        e.preventDefault(); // Empêcher le comportement par défaut (ex: saut de ligne textarea)
+    } else if (e.key === 'Escape') {
+        console.log(`Échap sur ${fieldType} (Tâche ${taskId}). Annulation.`);
+        // Restaurer l'affichage original et supprimer l'input
+        textElement.textContent = input.dataset.originalDisplayValue;
+        if (fieldType === 'comment') {
+             const isEmpty = !input.dataset.originalDisplayValue || input.dataset.originalDisplayValue === 'Ajouter un commentaire...' || input.dataset.originalDisplayValue === 'Cliquez pour ajouter un commentaire';
+             textElement.classList.toggle('comment-placeholder', isEmpty);
+             textElement.classList.toggle('empty-comment', isEmpty);
+             if (isEmpty) textElement.textContent = 'Ajouter un commentaire...';
+        }
+        textElement.style.display = '';
+        if (input.parentNode) {
+            input.remove();
+        }
+    }
+}
+
 // Nouvelle fonction addEditableFieldListeners (utilise la délégation)
 function addEditableFieldListeners() {
     console.log('Initialisation des champs éditables via délégation...');
@@ -1310,8 +1382,8 @@ function addEditableFieldListeners() {
 
     // --- CLICK Listener (Délégué) ---
     // Détecte les clics sur les cellules éditables pour démarrer l'édition
-    container.removeEventListener('click', handleEditableClick); // Eviter doublons
-    container.addEventListener('click', handleEditableClick);
+    container.removeEventListener('click', handleDelegatedClick); // Eviter doublons
+    container.addEventListener('click', handleDelegatedClick);
 
     // --- BLUR Listener (Délégué) ---
     // Détecte la perte de focus des inputs créés. Utilise la phase de capture car blur ne bulle pas.
@@ -1325,11 +1397,251 @@ function addEditableFieldListeners() {
 
     // --- CHANGE Listener (Délégué) ---
     // Détecte les changements explicites (ex: sélection date picker)
-    container.removeEventListener('change', handleEditableChange); // Eviter doublons
-    container.addEventListener('change', handleEditableChange);
+    container.removeEventListener('change', handleDelegatedChange);
+    container.addEventListener('change', handleDelegatedChange);
 
-    console.log('Écouteurs délégués attachés à #tasksContainer');
+    console.log('Écouteurs délégués (édition, statut, suppression) attachés à #tasksContainer');
 }
+
+
+// Nouvelle fonction pour gérer les clics délégués
+function handleDelegatedClick(e) {
+    const target = e.target;
+
+    // 1. Gérer le clic pour démarrer l'édition (ancien handleDelegatedClick)
+    const editableCell = target.closest('.task-description, .task-date, .task-comment');
+    if (editableCell && !target.closest('.action-btn') && !editableCell.querySelector('.description-input, .date-input, .comment-input')) {
+        // Appeler la logique de démarrage d'édition (le contenu de l'ancien handleDelegatedClick)
+        startEditingCell(editableCell, e); // Créer une fonction startEditingCell si besoin
+        return; // Important pour ne pas traiter aussi comme un clic suppression
+    }
+
+    // 2. Gérer le clic sur le bouton supprimer
+    const deleteButton = target.closest('.delete-task-btn');
+    if (deleteButton) {
+        const taskId = deleteButton.dataset.taskId;
+        console.log(`Clic délégué sur bouton supprimer pour tâche: ${taskId}`);
+        if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+            deleteTaskLogic(taskId, deleteButton); // Créer une fonction deleteTaskLogic
+        }
+        return;
+    }
+}
+
+// Nouvelle fonction pour gérer les changements délégués
+async function handleDelegatedChange(e) { // async car on appelle saveTasks
+    const target = e.target;
+
+    // 1. Gérer le changement d'un input d'édition (ancien handleEditableChange)
+    if (target.matches('.description-input, .date-input, .comment-input')) {
+        const cell = target.closest('td');
+        if (!cell) return;
+        const taskId = cell.dataset.taskId;
+        const fieldType = target.dataset.fieldType;
+        const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
+
+        if (!textElement || !fieldType || !taskId) { /* ... erreur ... */ return; }
+
+        if (fieldType === 'date') {
+            console.log(`Change délégué sur date (Tâche ${taskId}). Ignoré (géré par blur).`);
+            return;
+        }
+        console.log(`Change délégué sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
+        saveField(target, textElement, fieldType, taskId);
+        return;
+    }
+
+    // 2. Gérer le changement d'une case à cocher
+    if (target.matches('.task-checkbox')) {
+        const checkbox = target;
+        const taskId = checkbox.dataset.taskId;
+        const isChecked = checkbox.checked;
+        const clientId = checkbox.dataset.clientId;
+
+        console.log(`Change délégué sur checkbox: ${taskId}, état: ${isChecked}, client: ${clientId}`);
+
+        const row = checkbox.closest('tr');
+        if (row) {
+            row.classList.toggle('task-completed', isChecked);
+            const dateSpan = row.querySelector('.date-text');
+            if (dateSpan) {
+                let taskDueDate = null;
+                if (tasks && tasks[clientId]) {
+                    const taskData = tasks[clientId].find(t => t.id === taskId);
+                    if (taskData) taskDueDate = taskData.dueDate;
+                }
+                const shouldBeOverdue = isDateOverdue(taskDueDate) && !isChecked;
+                dateSpan.classList.toggle('date-overdue', shouldBeOverdue);
+            }
+        }
+
+        const statusUpdated = updateTaskStatus(clientId, taskId, isChecked);
+
+        if (statusUpdated) {
+            try {
+                await saveTasks(); // Utiliser await ici
+            } catch (saveError) {
+                console.error("Erreur lors de la sauvegarde après changement de statut:", saveError);
+                alert("Erreur lors de la sauvegarde du statut de la tâche.");
+            }
+        } else {
+            console.error("Le statut de la tâche n'a pas pu être mis à jour.");
+        }
+        return;
+    }
+}
+
+// Nouvelle fonction startEditingCell (reprend le contenu de handleDelegatedClick)
+// --- AJOUTER L'IMPLÉMENTATION COMPLÈTE DE CETTE FONCTION ---
+// (Reprend la logique de l'ancien handleEditableClick pour créer l'input)
+function startEditingCell(cell, e) {
+    console.log('startEditingCell: Démarrage édition pour cellule:', cell);
+    const taskId = cell.dataset.taskId;
+    if (!taskId) {
+         console.warn("startEditingCell: Clic sur cellule sans data-task-id:", cell);
+         return;
+    }
+    console.log(`startEditingCell: Traitement pour Tâche ${taskId}`);
+
+    let textElement, inputType, inputClassName, originalValue, valueForInput, fieldType;
+
+    // Déterminer le type de champ et récupérer les éléments nécessaires
+    if (cell.classList.contains('task-description')) {
+        fieldType = 'description';
+        textElement = cell.querySelector('.description-text');
+        if (!textElement) return;
+        inputType = 'text'; // Ou 'textarea' si vous préférez
+        inputClassName = 'description-input';
+        originalValue = textElement.textContent?.trim() || '';
+        valueForInput = originalValue; // Utiliser la valeur actuelle pour l'input
+        console.log(`startEditingCell: Type=description, Original='${originalValue}'`);
+
+    } else if (cell.classList.contains('task-date')) {
+        fieldType = 'date';
+        textElement = cell.querySelector('.date-text');
+        if (!textElement) {
+             console.error('startEditingCell (date): .date-text non trouvé!');
+             return;
+        }
+        inputType = 'date'; // Utilisation de input type="date"
+        inputClassName = 'date-input';
+        originalValue = textElement.textContent?.trim() || ''; // Format DD/MM/YYYY ou '—'
+        valueForInput = ''; // Valeur par défaut pour l'input (YYYY-MM-DD)
+
+        console.log(`startEditingCell (date): Texte original affiché (originalValue): "${originalValue}"`);
+
+        // Convertir DD/MM/YYYY en YYYY-MM-DD pour l'input type="date"
+        if (originalValue && originalValue !== '—') {
+            console.log('startEditingCell (date): Tentative conversion DD/MM/YYYY -> YYYY-MM-DD');
+            try {
+                const parts = originalValue.split('/');
+                if (parts.length === 3) {
+                    const day = parts[0].trim().padStart(2, '0');
+                    const month = parts[1].trim().padStart(2, '0');
+                    const year = parts[2].trim();
+                    // Vérifier si les parties sont valides (simple vérification)
+                    if (day && month && year && !isNaN(parseInt(day)) && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
+                         valueForInput = `${year}-${month}-${day}`;
+                         console.log(`startEditingCell (date): Conversion réussie -> valueForInput: "${valueForInput}"`);
+                    } else {
+                         console.warn(`startEditingCell (date): Parties de date invalides après split:`, parts);
+                    }
+                } else {
+                    console.warn(`startEditingCell (date): Format date inattendu (pas 3 parties /): "${originalValue}"`);
+                }
+            } catch (err) {
+                console.error(`startEditingCell (date): Erreur conversion "${originalValue}":`, err);
+            }
+        } else {
+             console.log(`startEditingCell (date): Date originale vide ou "—". valueForInput reste "${valueForInput}"`);
+        }
+        console.log(`startEditingCell: Type=date, Original='${originalValue}', InputValue='${valueForInput}'`);
+
+    } else if (cell.classList.contains('task-comment')) {
+        fieldType = 'comment';
+        textElement = cell.querySelector('.comment-text');
+        if (!textElement) return;
+        inputType = 'text'; // Ou 'textarea'
+        inputClassName = 'comment-input';
+        originalValue = textElement.textContent?.trim() || '';
+        // Si c'est le placeholder, mettre une chaîne vide dans l'input
+        if (originalValue === 'Ajouter un commentaire...' || originalValue === 'Cliquez pour ajouter un commentaire') {
+            valueForInput = '';
+        } else {
+            valueForInput = originalValue;
+        }
+        console.log(`startEditingCell: Type=comment, Original='${originalValue}', InputValue='${valueForInput}'`);
+
+    } else {
+        console.log('startEditingCell: Type de cellule inconnu.');
+        return;
+    }
+
+    // Création de l'input
+    console.log(`startEditingCell: Création input: type=${inputType}, class=${inputClassName}, value=${valueForInput}`);
+    const input = document.createElement('input'); // Ou 'textarea' si besoin
+    input.type = inputType;
+    input.className = inputClassName;
+    input.value = valueForInput;
+    input.dataset.originalDisplayValue = originalValue; // Stocker l'affichage original (DD/MM/YYYY pour date)
+    input.dataset.fieldType = fieldType;
+
+    // Ajouter placeholder pour commentaire si vide
+    if (fieldType === 'comment') {
+        input.placeholder = 'Ajouter un commentaire...';
+    }
+
+    // Remplacer le texte par l'input
+    console.log('startEditingCell: Masquage textElement et ajout input au DOM...');
+    textElement.style.display = 'none';
+    cell.appendChild(input);
+    console.log('startEditingCell: Input ajouté. Tentative de focus...');
+
+    input.focus();
+    // Sélectionner le texte pour les inputs texte (pas utile pour date)
+    if (input.type === 'text' && valueForInput !== '') {
+        input.select();
+        console.log('startEditingCell: Texte sélectionné.');
+    }
+    console.log('startEditingCell: Focus demandé.');
+
+    // Arrêter la propagation pour éviter que le listener sur document ne ferme l'input immédiatement
+    if (e) { // Vérifier si l'événement est passé
+        e.stopPropagation();
+        console.log('startEditingCell: Propagation du clic arrêtée.');
+    }
+    console.log('startEditingCell: Fin.');
+}
+
+
+// Nouvelle fonction deleteTaskLogic (reprend le contenu du listener du bouton delete)
+function deleteTaskLogic(taskId, buttonElement) {
+    const clientId = findClientIdByTaskId(taskId);
+    if (!clientId) { /* ... erreur ... */ return; }
+    const taskIndex = tasks[clientId].findIndex(t => t.id === taskId);
+    if (taskIndex === -1) { /* ... erreur ... */ return; }
+
+    tasks[clientId].splice(taskIndex, 1);
+    console.log(`Tâche ${taskId} supprimée de la structure de données`);
+
+    const taskRow = buttonElement.closest('tr');
+    if (taskRow) {
+        taskRow.classList.add('deleting');
+        setTimeout(() => {
+            if (taskRow.parentNode) {
+                taskRow.parentNode.removeChild(taskRow);
+            }
+            updateProgressBar(clientId);
+            saveTasks();
+        }, 300);
+    } else {
+        // Si la ligne n'est pas trouvée, rafraîchir quand même
+        updateProgressBar(clientId);
+        saveTasks();
+    }
+}
+
+
 
 /**
  * Tente de parser une chaîne en objet Date.
@@ -1762,9 +2074,6 @@ function renderFlatTaskView(sortOrder, sortType) {
     flatTable.appendChild(tbody);
     container.appendChild(flatTable);
 
-    attachCheckboxListeners();
-    attachDeleteButtonListeners();
-
     console.log('Vue plate rendue et écouteurs attachés.');
 }
 
@@ -1777,66 +2086,10 @@ function initSearchAndSort() {
     const sortDirectionButton = document.getElementById('sortDirection');
     const quickFilterButtons = document.querySelectorAll('.quick-filter-btn');
 
-    function performSearch() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const tasksContainer = document.getElementById('tasksContainer');
-        const isFlatView = tasksContainer.querySelector('.flat-task-view');
-
-        document.querySelectorAll('.highlight').forEach(el => {
-            el.outerHTML = el.textContent;
-        });
-        document.querySelectorAll('.search-no-match').forEach(el => {
-            el.classList.remove('search-no-match');
-        });
-        tasksContainer.classList.remove('filtered');
-
-        if (!searchTerm) {
-            console.log("Recherche vidée.");
-            if (!isFlatView) {
-                document.querySelectorAll('.task-group').forEach(group => group.style.display = '');
-            }
-            applyQuickFilters();
-            return;
-        }
-
-        console.log(`Recherche: "${searchTerm}"`);
-        tasksContainer.classList.add('filtered');
-
-        if (isFlatView) {
-            tasksContainer.querySelectorAll('.flat-task-view tbody tr').forEach(row => {
-                const clientName = row.querySelector('.task-client')?.textContent.toLowerCase() || '';
-                const description = row.querySelector('.description-text')?.textContent.toLowerCase() || '';
-                const comment = row.querySelector('.comment-text:not(.empty-comment)')?.textContent.toLowerCase() || '';
-                const matches = clientName.includes(searchTerm) || description.includes(searchTerm) || comment.includes(searchTerm);
-                row.classList.toggle('search-no-match', !matches);
-            });
-        } else {
-            document.querySelectorAll('.task-group').forEach(group => {
-                const clientNameHeader = group.querySelector('.client-name-header .client-name');
-                const clientName = clientNameHeader ? clientNameHeader.textContent.toLowerCase() : '';
-                const taskTexts = Array.from(group.querySelectorAll('.description-text, .comment-text:not(.empty-comment)'))
-                    .map(el => el.textContent.toLowerCase());
-                const matchesClient = clientName.includes(searchTerm);
-                const matchesTask = taskTexts.some(text => text.includes(searchTerm));
-                const groupMatches = matchesClient || matchesTask;
-
-                group.classList.toggle('search-no-match', !groupMatches);
-                group.style.display = groupMatches ? '' : 'none';
-            });
-        }
-        console.log("Recherche appliquée.");
-        applyQuickFilters();
-    }
-
-    if (searchButton && searchInput) {
-        searchButton.addEventListener('click', performSearch);
-        searchInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') performSearch(); });
-        searchInput.addEventListener('input', () => { if (searchInput.value === '') performSearch(); });
-    } else {
-        console.error("Éléments de recherche non trouvés!");
-    }
+    // ... (listeners pour searchInput/searchButton) ...
 
     if (sortSelect) {
+        sortSelect.value = currentSortType; // Assurer que le select reflète l'état initial
         sortSelect.addEventListener('change', function() {
             currentSortType = this.value;
             performSort();
@@ -1844,9 +2097,20 @@ function initSearchAndSort() {
     } else {
          console.error("Élément sortSelect non trouvé!");
     }
+
     if (sortDirectionButton) {
+        // --- DÉFINIR L'ICÔNE INITIALE ICI ---
+        // Cette ligne doit être exécutée au chargement, en dehors du listener.
+        // Elle lit la variable globale 'currentSortOrder' (qui devrait être 'asc' par défaut)
+        // et met à jour le texte du bouton en conséquence.
+        sortDirectionButton.textContent = currentSortOrder === 'asc' ? '▼' : '▲';
+        console.log(`initSearchAndSort: Icône de direction initiale définie à '${sortDirectionButton.textContent}' basé sur currentSortOrder='${currentSortOrder}'`);
+        // --- FIN DÉFINITION INITIALE ---
+
+        // Attacher l'écouteur pour les clics suivants
         sortDirectionButton.addEventListener('click', function() {
             currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            // Mettre à jour l'icône lors du clic
             this.textContent = currentSortOrder === 'asc' ? '▼' : '▲';
             performSort();
             console.log(`Direction de tri changée à: ${currentSortOrder}`);
@@ -1857,246 +2121,154 @@ function initSearchAndSort() {
 
     if (quickFilterButtons.length > 0) {
         quickFilterButtons.forEach(button => {
+            // --- AJOUT LOG ---
+            console.log(`initSearchAndSort: Attachement listener au bouton filtre: ${button.dataset.filter}`);
+            // --- FIN AJOUT LOG ---
             button.addEventListener('click', function() {
+                // --- AJOUT LOGS ---
+                const filterType = this.dataset.filter;
+                console.log(`Clic sur filtre rapide: ${filterType}`);
+                if (currentQuickFilter === filterType) {
+                    console.log(`Filtre ${filterType} déjà actif.`);
+                    return; // Ne rien faire si le filtre est déjà actif
+                }
+                currentQuickFilter = filterType;
+                console.log(`currentQuickFilter mis à jour à: ${currentQuickFilter}`);
+                // --- FIN AJOUT LOGS ---
+
+                // Mettre à jour la classe 'active'
                 quickFilterButtons.forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
 
-                currentQuickFilter = this.dataset.filter;
+                // --- AJOUT LOG ---
+                console.log(`Appel de applyQuickFilters depuis le listener du bouton.`);
+                // --- FIN AJOUT LOG ---
                 applyQuickFilters();
+
+                // Réappliquer la recherche si elle est active
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput && searchInput.value.trim() !== '') {
+                    console.log("Réapplication de la recherche après changement de filtre.");
+                    performSearch();
+                }
             });
         });
+        // Appliquer le filtre initial au chargement
+        console.log(`initSearchAndSort: Appel initial de applyQuickFilters.`);
+        applyQuickFilters();
     } else {
         console.error("Aucun bouton de filtre rapide trouvé!");
     }
 
+    // Appliquer les filtres initiaux (déjà présent à la fin de la fonction)
     applyQuickFilters();
 }
 
 // Nouvelle fonction pour appliquer les filtres rapides
 function applyQuickFilters() {
-    console.log(`Application du filtre rapide: ${currentQuickFilter}`);
+    // --- AJOUT LOG DÉBUT ---
+    console.log(`--- applyQuickFilters: DÉBUT - Filtre actif: ${currentQuickFilter} ---`);
+    // --- FIN AJOUT LOG ---
     const container = document.getElementById('tasksContainer');
-    if (!container) return;
+    if (!container) {
+         console.error("applyQuickFilters: Conteneur #tasksContainer non trouvé.");
+         return;
+    }
 
     const isFlatView = container.querySelector('.flat-task-view');
     const rowsSelector = isFlatView ? '.flat-task-view tbody tr' : '.task-group .task-table tbody tr';
     const taskRows = container.querySelectorAll(rowsSelector);
 
-    console.log(`Application du filtre sur ${taskRows.length} lignes (Sélecteur: ${rowsSelector})`);
+    // --- AJOUT LOG ---
+    console.log(`applyQuickFilters: Application sur ${taskRows.length} lignes (Sélecteur: ${rowsSelector})`);
+    // --- FIN AJOUT LOG ---
 
-    taskRows.forEach(row => {
+    let visibleCount = 0; // Compteur pour debug
+
+    taskRows.forEach((row, index) => {
+        // --- AJOUT LOGS DÉTAILLÉS ---
+        const taskId = row.dataset.taskId || `(ID inconnu ligne ${index})`;
+        console.log(`applyQuickFilters: Traitement ligne ${index} (Tâche: ${taskId})`);
+
         let showRow = false;
         const isCompleted = row.classList.contains('task-completed');
         const dateTextElement = row.querySelector('.date-text');
         const dateText = dateTextElement ? dateTextElement.textContent.trim() : '';
-        const taskId = row.dataset.taskId; // Pour debug
 
         let taskDueDate = '';
         const clientId = row.closest('[data-client-id]')?.dataset.clientId || row.dataset.clientId;
         if(clientId && taskId && tasks[clientId]) {
             const taskData = tasks[clientId].find(t => t.id === taskId);
             if (taskData) {
-                taskDueDate = taskData.dueDate;
+                taskDueDate = taskData.dueDate; // Format YYYY-MM-DD ou null
             }
         }
-        const dateToCheck = taskDueDate || dateText;
-        const isOverdue = isDateOverdue(dateToCheck);
+        // Utiliser la date des données si dispo, sinon celle affichée (moins fiable)
+        const dateToCheck = taskDueDate !== undefined ? taskDueDate : dateText;
+        const isOverdue = isDateOverdue(dateToCheck); // isDateOverdue gère YYYY-MM-DD et DD/MM/YYYY
+
+        console.log(`  -> Tâche ${taskId}: Complété=${isCompleted}, Date=${dateToCheck}, EnRetard=${isOverdue}`);
 
         switch (currentQuickFilter) {
             case 'overdue':
                 showRow = !isCompleted && isOverdue;
+                console.log(`  -> Filtre 'overdue': showRow = ${showRow}`);
                 break;
             case 'completed':
                 showRow = isCompleted;
+                console.log(`  -> Filtre 'completed': showRow = ${showRow}`);
                 break;
             case 'pending':
                 showRow = !isCompleted;
+                console.log(`  -> Filtre 'pending': showRow = ${showRow}`);
                 break;
             case 'all':
             default:
                 showRow = true;
+                console.log(`  -> Filtre 'all': showRow = ${showRow}`);
                 break;
         }
 
+        // Appliquer la classe
         if (showRow) {
             row.classList.remove('quick-filter-hidden');
+            visibleCount++;
+            console.log(`  -> Afficher ligne ${index}`);
         } else {
             row.classList.add('quick-filter-hidden');
+            console.log(`  -> Masquer ligne ${index}`);
         }
+        // --- FIN AJOUT LOGS DÉTAILLÉS ---
     });
 
+    // --- AJOUT LOG ---
+    console.log(`applyQuickFilters: Nombre de lignes visibles après filtre: ${visibleCount}`);
+    // --- FIN AJOUT LOG ---
+
+    // Gérer la visibilité des groupes (logique existante)
     if (!isFlatView) {
+        console.log("applyQuickFilters: Vérification visibilité des groupes...");
         container.querySelectorAll('.task-group').forEach(group => {
-            const visibleRows = group.querySelectorAll('tbody tr:not(.quick-filter-hidden)');
-            const isFiltered = currentQuickFilter !== 'all' || container.classList.contains('filtered');
-            if (isFiltered) {
-                 group.style.display = visibleRows.length === 0 ? 'none' : '';
-            } else {
-                 group.style.display = '';
-            }
+            // Ne considérer que les lignes non masquées par la RECHERCHE pour la visibilité du groupe par FILTRE
+            const visibleRowsInGroup = group.querySelectorAll('tbody tr:not(.quick-filter-hidden):not(.search-no-match)');
+            const groupClientId = group.dataset.clientId;
+
+            // Un groupe est masqué par le filtre si aucune de ses lignes (non masquées par la recherche) n'est visible
+            const hideGroupDueToFilter = visibleRowsInGroup.length === 0 && currentQuickFilter !== 'all';
+
+            // Ne pas masquer un groupe si la recherche le montre explicitement
+            const hideGroupDueToSearch = group.classList.contains('search-no-match');
+
+            // Masquer si masqué par filtre OU par recherche
+            const shouldHideGroup = hideGroupDueToFilter || hideGroupDueToSearch;
+
+            group.classList.toggle('quick-filter-hidden-group', hideGroupDueToFilter); // Classe spécifique pour filtre groupe
+            group.style.display = shouldHideGroup ? 'none' : ''; // Masquer via style si filtre ou recherche
+
+            console.log(`  -> Groupe ${groupClientId}: Lignes visibles=${visibleRowsInGroup.length}, MasquéFiltre=${hideGroupDueToFilter}, MasquéRecherche=${hideGroupDueToSearch}, Display=${shouldHideGroup ? 'none' : 'block'}`);
         });
     }
-     console.log("Filtres rapides appliqués.");
-}
-
-// Gère le clic pour démarrer l'édition
-function handleEditableClick(e) {
-    const target = e.target;
-    const cell = target.closest('.task-description, .task-date, .task-comment');
-
-    if (!cell || target.closest('.action-btn') || cell.querySelector('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-
-    const taskId = cell.dataset.taskId;
-    if (!taskId) {
-         console.warn("handleEditableClick: Clic sur cellule sans data-task-id:", cell);
-         return;
-    }
-
-    let textElement, inputType, inputClassName, originalValue, valueForInput, fieldType;
-
-    if (cell.classList.contains('task-description')) {
-        fieldType = 'description';
-    } else if (cell.classList.contains('task-date')) {
-        fieldType = 'date';
-        textElement = cell.querySelector('.date-text');
-        if (!textElement) {
-             console.error('handleEditableClick (date): .date-text non trouvé dans la cellule!');
-             return;
-        }
-        inputType = 'date';
-        inputClassName = 'date-input';
-        originalValue = textElement.textContent?.trim() || '';
-        valueForInput = '';
-
-        if (originalValue && originalValue !== '—') {
-            try {
-                const parts = originalValue.split('/');
-                if (parts.length === 3) {
-                    const day = parts[0].trim();
-                    const month = parts[1].trim();
-                    const year = parts[2].trim();
-                    if (day && month && year && !isNaN(parseInt(day)) && !isNaN(parseInt(month)) && !isNaN(parseInt(year))) {
-                         valueForInput = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    }
-                }
-            } catch (err) {
-                console.error(`handleEditableClick (date): Erreur pendant la conversion de "${originalValue}":`, err);
-            }
-        }
-    } else if (cell.classList.contains('task-comment')) {
-        fieldType = 'comment';
-    } else {
-        return;
-    }
-
-    const input = document.createElement('input');
-    input.type = inputType;
-    input.className = inputClassName;
-    input.value = valueForInput;
-    input.dataset.originalDisplayValue = originalValue;
-    input.dataset.fieldType = fieldType;
-
-    textElement.style.display = 'none';
-    cell.appendChild(input);
-    input.focus();
-
-    e.stopPropagation();
-}
-
-// Gère le changement explicite (ex: date picker)
-function handleEditableChange(e) {
-    const input = e.target;
-    if (!input.matches('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType;
-    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
-
-    if (!textElement || !fieldType || !taskId) {
-        console.error("Change: Éléments/Données manquants pour sauvegarder.");
-        if (input.parentNode) input.remove();
-        return;
-    }
-    // Pour les champs de type 'date', l'événement 'change' peut se déclencher
-    // trop tôt pendant la frappe clavier dans certains navigateurs.
-    // Nous allons ignorer 'change' pour les dates et nous fier uniquement
-    // à l'événement 'blur' (perte de focus ou touche Entrée) pour sauvegarder.
-    if (fieldType === 'date') {
-        console.log(`Change détecté sur date (Tâche ${taskId}). Sauvegarde sera gérée par blur.`);
-        return; // Ne pas appeler saveField ici pour les dates
-    }
-
-    // Pour les autres types (description, comment), on peut sauvegarder sur 'change'
-    console.log(`Change détecté sur ${fieldType} (Tâche ${taskId}). Appel de saveField.`);
-    saveField(input, textElement, fieldType, taskId);
-}
-
-// Gère la perte de focus pour sauvegarder
-function handleEditableBlur(e) {
-    const input = e.target;
-    if (!input.matches('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType;
-    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
-
-    if (!textElement || !fieldType || !taskId) {
-        console.error("Blur: Éléments/Données manquants pour sauvegarder.");
-        if (input.parentNode) input.remove();
-        return;
-    }
-
-    if (fieldType === 'date') {
-        setTimeout(() => {
-            if (input.parentNode) {
-                 saveField(input, textElement, fieldType, taskId);
-            }
-        }, 0);
-    } else {
-        saveField(input, textElement, fieldType, taskId);
-    }
-}
-
-// Gère les touches Entrée/Échap
-function handleEditableKeydown(e) {
-    const input = e.target;
-    if (!input.matches('.description-input, .date-input, .comment-input')) {
-        return;
-    }
-    const cell = input.closest('td');
-    if (!cell) return;
-    const taskId = cell.dataset.taskId;
-    const fieldType = input.dataset.fieldType;
-    const textElement = cell.querySelector('.description-text, .date-text, .comment-text');
-
-    if (!textElement || !fieldType || !taskId) return;
-
-    if (e.key === 'Enter') {
-        if (fieldType === 'description' || fieldType === 'comment') {
-             saveField(input, textElement, fieldType, taskId);
-        } else if (fieldType === 'date') {
-             input.blur();
-        }
-    } else if (e.key === 'Escape') {
-        textElement.textContent = input.dataset.originalDisplayValue;
-        if (fieldType === 'comment') {
-             const isEmpty = !input.dataset.originalDisplayValue || input.dataset.originalDisplayValue === 'Ajouter un commentaire...' || input.dataset.originalDisplayValue === 'Cliquez pour ajouter un commentaire';
-             textElement.classList.toggle('comment-placeholder', isEmpty);
-             textElement.classList.toggle('empty-comment', isEmpty);
-             if (isEmpty) textElement.textContent = 'Ajouter un commentaire...';
-        }
-        textElement.style.display = '';
-        if (input.parentNode) {
-            input.remove();
-        }
-    }
+     // --- AJOUT LOG FIN ---
+     console.log(`--- applyQuickFilters: FIN - Filtre actif: ${currentQuickFilter} ---`);
+     // --- FIN AJOUT LOG ---
 }
