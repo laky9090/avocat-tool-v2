@@ -1,21 +1,26 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron'); // Ajouter dialog
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron');
+const fs = require('fs').promises; // Utiliser les promesses pour fs
+const fssync = require('fs'); // Pour les opérations synchrones si absolument nécessaire
 const path = require('path');
 const remoteMain = require('@electron/remote/main');
 const nodemailer = require('nodemailer');
-const fs = require('fs'); // Ajouter fs
 
 // Désactiver l'accélération GPU
 app.disableHardwareAcceleration();
 
 // Activer le module remote
-remoteMain.initialize(); // Garder uniquement cette initialisation
+remoteMain.initialize();
+
+let mainWindow;
+let autoBackupIntervalId = null;
+const AUTO_BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes en millisecondes
+let lastManualBackupPath = null; // Pour se souvenir du dernier chemin de sauvegarde manuelle
 
 function createWindow() {
   // Créer la fenêtre du navigateur
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    // Ajouter cette ligne pour définir l'icône
     icon: process.platform === 'win32' 
       ? path.join(__dirname, 'icone.ico')
       : path.join(__dirname, 'icone.icns'), // pour macOS
@@ -37,47 +42,203 @@ function createWindow() {
   remoteMain.enable(mainWindow.webContents);
 }
 
-// Variable pour suivre les emails déjà envoyés
-const processedEmails = new Set();
+// --- Fonctions Utilitaires pour la Sauvegarde/Restauration ---
 
-// Gestionnaire d'événement pour l'envoi d'emails
+async function ensureDirExists(dirPath) {
+    try {
+        await fs.mkdir(dirPath, { recursive: true });
+    } catch (error) {
+        if (error.code !== 'EEXIST') { // Ignorer si le dossier existe déjà
+            console.error(`[Main] Erreur lors de la création du dossier ${dirPath}:`, error);
+            throw error; // Propager l'erreur si ce n'est pas EEXIST
+        }
+    }
+}
+
+// --- Sauvegarde Automatique ---
+
+async function performAutoBackup(sourcePaths) {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        console.log('[Main] Fenêtre principale non disponible, sauvegarde automatique annulée.');
+        return;
+    }
+    if (!sourcePaths || !sourcePaths.clients || !sourcePaths.invoices || !sourcePaths.tasks) {
+        console.warn('[Main] Chemins sources pour la sauvegarde automatique non valides ou incomplets.');
+        return;
+    }
+
+    const autoBackupDir = path.join(app.getPath('userData'), 'AutoBackups');
+    const specificAutoBackupPath = path.join(autoBackupDir, 'latest'); // Pour écraser la dernière sauvegarde auto
+
+    try {
+        console.log(`[Main] Démarrage de la sauvegarde automatique vers ${specificAutoBackupPath}`);
+        await ensureDirExists(specificAutoBackupPath);
+
+        let filesBackedUpCount = 0;
+        for (const key in sourcePaths) {
+            const sourceFile = sourcePaths[key];
+            if (fssync.existsSync(sourceFile)) {
+                const fileName = path.basename(sourceFile);
+                const destFile = path.join(specificAutoBackupPath, fileName);
+                await fs.copyFile(sourceFile, destFile);
+                filesBackedUpCount++;
+                console.log(`[Main] Fichier ${fileName} sauvegardé automatiquement.`);
+            } else {
+                console.warn(`[Main] Fichier source ${sourceFile} non trouvé pour la sauvegarde automatique.`);
+            }
+        }
+
+        if (filesBackedUpCount > 0) {
+            if (Notification.isSupported()) {
+                new Notification({
+                    title: 'Sauvegarde Automatique Réussie',
+                    body: `Les données ont été sauvegardées automatiquement à ${new Date().toLocaleTimeString()}.`
+                }).show();
+            }
+            console.log('[Main] Sauvegarde automatique terminée avec succès.');
+        } else {
+            console.warn('[Main] Aucun fichier n\'a été sauvegardé automatiquement (sources non trouvées ou vides).');
+        }
+
+    } catch (error) {
+        console.error('[Main] Erreur lors de la sauvegarde automatique:', error);
+        if (Notification.isSupported()) {
+            new Notification({
+                title: 'Erreur de Sauvegarde Automatique',
+                body: `Une erreur est survenue: ${error.message}`
+            }).show();
+        }
+    }
+}
+
+// --- Gestionnaires IPC pour Sauvegarde/Restauration Manuelle ---
+
+ipcMain.handle('perform-backup', async (event, sourcePaths) => {
+    if (!mainWindow) return { success: false, message: "Fenêtre principale non disponible." };
+
+    const dialogResult = await dialog.showOpenDialog(mainWindow, {
+        title: 'Sélectionner un dossier pour la sauvegarde',
+        defaultPath: lastManualBackupPath || app.getPath('documents'),
+        properties: ['openDirectory', 'createDirectory']
+    });
+
+    if (dialogResult.canceled || !dialogResult.filePaths.length) {
+        return { success: false, message: 'Sauvegarde annulée par l\'utilisateur.' };
+    }
+
+    const backupDir = dialogResult.filePaths[0];
+    lastManualBackupPath = backupDir; // Mémoriser ce chemin
+
+    try {
+        await ensureDirExists(backupDir); // S'assurer que le dossier existe
+        const backedUpFiles = [];
+        let filesCopied = 0;
+
+        for (const key in sourcePaths) {
+            const sourceFile = sourcePaths[key];
+            if (fssync.existsSync(sourceFile)) {
+                const fileName = path.basename(sourceFile);
+                const destFile = path.join(backupDir, fileName);
+                await fs.copyFile(sourceFile, destFile);
+                backedUpFiles.push(fileName);
+                filesCopied++;
+            } else {
+                console.warn(`[Main] Fichier source ${sourceFile} non trouvé pour la sauvegarde manuelle.`);
+            }
+        }
+        if (filesCopied === 0) {
+            return { success: false, message: 'Aucun fichier de données trouvé à sauvegarder.' };
+        }
+        return { success: true, message: `Sauvegarde réussie dans ${backupDir}\nFichiers sauvegardés: ${backedUpFiles.join(', ')}` };
+    } catch (error) {
+        console.error('[Main] Erreur lors de la sauvegarde manuelle:', error);
+        return { success: false, message: `Erreur de sauvegarde: ${error.message}` };
+    }
+});
+
+ipcMain.handle('perform-restore', async (event, targetPaths) => {
+    if (!mainWindow) return { success: false, message: "Fenêtre principale non disponible." };
+
+    const dialogResult = await dialog.showOpenDialog(mainWindow, {
+        title: 'Sélectionner le dossier de sauvegarde à restaurer',
+        defaultPath: lastManualBackupPath || app.getPath('documents'),
+        properties: ['openDirectory']
+    });
+
+    if (dialogResult.canceled || !dialogResult.filePaths.length) {
+        return { success: false, message: 'Restauration annulée par l\'utilisateur.' };
+    }
+
+    const backupDir = dialogResult.filePaths[0];
+    const restoredFiles = [];
+    const errors = [];
+    let filesFoundInBackup = false;
+    let filesRestoredCount = 0;
+
+    try {
+        for (const key in targetPaths) {
+            const targetFile = targetPaths[key];
+            const fileName = path.basename(targetFile);
+            const backupSourcePath = path.join(backupDir, fileName);
+
+            if (fssync.existsSync(backupSourcePath)) {
+                filesFoundInBackup = true;
+                try {
+                    await ensureDirExists(path.dirname(targetFile));
+                    await fs.copyFile(backupSourcePath, targetFile);
+                    restoredFiles.push(fileName);
+                    filesRestoredCount++;
+                } catch (copyError) {
+                    console.error(`[Main] Erreur lors de la copie de ${backupSourcePath} vers ${targetFile}:`, copyError);
+                    errors.push(`Erreur pour ${fileName}: ${copyError.message}`);
+                }
+            } else {
+                console.warn(`[Main] Fichier ${fileName} non trouvé dans le dossier de sauvegarde ${backupDir}, ignoré.`);
+            }
+        }
+
+        if (!filesFoundInBackup) {
+            return { success: false, message: `Aucun fichier de données (.json) correspondant trouvé dans le dossier de sauvegarde sélectionné: ${backupDir}` };
+        }
+        if (errors.length > 0) {
+            return { success: false, message: `Restauration terminée avec des erreurs:\n${errors.join('\n')}` };
+        }
+        if (filesRestoredCount === 0 && filesFoundInBackup) {
+             return { success: false, message: `Des fichiers ont été trouvés dans la sauvegarde mais aucun n'a pu être restauré. Vérifiez les permissions.` };
+        }
+        return { success: true, message: `Restauration réussie depuis ${backupDir}\nFichiers restaurés: ${restoredFiles.join(', ')}.` };
+
+    } catch (error) {
+        console.error('[Main] Erreur inattendue lors de la restauration:', error);
+        return { success: false, message: `Erreur de restauration: ${error.message}` };
+    }
+});
+
+// --- Gestionnaire d'événement pour l'envoi d'emails ---
 ipcMain.on('send-email', async (event, emailData) => {
   try {
-    // Créer un identifiant unique basé sur le destinataire, le sujet et un timestamp
     const uniqueId = `${emailData.to}-${emailData.subject}-${Date.now()}`;
-    
-    // Vérifier si cet email a déjà été traité récemment
     if (processedEmails.has(uniqueId)) {
       console.log('Requête d\'email dupliquée détectée et ignorée');
-      
-      // Répondre au renderer process
       event.reply('email-sent', {
         success: false,
         error: "Envoi ignoré (requête dupliquée)"
       });
       return;
     }
-    
-    // Ajouter à l'ensemble des emails traités
     processedEmails.add(uniqueId);
-    
-    // Nettoyer l'ensemble après un délai pour éviter une croissance infinie
     setTimeout(() => {
       processedEmails.delete(uniqueId);
-    }, 10000); // 10 secondes
-    
+    }, 10000);
+
     console.log('Demande d\'envoi d\'email reçue');
-    
-    // Créer un transporteur SMTP avec Gmail
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: emailData.from,
-        pass: emailData.password // Mot de passe d'application Google
+        pass: emailData.password
       }
     });
-    
-    // Options de l'email
     const mailOptions = {
       from: emailData.from,
       to: emailData.to,
@@ -85,20 +246,14 @@ ipcMain.on('send-email', async (event, emailData) => {
       text: emailData.text,
       attachments: emailData.attachments || []
     };
-    
-    // Envoyer l'email
     const info = await transporter.sendMail(mailOptions);
     console.log('Email envoyé:', info.messageId);
-    
-    // Répondre au renderer process
     event.reply('email-sent', {
       success: true,
       messageId: info.messageId
     });
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email:', error);
-    
-    // Répondre avec l'erreur
     event.reply('email-sent', {
       success: false,
       error: error.message
@@ -106,144 +261,36 @@ ipcMain.on('send-email', async (event, emailData) => {
   }
 });
 
-// --- GESTION SAUVEGARDE ---
-ipcMain.handle('perform-backup', async (event, sourcePaths) => {
-  console.log('[Main] Demande de sauvegarde reçue. Sources:', sourcePaths);
-  try {
-    // 1. Demander à l'utilisateur où sauvegarder (choisir un dossier)
-    const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
-      title: 'Choisir le dossier de sauvegarde',
-      properties: ['openDirectory', 'createDirectory'] // Permet de choisir ou créer un dossier
-    });
-
-    if (canceled || filePaths.length === 0) {
-      console.log('[Main] Sauvegarde annulée par l\'utilisateur.');
-      return { success: false, message: 'Sauvegarde annulée.' };
-    }
-
-    const backupDir = filePaths[0];
-    console.log(`[Main] Dossier de sauvegarde choisi: ${backupDir}`);
-
-    // 2. Copier les fichiers sources vers le dossier de sauvegarde
-    const copiedFiles = [];
-    const errors = [];
-
-    for (const key in sourcePaths) {
-      const sourcePath = sourcePaths[key];
-      if (sourcePath && fs.existsSync(sourcePath)) { // Vérifier si le fichier source existe
-        const fileName = path.basename(sourcePath);
-        const targetPath = path.join(backupDir, fileName);
-        try {
-          fs.copyFileSync(sourcePath, targetPath);
-          console.log(`[Main] Fichier copié: ${fileName} vers ${backupDir}`);
-          copiedFiles.push(fileName);
-        } catch (copyError) {
-          console.error(`[Main] Erreur lors de la copie de ${fileName}:`, copyError);
-          errors.push(`Erreur copie ${fileName}: ${copyError.message}`);
-        }
-      } else {
-        console.warn(`[Main] Fichier source non trouvé ou chemin invalide, ignoré: ${sourcePath}`);
-      }
-    }
-
-    if (errors.length > 0) {
-      return { success: false, message: `Sauvegarde terminée avec des erreurs:\n${errors.join('\n')}` };
-    }
-    if (copiedFiles.length === 0) {
-        return { success: false, message: 'Aucun fichier de données trouvé à sauvegarder.' };
-    }
-    return { success: true, message: `Sauvegarde réussie dans ${backupDir}\nFichiers copiés: ${copiedFiles.join(', ')}` };
-
-  } catch (error) {
-    console.error('[Main] Erreur inattendue lors de la sauvegarde:', error);
-    return { success: false, message: `Erreur de sauvegarde: ${error.message}` };
-  }
-});
-
-// --- GESTION RESTAURATION ---
-ipcMain.handle('perform-restore', async (event, targetPaths) => {
-  console.log('[Main] Demande de restauration reçue. Cibles:', targetPaths);
-  try {
-    // 1. Demander à l'utilisateur de choisir le dossier contenant la sauvegarde
-    const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
-      title: 'Choisir le dossier contenant la sauvegarde',
-      properties: ['openDirectory']
-    });
-
-    if (canceled || filePaths.length === 0) {
-      console.log('[Main] Restauration annulée par l\'utilisateur.');
-      return { success: false, message: 'Restauration annulée.' };
-    }
-
-    const backupDir = filePaths[0];
-    console.log(`[Main] Dossier de sauvegarde choisi pour restauration: ${backupDir}`);
-
-    // 2. CONFIRMER L'ÉCRASEMENT
-    const confirmation = await dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
-      type: 'warning',
-      buttons: ['Annuler', 'Restaurer et Écraser'],
-      defaultId: 0, // Le bouton Annuler est sélectionné par défaut
-      title: 'Confirmation de Restauration',
-      message: 'Êtes-vous sûr de vouloir restaurer les données ?',
-      detail: 'Cela écrasera les fichiers de données actuels (clients, factures, tâches) par ceux du dossier de sauvegarde sélectionné. Cette action est irréversible.'
-    });
-
-    if (confirmation.response === 0) { // 0 est l'index de 'Annuler'
-      console.log('[Main] Restauration annulée après confirmation.');
-      return { success: false, message: 'Restauration annulée.' };
-    }
-
-    // 3. Copier les fichiers depuis la sauvegarde vers les emplacements cibles
-    const restoredFiles = [];
-    const errors = [];
-    let filesFoundInBackup = false;
-
-    for (const key in targetPaths) {
-      const targetPath = targetPaths[key];
-      if (targetPath) {
-        const fileName = path.basename(targetPath);
-        const backupSourcePath = path.join(backupDir, fileName);
-
-        if (fs.existsSync(backupSourcePath)) { // Vérifier si le fichier existe DANS LA SAUVEGARDE
-          filesFoundInBackup = true;
-          try {
-            fs.copyFileSync(backupSourcePath, targetPath); // Copie backup -> cible
-            console.log(`[Main] Fichier restauré: ${fileName} depuis ${backupDir}`);
-            restoredFiles.push(fileName);
-          } catch (copyError) {
-            console.error(`[Main] Erreur lors de la restauration de ${fileName}:`, copyError);
-            errors.push(`Erreur restauration ${fileName}: ${copyError.message}`);
-          }
-        } else {
-          console.warn(`[Main] Fichier ${fileName} non trouvé dans le dossier de sauvegarde ${backupDir}, ignoré.`);
-        }
-      }
-    }
-
-     if (!filesFoundInBackup) {
-        return { success: false, message: `Aucun fichier de données (.json) trouvé dans le dossier de sauvegarde sélectionné: ${backupDir}` };
-    }
-    if (errors.length > 0) {
-      return { success: false, message: `Restauration terminée avec des erreurs:\n${errors.join('\n')}` };
-    }
-    return { success: true, message: `Restauration réussie depuis ${backupDir}\nFichiers restaurés: ${restoredFiles.join(', ')}.\nL'application va recharger les données.` };
-
-  } catch (error) {
-    console.error('[Main] Erreur inattendue lors de la restauration:', error);
-    return { success: false, message: `Erreur de restauration: ${error.message}` };
-  }
-});
-
 app.whenReady().then(() => {
-  createWindow();
-  
-  // Configuration Mac OS X
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    createWindow();
+
+    ipcMain.on('renderer-ready-for-autobackup', (event, dataPaths) => {
+        console.log('[Main] Renderer prêt, chemins de données reçus pour la sauvegarde auto:', dataPaths);
+        if (autoBackupIntervalId) {
+            clearInterval(autoBackupIntervalId);
+        }
+        if (dataPaths && dataPaths.clients && dataPaths.invoices && dataPaths.tasks) {
+            autoBackupIntervalId = setInterval(() => {
+                performAutoBackup(dataPaths).catch(console.error);
+            }, AUTO_BACKUP_INTERVAL);
+            console.log(`[Main] Sauvegarde automatique configurée toutes les ${AUTO_BACKUP_INTERVAL / 60000} minutes.`);
+        } else {
+            console.warn('[Main] Impossible de démarrer la sauvegarde automatique: chemins de données non valides reçus du renderer.');
+        }
+    });
+
+    app.on('activate', function () {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
 });
 
-// Quitter quand toutes les fenêtres sont fermées, sauf sur macOS
+app.on('will-quit', () => {
+    if (autoBackupIntervalId) {
+        clearInterval(autoBackupIntervalId);
+        console.log('[Main] Sauvegarde automatique arrêtée.');
+    }
+});
+
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') app.quit();
 });

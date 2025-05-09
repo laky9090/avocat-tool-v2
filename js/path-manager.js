@@ -73,21 +73,33 @@ const StorageSystem = {
                 window.clientsPath = this.clientsPath;
                 window.tasksPath = this.tasksPath;
 
-                console.log('Chemins définis :');
-                console.log('- invoicesPath :', this.invoicesPath);
-                console.log('- clientsPath :', this.clientsPath);
-                console.log('- tasksPath :', this.tasksPath);
+                console.log('Chemins définis par path-manager:', {
+                    invoicesPath: this.invoicesPath,
+                    clientsPath: this.clientsPath,
+                    tasksPath: this.tasksPath
+                });
 
                 this.ensureFilesExist();
                 this.initialized = true;
-                console.log('Système de stockage initialisé avec succès.');
+                console.log('Système de stockage initialisé avec succès par path-manager.');
+
+                // NOUVEAU: Informer le processus principal que les chemins sont prêts
+                if (window.require) {
+                    const ipcRenderer = window.require('electron').ipcRenderer;
+                    ipcRenderer.send('renderer-ready-for-autobackup', {
+                        clients: window.clientsPath,
+                        invoices: window.invoicesPath,
+                        tasks: window.tasksPath
+                    });
+                }
                 console.log('StorageSystem.init() terminé avec succès.');
                 return true;
             } else {
                 throw new Error('Module require non disponible');
             }
         } catch (error) {
-            console.warn('StorageSystem.init() a échoué :', error.message);
+            console.warn('StorageSystem.init() dans path-manager a échoué :', error.message);
+            this.initialized = false; // Assurez-vous que initialized est false en cas d'erreur
             return false;
         }
     },
@@ -335,15 +347,15 @@ const StorageSystem = {
 };
 
 // Initialiser le système de stockage
-const initSuccess = StorageSystem.init();
-
-if (initSuccess) {
-    console.log('Chemins définis :');
-    console.log('- invoicesPath :', window.invoicesPath);
-    console.log('- clientsPath :', window.clientsPath);
-    console.log('- tasksPath :', window.tasksPath);
-} else {
-    console.error('Échec de l\'initialisation du système de stockage.');
+if (!StorageSystem.initialized) { // Vérifier si déjà initialisé pour éviter double appel si le script est rechargé
+    const initSuccess = StorageSystem.init();
+    if (initSuccess) {
+        console.log('StorageSystem initialisé depuis path-manager.js.');
+    } else {
+        console.error('Échec de l\'initialisation du StorageSystem depuis path-manager.js.');
+        // Afficher une alerte à l'utilisateur peut être une bonne idée ici
+        // alert("Erreur critique: Impossible d'initialiser le système de stockage des données. L'application risque de ne pas fonctionner correctement.");
+    }
 }
 
 // Fonctions globales pour la compatibilité
