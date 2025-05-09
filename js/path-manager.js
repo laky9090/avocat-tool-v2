@@ -2,12 +2,18 @@
 
 // Initialisation
 console.log('Initialisation du gestionnaire de chemins et stockage...');
+console.log('Chargement de path-manager.js...');
 
 // --- VÉRIFIER/AJOUTER CES LIGNES ---
-const fs = require('fs');
-const path = require('path');
-window.fs = fs; // Rendre fs accessible globalement
-window.path = path; // Rendre path accessible globalement
+if (!window.fs) {
+    const fs = require('fs');
+    const path = require('path');
+    window.fs = fs; // Rendre fs accessible globalement
+    window.path = path; // Rendre path accessible globalement
+    console.log('Modules fs et path initialisés.');
+} else {
+    console.log('Modules fs et path déjà initialisés.');
+}
 // --- FIN VÉRIFICATION/AJOUT ---
 
 // Système de stockage hybride - Utilise le système de fichiers si disponible,
@@ -21,6 +27,7 @@ const StorageSystem = {
     // Chemins des fichiers
     invoicesPath: null,
     clientsPath: null,
+    tasksPath: null, // Ajoutez cette ligne
     
     // État du système
     initialized: false,
@@ -28,55 +35,60 @@ const StorageSystem = {
     
     // Initialiser le système de stockage
     init: function() {
+        console.log('Appel de StorageSystem.init()');
         console.log('Initialisation du système de stockage...');
-        
         try {
-            // Tenter d'utiliser le système de fichiers
             if (window.require) {
-                this.fs = require('fs');
-                this.path = require('path');
-                
+                this.fs = window.fs; // Utilisez la version globale de fs
+                this.path = window.path; // Utilisez la version globale de path
+
                 // Essayer plusieurs emplacements pour trouver un endroit accessible en écriture
                 const locations = this.getPossibleStorageLocations();
-                
+                console.log('Emplacements potentiels pour le stockage :', locations);
+
                 for (const location of locations) {
                     if (this.testWriteAccess(location)) {
                         this.dataFolder = location;
-                        console.log('Dossier de données accessible en écriture trouvé:', location);
+                        console.log('Dossier de données accessible en écriture trouvé :', location);
                         break;
                     }
                 }
-                
+
                 if (!this.dataFolder) {
-                    throw new Error('Aucun dossier accessible en écriture trouvé');
+                    console.warn('Aucun dossier accessible en écriture trouvé. Utilisation d\'un dossier temporaire.');
+                    const os = require('os');
+                    this.dataFolder = this.path.join(os.tmpdir(), 'AvocatTool');
+                    if (!this.fs.existsSync(this.dataFolder)) {
+                        this.fs.mkdirSync(this.dataFolder, { recursive: true });
+                    }
                 }
-                
+
                 // Définir les chemins des fichiers
                 this.invoicesPath = this.path.join(this.dataFolder, 'invoices.json');
                 this.clientsPath = this.path.join(this.dataFolder, 'clients.json');
-                
+                this.tasksPath = this.path.join(this.dataFolder, 'taches.json');
+
                 // Exposer les chemins globalement pour la compatibilité
                 window.invoicesPath = this.invoicesPath;
                 window.clientsPath = this.clientsPath;
-                
-                this.initialized = true;
-                console.log('Système de fichiers initialisé avec succès');
-                console.log('- invoices.json:', this.invoicesPath);
-                console.log('- clients.json:', this.clientsPath);
-                
+                window.tasksPath = this.tasksPath;
+
+                console.log('Chemins définis :');
+                console.log('- invoicesPath :', this.invoicesPath);
+                console.log('- clientsPath :', this.clientsPath);
+                console.log('- tasksPath :', this.tasksPath);
+
                 this.ensureFilesExist();
+                this.initialized = true;
+                console.log('Système de stockage initialisé avec succès.');
+                console.log('StorageSystem.init() terminé avec succès.');
                 return true;
             } else {
                 throw new Error('Module require non disponible');
             }
         } catch (error) {
-            console.warn('Impossible d\'utiliser le système de fichiers:', error.message);
-            console.log('Utilisation du localStorage comme solution de secours');
-            
-            // Utiliser localStorage comme solution de secours
-            this.usingLocalStorage = true;
-            this.initialized = true;
-            return true;
+            console.warn('StorageSystem.init() a échoué :', error.message);
+            return false;
         }
     },
     
@@ -124,10 +136,10 @@ const StorageSystem = {
                 console.warn('API Electron remote non disponible:', e.message);
             }
             
-            console.log('Emplacements potentiels pour le stockage:', locations);
+            console.log('Emplacements potentiels pour le stockage :', locations);
             return locations;
         } catch (error) {
-            console.error('Erreur lors de la recherche d\'emplacements de stockage:', error);
+            console.error('Erreur lors de la recherche d\'emplacements de stockage :', error);
             return [__dirname];
         }
     },
@@ -138,9 +150,12 @@ const StorageSystem = {
             const testFile = this.path.join(location, '.write-test');
             this.fs.writeFileSync(testFile, 'test');
             this.fs.unlinkSync(testFile);
+            console.log(`Emplacement accessible en écriture : ${location}`);
+            console.log(`Test d'écriture dans ${location} : réussi`);
             return true;
         } catch (error) {
-            console.warn(`Emplacement ${location} non accessible en écriture:`, error.message);
+            console.warn(`Emplacement ${location} non accessible en écriture :`, error.message);
+            console.log(`Test d'écriture dans ${location} : échoué`);
             return false;
         }
     },
@@ -320,7 +335,16 @@ const StorageSystem = {
 };
 
 // Initialiser le système de stockage
-StorageSystem.init();
+const initSuccess = StorageSystem.init();
+
+if (initSuccess) {
+    console.log('Chemins définis :');
+    console.log('- invoicesPath :', window.invoicesPath);
+    console.log('- clientsPath :', window.clientsPath);
+    console.log('- tasksPath :', window.tasksPath);
+} else {
+    console.error('Échec de l\'initialisation du système de stockage.');
+}
 
 // Fonctions globales pour la compatibilité
 window.saveInvoicesToFile = function() {

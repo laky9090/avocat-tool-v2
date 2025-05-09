@@ -138,6 +138,23 @@ header h1 {
     flex-wrap: wrap;
 }
 
+#mainSections {
+    display: flex;
+    gap: 20px; /* Espacement entre les sections */
+    align-items: flex-start; /* Aligner les sections en haut */
+}
+
+#statsSection {
+    flex: 1; /* Permet à la section Statistiques de prendre de l'espace */
+}
+
+.backup-restore-section {
+    flex: 1; /* Permet à la section Gestion des Données de prendre de l'espace */
+    border: 1px solid #eee;
+    padding: 15px;
+    text-align: center;
+}
+
 /* Panneau gauche : formulaire et calendrier */
 #leftPanel {
     flex: 1;

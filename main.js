@@ -1,7 +1,8 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron'); // Ajouter dialog
 const path = require('path');
 const remoteMain = require('@electron/remote/main');
-const nodemailer = require('nodemailer'); // Ajouter à votre fichier main.js d'Electron
+const nodemailer = require('nodemailer');
+const fs = require('fs'); // Ajouter fs
 
 // Désactiver l'accélération GPU
 app.disableHardwareAcceleration();
@@ -102,6 +103,134 @@ ipcMain.on('send-email', async (event, emailData) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+// --- GESTION SAUVEGARDE ---
+ipcMain.handle('perform-backup', async (event, sourcePaths) => {
+  console.log('[Main] Demande de sauvegarde reçue. Sources:', sourcePaths);
+  try {
+    // 1. Demander à l'utilisateur où sauvegarder (choisir un dossier)
+    const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+      title: 'Choisir le dossier de sauvegarde',
+      properties: ['openDirectory', 'createDirectory'] // Permet de choisir ou créer un dossier
+    });
+
+    if (canceled || filePaths.length === 0) {
+      console.log('[Main] Sauvegarde annulée par l\'utilisateur.');
+      return { success: false, message: 'Sauvegarde annulée.' };
+    }
+
+    const backupDir = filePaths[0];
+    console.log(`[Main] Dossier de sauvegarde choisi: ${backupDir}`);
+
+    // 2. Copier les fichiers sources vers le dossier de sauvegarde
+    const copiedFiles = [];
+    const errors = [];
+
+    for (const key in sourcePaths) {
+      const sourcePath = sourcePaths[key];
+      if (sourcePath && fs.existsSync(sourcePath)) { // Vérifier si le fichier source existe
+        const fileName = path.basename(sourcePath);
+        const targetPath = path.join(backupDir, fileName);
+        try {
+          fs.copyFileSync(sourcePath, targetPath);
+          console.log(`[Main] Fichier copié: ${fileName} vers ${backupDir}`);
+          copiedFiles.push(fileName);
+        } catch (copyError) {
+          console.error(`[Main] Erreur lors de la copie de ${fileName}:`, copyError);
+          errors.push(`Erreur copie ${fileName}: ${copyError.message}`);
+        }
+      } else {
+        console.warn(`[Main] Fichier source non trouvé ou chemin invalide, ignoré: ${sourcePath}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      return { success: false, message: `Sauvegarde terminée avec des erreurs:\n${errors.join('\n')}` };
+    }
+    if (copiedFiles.length === 0) {
+        return { success: false, message: 'Aucun fichier de données trouvé à sauvegarder.' };
+    }
+    return { success: true, message: `Sauvegarde réussie dans ${backupDir}\nFichiers copiés: ${copiedFiles.join(', ')}` };
+
+  } catch (error) {
+    console.error('[Main] Erreur inattendue lors de la sauvegarde:', error);
+    return { success: false, message: `Erreur de sauvegarde: ${error.message}` };
+  }
+});
+
+// --- GESTION RESTAURATION ---
+ipcMain.handle('perform-restore', async (event, targetPaths) => {
+  console.log('[Main] Demande de restauration reçue. Cibles:', targetPaths);
+  try {
+    // 1. Demander à l'utilisateur de choisir le dossier contenant la sauvegarde
+    const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+      title: 'Choisir le dossier contenant la sauvegarde',
+      properties: ['openDirectory']
+    });
+
+    if (canceled || filePaths.length === 0) {
+      console.log('[Main] Restauration annulée par l\'utilisateur.');
+      return { success: false, message: 'Restauration annulée.' };
+    }
+
+    const backupDir = filePaths[0];
+    console.log(`[Main] Dossier de sauvegarde choisi pour restauration: ${backupDir}`);
+
+    // 2. CONFIRMER L'ÉCRASEMENT
+    const confirmation = await dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+      type: 'warning',
+      buttons: ['Annuler', 'Restaurer et Écraser'],
+      defaultId: 0, // Le bouton Annuler est sélectionné par défaut
+      title: 'Confirmation de Restauration',
+      message: 'Êtes-vous sûr de vouloir restaurer les données ?',
+      detail: 'Cela écrasera les fichiers de données actuels (clients, factures, tâches) par ceux du dossier de sauvegarde sélectionné. Cette action est irréversible.'
+    });
+
+    if (confirmation.response === 0) { // 0 est l'index de 'Annuler'
+      console.log('[Main] Restauration annulée après confirmation.');
+      return { success: false, message: 'Restauration annulée.' };
+    }
+
+    // 3. Copier les fichiers depuis la sauvegarde vers les emplacements cibles
+    const restoredFiles = [];
+    const errors = [];
+    let filesFoundInBackup = false;
+
+    for (const key in targetPaths) {
+      const targetPath = targetPaths[key];
+      if (targetPath) {
+        const fileName = path.basename(targetPath);
+        const backupSourcePath = path.join(backupDir, fileName);
+
+        if (fs.existsSync(backupSourcePath)) { // Vérifier si le fichier existe DANS LA SAUVEGARDE
+          filesFoundInBackup = true;
+          try {
+            fs.copyFileSync(backupSourcePath, targetPath); // Copie backup -> cible
+            console.log(`[Main] Fichier restauré: ${fileName} depuis ${backupDir}`);
+            restoredFiles.push(fileName);
+          } catch (copyError) {
+            console.error(`[Main] Erreur lors de la restauration de ${fileName}:`, copyError);
+            errors.push(`Erreur restauration ${fileName}: ${copyError.message}`);
+          }
+        } else {
+          console.warn(`[Main] Fichier ${fileName} non trouvé dans le dossier de sauvegarde ${backupDir}, ignoré.`);
+        }
+      }
+    }
+
+     if (!filesFoundInBackup) {
+        return { success: false, message: `Aucun fichier de données (.json) trouvé dans le dossier de sauvegarde sélectionné: ${backupDir}` };
+    }
+    if (errors.length > 0) {
+      return { success: false, message: `Restauration terminée avec des erreurs:\n${errors.join('\n')}` };
+    }
+    return { success: true, message: `Restauration réussie depuis ${backupDir}\nFichiers restaurés: ${restoredFiles.join(', ')}.\nL'application va recharger les données.` };
+
+  } catch (error) {
+    console.error('[Main] Erreur inattendue lors de la restauration:', error);
+    return { success: false, message: `Erreur de restauration: ${error.message}` };
   }
 });
 

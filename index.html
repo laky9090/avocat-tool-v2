@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>Maître Candice ROVERA - Gestion de Cabinet</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Assurez-vous d'inclure Font Awesome si vous utilisez des icônes comme fas fa-save -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
   <div class="theme-buttons">
@@ -16,7 +18,9 @@
         <span id="themeText">Mode sombre</span>
     </button>
   </div>
+
   <div id="loader" class="hidden">Chargement...</div>
+
   <header>
     <div class="header-content">
       <img src="logo_candice.png" alt="Logo Candice ROVERA" class="header-logo">
@@ -25,33 +29,45 @@
     </div>
   </header>
 
-  <!-- Section Statistiques + boutons + calendrier + rappels -->
-  <div id="statsSection">
-    <h2>Statistiques</h2>
-
-    <!-- Contenu mis à jour par le script -->
-    <div id="statsContent">
-      <p>Total dossiers : <span id="totalDossiers"></span></p>
-      <p>Dossiers archivés : <span id="dossiersArchives"></span></p>
+  <div id="mainSections" style="display: flex; gap: 20px; align-items: flex-start; padding: 20px; max-width: 1200px; margin: 20px auto;">
+    <!-- Section Statistiques (la version fonctionnelle) -->
+    <div id="statsSection" style="flex: 1; background: var(--card-background); padding: 15px; border-radius: var(--border-radius); box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h2>Statistiques</h2>
+        <div id="statsContent">
+            <p>Total dossiers : <span id="totalDossiers"></span></p>
+            <p>Dossiers archivés : <span id="dossiersArchives"></span></p>
+        </div>
+        <div id="viewSelector" style="margin-top: 15px;">
+            <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
+            <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
+        </div>
     </div>
 
-    <!-- Boutons de vue -->
-    <div id="viewSelector">
-      <button onclick="switchView('active')" id="btnActive">Dossiers en cours</button>
-      <button onclick="switchView('archived')" id="btnArchived">Dossiers archivés</button>
+    <!-- Section Gestion des Données -->
+    <div class="backup-restore-section" style="text-align: center; padding: 15px; border: 1px solid var(--border-color); flex: 1; background: var(--card-background); border-radius: var(--border-radius); box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+        <h3 style="margin-bottom: 15px; color: var(--text-color);">Gestion des Données</h3>
+        <button id="backupDataBtn" class="btn btn-outline-secondary" style="margin-right: 10px;">
+            <i class="fas fa-save"></i> Sauvegarder les données
+        </button>
+        <button id="restoreDataBtn" class="btn btn-outline-warning">
+            <i class="fas fa-upload"></i> Restaurer les données
+        </button>
+        <p style="font-size: 0.8em; color: #6c757d; margin-top: 10px;">
+            Sauvegardez vos données (clients, factures, tâches) dans un dossier sécurisé ou restaurez-les depuis une sauvegarde précédente.
+        </p>
     </div>
+  </div>
 
-    <!-- Calendrier -->
-    <div id="calendarArea">
-      <h2>Calendrier</h2>
-      <div id="calendarContent"></div>
-    </div>
+  <!-- Calendrier -->
+  <div id="calendarArea">
+    <h2>Calendrier</h2>
+    <div id="calendarContent"></div>
+  </div>
 
-    <!-- Rappels des échéances -->
-    <div id="rappelsSection" style="margin-top: 20px;">
-      <h2 style="color: #2980b9;">Rappels à venir</h2>
-      <ul id="listeRappels" style="padding-left: 20px;"></ul>
-    </div>
+  <!-- Rappels des échéances -->
+  <div id="rappelsSection" style="margin-top: 20px;">
+    <h2 style="color: #2980b9;">Rappels à venir</h2>
+    <ul id="listeRappels" style="padding-left: 20px;"></ul>
   </div>
 
   <!-- Conteneur principal -->
@@ -318,6 +334,18 @@
   <!-- Finalement, charger le reste des scripts -->
   <script src="renderer.js"></script>
   <script src="theme.js"></script>
+
+  <!-- Assurez-vous que les scripts nécessaires sont chargés -->
+  <script>
+    // Préparer le module require si ce n'est pas déjà fait
+    try {
+        window.require = require;
+    } catch (e) {
+        console.warn('Module require non disponible.');
+    }
+  </script>
+  <script src="js/path-manager.js"></script> <!-- Nécessaire pour les chemins -->
+  <script src="js/backup-manager.js"></script> <!-- Le script qui gère les boutons -->
+
 </body>
 </html>
-``` 
