@@ -4,359 +4,290 @@
 console.log('Initialisation du gestionnaire de chemins et stockage...');
 console.log('Chargement de path-manager.js...');
 
+// --- MODIFICATION POUR IPCRENDERER ---
+let ipcRenderer = null; // Déclarer ipcRenderer ici pour une portée plus large
+// --- FIN MODIFICATION ---
+
 // --- VÉRIFIER/AJOUTER CES LIGNES ---
 if (!window.fs) {
     const fs = require('fs');
     const path = require('path');
+    const electron = require('electron'); // Charger electron ici aussi
+
     window.fs = fs; // Rendre fs accessible globalement
     window.path = path; // Rendre path accessible globalement
-    console.log('Modules fs et path initialisés.');
+    
+    ipcRenderer = electron.ipcRenderer; // Assigner ipcRenderer
+    window.ipcRenderer = ipcRenderer; // Rendre ipcRenderer accessible globalement
+
+    console.log('Modules fs, path et ipcRenderer initialisés.');
 } else {
-    console.log('Modules fs et path déjà initialisés.');
+    console.log('Modules fs, path et ipcRenderer déjà initialisés (ou fs/path seulement).');
+    // S'assurer que ipcRenderer est aussi initialisé si fs l'était déjà
+    if (!window.ipcRenderer && typeof require === 'function') {
+        try {
+            const electron = require('electron');
+            ipcRenderer = electron.ipcRenderer;
+            window.ipcRenderer = ipcRenderer;
+            console.log('ipcRenderer ré-initialisé car manquant sur window.');
+        } catch (e) {
+            console.error("Erreur lors de la tentative de ré-initialisation de ipcRenderer:", e);
+        }
+    } else if (window.ipcRenderer) {
+        ipcRenderer = window.ipcRenderer; // Récupérer la référence existante
+    }
 }
 // --- FIN VÉRIFICATION/AJOUT ---
 
+
+// AJOUTEZ CECI: Variables pour stocker les chemins de main.js
+let appPathGlobal = null;
+let userDataPathGlobal = null;
+
+// AJOUTEZ CECI: Fonction pour initialiser les chemins APRÈS les avoir reçus
+function initializePathsAndStorageSystem() {
+    if (appPathGlobal && userDataPathGlobal) {
+        // Définir les chemins pour les dossiers "Dossiers en cours" et "Dossiers archivés"
+        // Ils sont à la racine de l'application (appPathGlobal)
+        window.dossiersEnCoursPath = path.join(appPathGlobal, 'Dossiers en cours');
+        window.dossiersArchivesPath = path.join(appPathGlobal, 'Dossiers archivés');
+        console.log('path-manager.js: Chemin "Dossiers en cours" défini:', window.dossiersEnCoursPath);
+        console.log('path-manager.js: Chemin "Dossiers archivés" défini:', window.dossiersArchivesPath);
+
+        // Optionnel: s'assurer que ces dossiers existent
+        try {
+            if (fs && !fs.existsSync(window.dossiersEnCoursPath)) {
+                fs.mkdirSync(window.dossiersEnCoursPath, { recursive: true });
+            }
+            if (fs && !fs.existsSync(window.dossiersArchivesPath)) {
+                fs.mkdirSync(window.dossiersArchivesPath, { recursive: true });
+            }
+        } catch (dirError) {
+            console.error('path-manager.js: Erreur création dossiers racine:', dirError);
+        }
+
+        // Initialiser StorageSystem pour les fichiers JSON en utilisant userDataPathGlobal
+        if (!StorageSystem.initialized) {
+            const initSuccess = StorageSystem.init(userDataPathGlobal); // Passer userDataPath ici
+            if (initSuccess) {
+                console.log('path-manager.js: StorageSystem initialisé avec succès via userDataPath.');
+
+                const pathsForBackup = {
+                    clients: window.clientsPath,
+                    invoices: window.invoicesPath,
+                    tasks: window.tasksPath,
+                    dossiersEnCours: window.dossiersEnCoursPath,
+                    dossiersArchives: window.dossiersArchivesPath
+                };
+                const validPaths = Object.fromEntries(Object.entries(pathsForBackup).filter(([, value]) => value));
+
+                if (ipcRenderer && Object.keys(validPaths).length > 0) {
+                    ipcRenderer.send('renderer-ready-for-autobackup', validPaths);
+                    console.log('path-manager.js: "renderer-ready-for-autobackup" envoyé avec:', validPaths);
+                }
+            } else {
+                console.error('path-manager.js: Échec de l\'initialisation de StorageSystem avec userDataPath.');
+            }
+        }
+    } else {
+        console.error('path-manager.js: appPathGlobal ou userDataPathGlobal non définis avant initializePathsAndStorageSystem.');
+    }
+}
+
+// AJOUTEZ CECI: Écouteur pour les chemins envoyés par main.js
+if (ipcRenderer) {
+    ipcRenderer.on('app-paths', (event, paths) => {
+        console.log('path-manager.js: Chemins reçus de main.js:', paths);
+        if (paths && paths.appPath && paths.userDataPath) {
+            appPathGlobal = paths.appPath;
+            userDataPathGlobal = paths.userDataPath;
+            // Maintenant que nous avons les chemins, initialisons le reste
+            initializePathsAndStorageSystem();
+        } else {
+            console.error('path-manager.js: appPath ou userDataPath manquants dans le message de main.js.');
+        }
+    });
+} else {
+    console.error('path-manager.js: ipcRenderer non disponible pour écouter "app-paths".');
+}
+
+
+
+
+
+
+
 // Système de stockage hybride - Utilise le système de fichiers si disponible,
 // sinon utilise localStorage comme solution de secours
+
 const StorageSystem = {
-    // Stockage principal
     fs: null,
     path: null,
-    dataFolder: null,
+    dataFolder: null,   // Sera userDataPathGlobal (pour les fichiers JSON)
     
-    // Chemins des fichiers
     invoicesPath: null,
     clientsPath: null,
-    tasksPath: null, // Ajoutez cette ligne
+    tasksPath: null,
     
-    // État du système
     initialized: false,
-    usingLocalStorage: false,
-    
-    // Initialiser le système de stockage
-    init: function() {
-        console.log('Appel de StorageSystem.init()');
-        console.log('Initialisation du système de stockage...');
-        try {
-            if (window.require) {
-                this.fs = window.fs; // Utilisez la version globale de fs
-                this.path = window.path; // Utilisez la version globale de path
 
-                // Essayer plusieurs emplacements pour trouver un endroit accessible en écriture
-                const locations = this.getPossibleStorageLocations();
-                console.log('Emplacements potentiels pour le stockage :', locations);
-
-                for (const location of locations) {
-                    if (this.testWriteAccess(location)) {
-                        this.dataFolder = location;
-                        console.log('Dossier de données accessible en écriture trouvé :', location);
-                        break;
-                    }
-                }
-
-                if (!this.dataFolder) {
-                    console.warn('Aucun dossier accessible en écriture trouvé. Utilisation d\'un dossier temporaire.');
-                    const os = require('os');
-                    this.dataFolder = this.path.join(os.tmpdir(), 'AvocatTool');
-                    if (!this.fs.existsSync(this.dataFolder)) {
-                        this.fs.mkdirSync(this.dataFolder, { recursive: true });
-                    }
-                }
-
-                // Définir les chemins des fichiers
-                this.invoicesPath = this.path.join(this.dataFolder, 'invoices.json');
-                this.clientsPath = this.path.join(this.dataFolder, 'clients.json');
-                this.tasksPath = this.path.join(this.dataFolder, 'taches.json');
-
-                // Exposer les chemins globalement pour la compatibilité
-                window.invoicesPath = this.invoicesPath;
-                window.clientsPath = this.clientsPath;
-                window.tasksPath = this.tasksPath;
-
-                console.log('Chemins définis par path-manager:', {
-                    invoicesPath: this.invoicesPath,
-                    clientsPath: this.clientsPath,
-                    tasksPath: this.tasksPath
-                });
-
-                this.ensureFilesExist();
-                this.initialized = true;
-                console.log('Système de stockage initialisé avec succès par path-manager.');
-
-                // NOUVEAU: Informer le processus principal que les chemins sont prêts
-                if (window.require) {
-                    const ipcRenderer = window.require('electron').ipcRenderer;
-                    ipcRenderer.send('renderer-ready-for-autobackup', {
-                        clients: window.clientsPath,
-                        invoices: window.invoicesPath,
-                        tasks: window.tasksPath
-                    });
-                }
-                console.log('StorageSystem.init() terminé avec succès.');
-                return true;
-            } else {
-                throw new Error('Module require non disponible');
-            }
-        } catch (error) {
-            console.warn('StorageSystem.init() dans path-manager a échoué :', error.message);
-            this.initialized = false; // Assurez-vous que initialized est false en cas d'erreur
-            return false;
-        }
-    },
-    
-    // Obtenir tous les emplacements possibles pour le stockage
-    getPossibleStorageLocations: function() {
-        try {
-            const locations = [];
-            
-            // 1. Répertoire actuel
-            locations.push(__dirname);
-            
-            // 2. Répertoire parent
-            locations.push(this.path.resolve(__dirname, '..'));
-            
-            // 3. Répertoire utilisateur
-            try {
-                const os = require('os');
-                const userDataDir = this.path.join(os.homedir(), 'AvocatTool');
-                
-                // Créer le répertoire s'il n'existe pas
-                if (!this.fs.existsSync(userDataDir)) {
-                    this.fs.mkdirSync(userDataDir, { recursive: true });
-                }
-                
-                locations.push(userDataDir);
-            } catch (e) {
-                console.warn('Impossible d\'utiliser le répertoire utilisateur:', e.message);
-            }
-            
-            // 4. Répertoire temporaire
-            try {
-                const os = require('os');
-                locations.push(os.tmpdir());
-            } catch (e) {
-                console.warn('Impossible d\'utiliser le répertoire temporaire:', e.message);
-            }
-            
-            // 5. Via l'API Electron si disponible
-            try {
-                const remote = require('@electron/remote');
-                if (remote && remote.app) {
-                    locations.push(remote.app.getPath('userData'));
-                }
-            } catch (e) {
-                console.warn('API Electron remote non disponible:', e.message);
-            }
-            
-            console.log('Emplacements potentiels pour le stockage :', locations);
-            return locations;
-        } catch (error) {
-            console.error('Erreur lors de la recherche d\'emplacements de stockage :', error);
-            return [__dirname];
-        }
-    },
-    
-    // Tester si un emplacement est accessible en écriture
-    testWriteAccess: function(location) {
-        try {
-            const testFile = this.path.join(location, '.write-test');
-            this.fs.writeFileSync(testFile, 'test');
-            this.fs.unlinkSync(testFile);
-            console.log(`Emplacement accessible en écriture : ${location}`);
-            console.log(`Test d'écriture dans ${location} : réussi`);
-            return true;
-        } catch (error) {
-            console.warn(`Emplacement ${location} non accessible en écriture :`, error.message);
-            console.log(`Test d'écriture dans ${location} : échoué`);
-            return false;
-        }
-    },
-    
-    // S'assurer que les fichiers de données existent
-    ensureFilesExist: function() {
-        if (!this.initialized || this.usingLocalStorage) return;
+    init: function(basePathForJsons) {
+        console.log('StorageSystem.init() appelé avec basePathForJsons:', basePathForJsons);
         
+        this.fs = window.fs;
+        this.path = window.path;
+
+        if (!this.fs || !this.path) {
+            console.error('StorageSystem: fs ou path non disponibles sur window.');
+            this.initialized = false;
+            return false;
+        }
+        if (!basePathForJsons || typeof basePathForJsons !== 'string') {
+            console.error('StorageSystem: basePathForJsons (attendu comme userDataPath) est invalide.');
+            this.initialized = false;
+            return false;
+        }
+
+        this.dataFolder = basePathForJsons; // C'est ici que les JSONs seront stockés
+
         try {
-            if (!this.fs.existsSync(this.invoicesPath)) {
-                this.fs.writeFileSync(this.invoicesPath, '[]', 'utf8');
-                console.log('Fichier invoices.json créé');
+            if (!this.fs.existsSync(this.dataFolder)) {
+                this.fs.mkdirSync(this.dataFolder, { recursive: true });
+                console.log('StorageSystem: Dossier de données JSON créé:', this.dataFolder);
             }
-            
+        } catch (e) {
+            console.error("StorageSystem: Erreur création dossier de données JSON:", e);
+            this.initialized = false;
+            return false;
+        }
+
+        this.clientsPath = this.path.join(this.dataFolder, 'clients.json');
+        this.invoicesPath = this.path.join(this.dataFolder, 'invoices.json');
+        this.tasksPath = this.path.join(this.dataFolder, 'taches.json'); // Assurez-vous que le nom du fichier est correct
+
+        window.clientsPath = this.clientsPath;
+        window.invoicesPath = this.invoicesPath;
+        window.tasksPath = this.tasksPath;
+
+        console.log('StorageSystem: Chemins des fichiers JSON définis:');
+        console.log('  - Clients:', window.clientsPath);
+        console.log('  - Invoices:', window.invoicesPath);
+        console.log('  - Tasks:', window.tasksPath);
+
+        this.ensureFilesExist(); // S'assurer que les fichiers JSON vides existent
+        
+        this.initialized = true;
+        console.log('StorageSystem initialisé avec succès pour les fichiers JSON.');
+        return true;
+    },
+    
+    ensureFilesExist: function() {
+        if (!this.fs || !this.clientsPath || !this.invoicesPath || !this.tasksPath) {
+            console.warn('StorageSystem.ensureFilesExist: fs ou chemins JSON non définis. Impossible de vérifier/créer les fichiers.');
+            return;
+        }
+        try {
             if (!this.fs.existsSync(this.clientsPath)) {
                 this.fs.writeFileSync(this.clientsPath, '[]', 'utf8');
-                console.log('Fichier clients.json créé');
+                console.log('StorageSystem.ensureFilesExist: Fichier clients.json créé à:', this.clientsPath);
+            } else {
+                // console.log('StorageSystem.ensureFilesExist: Fichier clients.json existe déjà à:', this.clientsPath);
             }
-        } catch (error) {
-            console.error('Erreur lors de la création des fichiers:', error);
+
+            if (!this.fs.existsSync(this.invoicesPath)) {
+                this.fs.writeFileSync(this.invoicesPath, '[]', 'utf8');
+                console.log('StorageSystem.ensureFilesExist: Fichier invoices.json créé à:', this.invoicesPath);
+            } else {
+                // console.log('StorageSystem.ensureFilesExist: Fichier invoices.json existe déjà à:', this.invoicesPath);
+            }
+
+            if (!this.fs.existsSync(this.tasksPath)) {
+                this.fs.writeFileSync(this.tasksPath, '[]', 'utf8');
+                console.log('StorageSystem.ensureFilesExist: Fichier taches.json créé à:', this.tasksPath);
+            } else {
+                // console.log('StorageSystem.ensureFilesExist: Fichier taches.json existe déjà à:', this.tasksPath);
+            }
+        } catch (e) {
+            console.error('StorageSystem.ensureFilesExist: Erreur lors de la vérification/création des fichiers JSON:', e);
         }
     },
     
-    // Sauvegarder des données
     saveData: function(key, data) {
-        console.log(`Sauvegarde des données '${key}'...`);
-        
-        if (!this.initialized) {
-            console.error('Système de stockage non initialisé');
+        if (!this.initialized || !this.fs) {
+            console.error(`StorageSystem.saveData: Non initialisé ou fs manquant pour la clé '${key}'.`);
             return false;
         }
-        
         const jsonData = JSON.stringify(data, null, 2);
-        
+        let filePath;
+        if (key === 'clients') filePath = this.clientsPath;
+        else if (key === 'invoices') filePath = this.invoicesPath;
+        else if (key === 'tasks') filePath = this.tasksPath;
+        else {
+            console.error(`StorageSystem.saveData: Clé de sauvegarde inconnue: ${key}`);
+            return false;
+        }
+
         try {
-            if (this.usingLocalStorage) {
-                console.log(`Sauvegarde dans localStorage: ${key}, taille: ${jsonData.length}`);
-                localStorage.setItem(key, jsonData);
-                return true;
-            } else {
-                // Déterminer le chemin du fichier
-                let filePath;
-                if (key === 'invoices') {
-                    filePath = this.invoicesPath;
-                } else if (key === 'clients') {
-                    filePath = this.clientsPath;
-                } else {
-                    filePath = this.path.join(this.dataFolder, `${key}.json`);
-                }
-                
-                console.log(`Sauvegarde dans fichier: ${filePath}, taille: ${jsonData.length}`);
-                
-                // Utiliser une approche sécurisée avec fichier temporaire
-                const tempPath = `${filePath}.tmp`;
-                this.fs.writeFileSync(tempPath, jsonData, 'utf8');
-                
-                if (this.fs.existsSync(filePath)) {
-                    this.fs.unlinkSync(filePath);
-                }
-                
-                this.fs.renameSync(tempPath, filePath);
-                
-                // Vérifier que les données ont bien été écrites
-                const verifyData = this.fs.readFileSync(filePath, 'utf8');
-                if (verifyData === jsonData) {
-                    console.log(`Sauvegarde réussie pour ${key}`);
-                    return true;
-                } else {
-                    console.error(`Vérification de sauvegarde échouée pour ${key}`);
-                    return false;
-                }
+            const tempPath = `${filePath}.tmp`;
+            this.fs.writeFileSync(tempPath, jsonData, 'utf8');
+            if (this.fs.existsSync(filePath)) {
+                this.fs.unlinkSync(filePath);
             }
-        } catch (error) {
-            console.error(`Erreur lors de la sauvegarde des données '${key}':`, error);
-            
-            // Tentative de récupération en dernier recours avec localStorage
-            if (!this.usingLocalStorage) {
-                try {
-                    console.log(`Tentative de récupération avec localStorage pour '${key}'`);
-                    localStorage.setItem(key, jsonData);
-                    this.usingLocalStorage = true;
-                    return true;
-                } catch (localStorageError) {
-                    console.error('Échec également avec localStorage:', localStorageError);
-                }
-            }
-            
+            this.fs.renameSync(tempPath, filePath);
+            console.log(`StorageSystem.saveData: Données pour '${key}' sauvegardées dans ${filePath}`);
+            return true;
+        } catch (e) {
+            console.error(`StorageSystem.saveData: Erreur sauvegarde '${key}' vers ${filePath}:`, e);
             return false;
         }
     },
     
-    // Charger des données
     loadData: function(key) {
-        console.log(`Chargement des données '${key}'...`);
-        
-        if (!this.initialized) {
-            console.error('Système de stockage non initialisé');
-            return null;
+        if (!this.initialized || !this.fs) {
+            console.error(`StorageSystem.loadData: Non initialisé ou fs manquant pour la clé '${key}'.`);
+            return [];
         }
-        
+        let filePath;
+        if (key === 'clients') filePath = this.clientsPath;
+        else if (key === 'invoices') filePath = this.invoicesPath;
+        else if (key === 'tasks') filePath = this.tasksPath;
+        else {
+            console.error(`StorageSystem.loadData: Clé de chargement inconnue: ${key}`);
+            return [];
+        }
+
         try {
-            // D'abord, essayer le localStorage dans tous les cas (pour la récupération)
-            const localData = localStorage.getItem(key);
-            
-            if (this.usingLocalStorage) {
-                if (localData) {
-                    console.log(`Données '${key}' chargées depuis localStorage`);
-                    return JSON.parse(localData);
+            if (this.fs.existsSync(filePath)) {
+                const fileData = this.fs.readFileSync(filePath, 'utf8');
+                if (!fileData || fileData.trim() === '') {
+                    console.warn(`StorageSystem.loadData: Fichier pour '${key}' (${filePath}) est vide.`);
+                    return [];
                 }
-                return [];
-            }
-            
-            // Déterminer le chemin du fichier
-            let filePath;
-            if (key === 'invoices') {
-                filePath = this.invoicesPath;
-            } else if (key === 'clients') {
-                filePath = this.clientsPath;
+                const parsedData = JSON.parse(fileData);
+                // console.log(`StorageSystem.loadData: Données pour '${key}' chargées depuis ${filePath}`);
+                return parsedData;
             } else {
-                filePath = this.path.join(this.dataFolder, `${key}.json`);
-            }
-            
-            if (!this.fs.existsSync(filePath)) {
-                console.log(`Fichier '${filePath}' non trouvé`);
-                
-                // Si des données existent dans localStorage, les utiliser
-                if (localData) {
-                    console.log(`Utilisation des données de localStorage pour '${key}'`);
-                    return JSON.parse(localData);
-                }
-                
-                return [];
-            }
-            
-            const fileData = this.fs.readFileSync(filePath, 'utf8');
-            
-            if (!fileData || fileData.trim() === '' || fileData.trim() === '[]') {
-                console.log(`Fichier '${filePath}' vide`);
-                
-                // Si des données existent dans localStorage, les utiliser
-                if (localData) {
-                    console.log(`Utilisation des données de localStorage pour '${key}'`);
-                    return JSON.parse(localData);
-                }
-                
-                return [];
-            }
-            
-            const parsedData = JSON.parse(fileData);
-            console.log(`Données '${key}' chargées depuis fichier`);
-            
-            // Sauvegarder également dans localStorage pour la récupération
-            try {
-                localStorage.setItem(key, fileData);
-            } catch (e) {
-                console.warn('Impossible de sauvegarder dans localStorage:', e.message);
-            }
-            
-            return parsedData;
-        } catch (error) {
-            console.error(`Erreur lors du chargement des données '${key}':`, error);
-            
-            // Tentative de récupération avec localStorage
-            try {
+                console.warn(`StorageSystem.loadData: Fichier pour '${key}' (${filePath}) non trouvé.`);
+                // Tenter de charger depuis localStorage comme fallback si le fichier n'existe pas
                 const localData = localStorage.getItem(key);
                 if (localData) {
-                    console.log(`Récupération avec localStorage pour '${key}'`);
-                    return JSON.parse(localData);
+                    console.log(`StorageSystem.loadData: Données pour '${key}' chargées depuis localStorage (fallback).`);
+                    try { return JSON.parse(localData); } catch (e) { return []; }
                 }
-            } catch (localStorageError) {
-                console.error('Échec également avec localStorage:', localStorageError);
+                return [];
             }
-            
+        } catch (e) {
+            console.error(`StorageSystem.loadData: Erreur chargement '${key}' depuis ${filePath}:`, e);
+            // Tenter de charger depuis localStorage en cas d'erreur de lecture/parsing du fichier
+            const localData = localStorage.getItem(key);
+            if (localData) {
+                console.log(`StorageSystem.loadData: Données pour '${key}' chargées depuis localStorage (fallback après erreur).`);
+                try { return JSON.parse(localData); } catch (e) { return []; }
+            }
             return [];
         }
     }
 };
-
-// Initialiser le système de stockage
-if (!StorageSystem.initialized) { // Vérifier si déjà initialisé pour éviter double appel si le script est rechargé
-    const initSuccess = StorageSystem.init();
-    if (initSuccess) {
-        console.log('StorageSystem initialisé depuis path-manager.js.');
-    } else {
-        console.error('Échec de l\'initialisation du StorageSystem depuis path-manager.js.');
-        // Afficher une alerte à l'utilisateur peut être une bonne idée ici
-        // alert("Erreur critique: Impossible d'initialiser le système de stockage des données. L'application risque de ne pas fonctionner correctement.");
-    }
-}
 
 // Fonctions globales pour la compatibilité
 window.saveInvoicesToFile = function() {

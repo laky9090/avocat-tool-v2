@@ -34,6 +34,14 @@ function createWindow() {
   // Charger le fichier index.html de l'application
   mainWindow.loadFile('index.html');
   
+  // Envoyer les chemins nécessaires au processus de rendu une fois chargé
+  mainWindow.webContents.on('did-finish-load', () => {
+    const appPath = app.getAppPath();
+    const userDataPath = app.getPath('userData');
+    console.log(`[Main] did-finish-load: appPath=${appPath}, userDataPath=${userDataPath}`);
+    mainWindow.webContents.send('app-paths', { appPath, userDataPath });
+  });
+
   // Désactiver le zoom
   mainWindow.webContents.setZoomFactor(1);
   mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
@@ -55,6 +63,32 @@ async function ensureDirExists(dirPath) {
     }
 }
 
+// Fonction pour copier un dossier récursivement
+async function copyDirectoryRecursive(source, destination) {
+    try {
+        if (typeof fs.cp === 'function') {
+            await fs.cp(source, destination, { recursive: true, force: true });
+            console.log(`[Main] Dossier copié (avec fs.cp) de ${source} vers ${destination}`);
+        } else {
+            await fs.mkdir(destination, { recursive: true });
+            const entries = await fs.readdir(source, { withFileTypes: true });
+            for (let entry of entries) {
+                const srcPath = path.join(source, entry.name);
+                const destPath = path.join(destination, entry.name);
+                if (entry.isDirectory()) {
+                    await copyDirectoryRecursive(srcPath, destPath);
+                } else {
+                    await fs.copyFile(srcPath, destPath);
+                }
+            }
+            console.log(`[Main] Dossier copié (manuellement) de ${source} vers ${destination}`);
+        }
+    } catch (error) {
+        console.error(`[Main] Erreur lors de la copie du dossier de ${source} vers ${destination}:`, error);
+        throw error;
+    }
+}
+
 // --- Sauvegarde Automatique ---
 
 async function performAutoBackup(sourcePaths) {
@@ -62,33 +96,53 @@ async function performAutoBackup(sourcePaths) {
         console.log('[Main] Fenêtre principale non disponible, sauvegarde automatique annulée.');
         return;
     }
-    if (!sourcePaths || !sourcePaths.clients || !sourcePaths.invoices || !sourcePaths.tasks) {
+    // Ajuster cette vérification si les dossiers sont optionnels pour l'autobackup
+    if (!sourcePaths || (!sourcePaths.clients && !sourcePaths.dossiersEnCours)) { // Exemple de vérification plus souple
         console.warn('[Main] Chemins sources pour la sauvegarde automatique non valides ou incomplets.');
         return;
     }
 
     const autoBackupDir = path.join(app.getPath('userData'), 'AutoBackups');
-    const specificAutoBackupPath = path.join(autoBackupDir, 'latest'); // Pour écraser la dernière sauvegarde auto
+    const specificAutoBackupPath = path.join(autoBackupDir, 'latest_autobackup'); // Dossier spécifique pour la dernière sauvegarde auto
 
     try {
         console.log(`[Main] Démarrage de la sauvegarde automatique vers ${specificAutoBackupPath}`);
+        // Supprimer l'ancien dossier de sauvegarde auto 'latest' pour éviter l'accumulation à l'intérieur
+        if (fssync.existsSync(specificAutoBackupPath)) {
+            await fs.rm(specificAutoBackupPath, { recursive: true, force: true });
+        }
         await ensureDirExists(specificAutoBackupPath);
 
-        let filesBackedUpCount = 0;
+        let itemsBackedUpCount = 0;
         for (const key in sourcePaths) {
-            const sourceFile = sourcePaths[key];
-            if (fssync.existsSync(sourceFile)) {
-                const fileName = path.basename(sourceFile);
-                const destFile = path.join(specificAutoBackupPath, fileName);
-                await fs.copyFile(sourceFile, destFile);
-                filesBackedUpCount++;
-                console.log(`[Main] Fichier ${fileName} sauvegardé automatiquement.`);
+            const srcPath = sourcePaths[key];
+            if (!srcPath) {
+                console.warn(`[Main][AutoBackup] Chemin source pour la clé '${key}' est indéfini. Ignoré.`);
+                continue;
+            }
+
+            if (fssync.existsSync(srcPath)) {
+                const itemName = path.basename(srcPath);
+                const destPathInBackup = path.join(specificAutoBackupPath, itemName);
+                
+                const stats = await fs.stat(srcPath); // Vérifier si c'est un fichier ou un dossier
+                if (stats.isDirectory()) {
+                    console.log(`[Main][AutoBackup] Sauvegarde du dossier: ${srcPath} vers ${destPathInBackup}`);
+                    await copyDirectoryRecursive(srcPath, destPathInBackup); // Utiliser votre fonction existante
+                    itemsBackedUpCount++;
+                } else if (stats.isFile()) {
+                    console.log(`[Main][AutoBackup] Sauvegarde du fichier: ${srcPath} vers ${destPathInBackup}`);
+                    await fs.copyFile(srcPath, destPathInBackup);
+                    itemsBackedUpCount++;
+                } else {
+                    console.warn(`[Main][AutoBackup] Le chemin source n'est ni un fichier ni un dossier: ${srcPath}. Ignoré.`);
+                }
             } else {
-                console.warn(`[Main] Fichier source ${sourceFile} non trouvé pour la sauvegarde automatique.`);
+                console.warn(`[Main][AutoBackup] Élément source ${srcPath} non trouvé pour la sauvegarde automatique.`);
             }
         }
 
-        if (filesBackedUpCount > 0) {
+        if (itemsBackedUpCount > 0) {
             if (Notification.isSupported()) {
                 new Notification({
                     title: 'Sauvegarde Automatique Réussie',
@@ -97,7 +151,7 @@ async function performAutoBackup(sourcePaths) {
             }
             console.log('[Main] Sauvegarde automatique terminée avec succès.');
         } else {
-            console.warn('[Main] Aucun fichier n\'a été sauvegardé automatiquement (sources non trouvées ou vides).');
+            console.warn('[Main] Aucun élément n\'a été sauvegardé automatiquement (sources non trouvées ou vides).');
         }
 
     } catch (error) {
@@ -114,103 +168,143 @@ async function performAutoBackup(sourcePaths) {
 // --- Gestionnaires IPC pour Sauvegarde/Restauration Manuelle ---
 
 ipcMain.handle('perform-backup', async (event, sourcePaths) => {
-    if (!mainWindow) return { success: false, message: "Fenêtre principale non disponible." };
-
-    const dialogResult = await dialog.showOpenDialog(mainWindow, {
-        title: 'Sélectionner un dossier pour la sauvegarde',
-        defaultPath: lastManualBackupPath || app.getPath('documents'),
+    console.log('[Main] Demande de sauvegarde reçue avec les sources:', sourcePaths);
+    const dialogResult = await dialog.showSaveDialog(mainWindow, {
+        title: 'Choisir un emplacement pour la sauvegarde',
+        defaultPath: `Sauvegarde_AvocatTool_${new Date().toISOString().slice(0, 10)}`, // Nom de dossier suggéré plus simple
         properties: ['openDirectory', 'createDirectory']
     });
 
-    if (dialogResult.canceled || !dialogResult.filePaths.length) {
+    if (dialogResult.canceled || !dialogResult.filePath) {
         return { success: false, message: 'Sauvegarde annulée par l\'utilisateur.' };
     }
 
-    const backupDir = dialogResult.filePaths[0];
-    lastManualBackupPath = backupDir; // Mémoriser ce chemin
+    const backupBaseFolder = dialogResult.filePath;
+    const backupFolderName = `Backup_${new Date().toISOString().replace(/:/g, '-').slice(0, 19)}`;
+    const backupSubFolder = path.join(backupBaseFolder, backupFolderName);
 
     try {
-        await ensureDirExists(backupDir); // S'assurer que le dossier existe
-        const backedUpFiles = [];
-        let filesCopied = 0;
+        await ensureDirExists(backupSubFolder);
+        let allSuccessful = true;
+        let errors = [];
 
         for (const key in sourcePaths) {
-            const sourceFile = sourcePaths[key];
-            if (fssync.existsSync(sourceFile)) {
-                const fileName = path.basename(sourceFile);
-                const destFile = path.join(backupDir, fileName);
-                await fs.copyFile(sourceFile, destFile);
-                backedUpFiles.push(fileName);
-                filesCopied++;
-            } else {
-                console.warn(`[Main] Fichier source ${sourceFile} non trouvé pour la sauvegarde manuelle.`);
+            const srcPath = sourcePaths[key];
+            if (!srcPath) {
+                console.warn(`[Main] Chemin source pour la clé '${key}' est indéfini. Ignoré.`);
+                continue;
+            }
+
+            const destName = path.basename(srcPath);
+            const destPathInBackup = path.join(backupSubFolder, destName);
+
+            try {
+                if (!fssync.existsSync(srcPath)) {
+                    console.warn(`[Main] Le chemin source n'existe pas: ${srcPath}. Ignoré.`);
+                    errors.push(`Source manquante: ${srcPath}`);
+                    allSuccessful = false;
+                    continue;
+                }
+
+                const stats = await fs.stat(srcPath);
+                if (stats.isDirectory()) {
+                    console.log(`[Main] Sauvegarde du dossier: ${srcPath} vers ${destPathInBackup}`);
+                    await copyDirectoryRecursive(srcPath, destPathInBackup);
+                } else if (stats.isFile()) {
+                    console.log(`[Main] Sauvegarde du fichier: ${srcPath} vers ${destPathInBackup}`);
+                    await fs.copyFile(srcPath, destPathInBackup);
+                } else {
+                    console.warn(`[Main] Le chemin source n'est ni un fichier ni un dossier: ${srcPath}. Ignoré.`);
+                    errors.push(`Type de source inconnu: ${srcPath}`);
+                    allSuccessful = false;
+                }
+            } catch (fileOrDirError) {
+                console.error(`[Main] Erreur lors de la sauvegarde de ${srcPath}:`, fileOrDirError);
+                errors.push(`Erreur sauvegarde ${key}: ${fileOrDirError.message}`);
+                allSuccessful = false;
             }
         }
-        if (filesCopied === 0) {
-            return { success: false, message: 'Aucun fichier de données trouvé à sauvegarder.' };
+
+        if (allSuccessful) {
+            return { success: true, message: `Sauvegarde complète réussie dans ${backupSubFolder}` };
+        } else {
+            return { success: false, message: `Sauvegarde terminée avec des erreurs dans ${backupSubFolder}. Détails: ${errors.join('; ')}` };
         }
-        return { success: true, message: `Sauvegarde réussie dans ${backupDir}\nFichiers sauvegardés: ${backedUpFiles.join(', ')}` };
+
     } catch (error) {
-        console.error('[Main] Erreur lors de la sauvegarde manuelle:', error);
-        return { success: false, message: `Erreur de sauvegarde: ${error.message}` };
+        console.error('[Main] Erreur globale lors de la sauvegarde :', error);
+        return { success: false, message: `Erreur globale lors de la sauvegarde : ${error.message}` };
     }
 });
 
-ipcMain.handle('perform-restore', async (event, targetPaths) => {
-    if (!mainWindow) return { success: false, message: "Fenêtre principale non disponible." };
-
+ipcMain.handle('perform-restore', async (event, pathsToRestoreTo) => {
+    console.log('[Main] Demande de restauration reçue. Cibles de restauration:', pathsToRestoreTo);
     const dialogResult = await dialog.showOpenDialog(mainWindow, {
-        title: 'Sélectionner le dossier de sauvegarde à restaurer',
-        defaultPath: lastManualBackupPath || app.getPath('documents'),
+        title: 'Choisir le dossier de sauvegarde spécifique (ex: Backup_YYYY-MM-DDTHH-MM-SS) à restaurer',
         properties: ['openDirectory']
     });
 
-    if (dialogResult.canceled || !dialogResult.filePaths.length) {
+    if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
         return { success: false, message: 'Restauration annulée par l\'utilisateur.' };
     }
 
-    const backupDir = dialogResult.filePaths[0];
-    const restoredFiles = [];
-    const errors = [];
-    let filesFoundInBackup = false;
-    let filesRestoredCount = 0;
+    const selectedBackupDir = dialogResult.filePaths[0];
+    console.log(`[Main] Restauration depuis le dossier de sauvegarde: ${selectedBackupDir}`);
 
     try {
-        for (const key in targetPaths) {
-            const targetFile = targetPaths[key];
-            const fileName = path.basename(targetFile);
-            const backupSourcePath = path.join(backupDir, fileName);
+        let allSuccessful = true;
+        let errors = [];
 
-            if (fssync.existsSync(backupSourcePath)) {
-                filesFoundInBackup = true;
-                try {
-                    await ensureDirExists(path.dirname(targetFile));
-                    await fs.copyFile(backupSourcePath, targetFile);
-                    restoredFiles.push(fileName);
-                    filesRestoredCount++;
-                } catch (copyError) {
-                    console.error(`[Main] Erreur lors de la copie de ${backupSourcePath} vers ${targetFile}:`, copyError);
-                    errors.push(`Erreur pour ${fileName}: ${copyError.message}`);
+        for (const key in pathsToRestoreTo) {
+            const targetRestorePath = pathsToRestoreTo[key];
+            if (!targetRestorePath) {
+                console.warn(`[Main] Chemin de restauration cible pour la clé '${key}' est indéfini. Ignoré.`);
+                continue;
+            }
+
+            const sourceNameInBackup = path.basename(targetRestorePath);
+            const sourcePathInBackup = path.join(selectedBackupDir, sourceNameInBackup);
+
+            try {
+                if (!fssync.existsSync(sourcePathInBackup)) {
+                    console.warn(`[Main] Le fichier/dossier source n'existe pas dans la sauvegarde: ${sourcePathInBackup}. Ignoré pour la restauration de '${key}'.`);
+                    errors.push(`Source manquante dans la sauvegarde: ${sourceNameInBackup} pour ${key}`);
+                    allSuccessful = false;
+                    continue;
                 }
-            } else {
-                console.warn(`[Main] Fichier ${fileName} non trouvé dans le dossier de sauvegarde ${backupDir}, ignoré.`);
+
+                const stats = await fs.stat(sourcePathInBackup);
+                if (stats.isFile()) {
+                    await ensureDirExists(path.dirname(targetRestorePath));
+                }
+
+                if (stats.isDirectory()) {
+                    console.log(`[Main] Restauration du dossier: ${sourcePathInBackup} vers ${targetRestorePath}`);
+                    await copyDirectoryRecursive(sourcePathInBackup, targetRestorePath);
+                } else if (stats.isFile()) {
+                    console.log(`[Main] Restauration du fichier: ${sourcePathInBackup} vers ${targetRestorePath}`);
+                    await fs.copyFile(sourcePathInBackup, targetRestorePath);
+                } else {
+                     console.warn(`[Main] L'élément source dans la sauvegarde n'est ni un fichier ni un dossier: ${sourcePathInBackup}. Ignoré.`);
+                     errors.push(`Type de source inconnu dans la sauvegarde: ${sourceNameInBackup}`);
+                     allSuccessful = false;
+                }
+            } catch (fileOrDirError) {
+                console.error(`[Main] Erreur lors de la restauration de ${sourcePathInBackup} vers ${targetRestorePath}:`, fileOrDirError);
+                errors.push(`Erreur restauration ${key}: ${fileOrDirError.message}`);
+                allSuccessful = false;
             }
         }
-
-        if (!filesFoundInBackup) {
-            return { success: false, message: `Aucun fichier de données (.json) correspondant trouvé dans le dossier de sauvegarde sélectionné: ${backupDir}` };
+        
+        if (allSuccessful) {
+            return { success: true, message: `Restauration depuis ${selectedBackupDir} terminée avec succès.` };
+        } else {
+            return { success: false, message: `Restauration depuis ${selectedBackupDir} terminée avec des erreurs. Détails: ${errors.join('; ')}` };
         }
-        if (errors.length > 0) {
-            return { success: false, message: `Restauration terminée avec des erreurs:\n${errors.join('\n')}` };
-        }
-        if (filesRestoredCount === 0 && filesFoundInBackup) {
-             return { success: false, message: `Des fichiers ont été trouvés dans la sauvegarde mais aucun n'a pu être restauré. Vérifiez les permissions.` };
-        }
-        return { success: true, message: `Restauration réussie depuis ${backupDir}\nFichiers restaurés: ${restoredFiles.join(', ')}.` };
 
     } catch (error) {
-        console.error('[Main] Erreur inattendue lors de la restauration:', error);
-        return { success: false, message: `Erreur de restauration: ${error.message}` };
+        console.error('[Main] Erreur globale lors de la restauration :', error);
+        return { success: false, message: `Erreur globale lors de la restauration : ${error.message}` };
     }
 });
 
@@ -269,13 +363,14 @@ app.whenReady().then(() => {
         if (autoBackupIntervalId) {
             clearInterval(autoBackupIntervalId);
         }
-        if (dataPaths && dataPaths.clients && dataPaths.invoices && dataPaths.tasks) {
+        // Vérifier qu'il y a au moins un chemin valide pour démarrer
+        if (dataPaths && Object.keys(dataPaths).length > 0) {
             autoBackupIntervalId = setInterval(() => {
                 performAutoBackup(dataPaths).catch(console.error);
             }, AUTO_BACKUP_INTERVAL);
             console.log(`[Main] Sauvegarde automatique configurée toutes les ${AUTO_BACKUP_INTERVAL / 60000} minutes.`);
         } else {
-            console.warn('[Main] Impossible de démarrer la sauvegarde automatique: chemins de données non valides reçus du renderer.');
+            console.warn('[Main] Impossible de démarrer la sauvegarde automatique: aucun chemin de données valide reçu du renderer.');
         }
     });
 
