@@ -169,22 +169,30 @@ async function performAutoBackup(sourcePaths) {
 
 ipcMain.handle('perform-backup', async (event, sourcePaths) => {
     console.log('[Main] Demande de sauvegarde reçue avec les sources:', sourcePaths);
+
+    // Générer le nom du dossier de sauvegarde final avec l'horodatage
+    const backupFolderNameWithTimestamp = `Backup_AvocatTool_${new Date().toISOString().replace(/:/g, '-').slice(0, 19)}`;
+
     const dialogResult = await dialog.showSaveDialog(mainWindow, {
-        title: 'Choisir un emplacement pour la sauvegarde',
-        defaultPath: `Sauvegarde_AvocatTool_${new Date().toISOString().slice(0, 10)}`, // Nom de dossier suggéré plus simple
-        properties: ['openDirectory', 'createDirectory']
+        title: 'Choisir un emplacement et un nom pour le dossier de sauvegarde',
+        // Suggérer le nom du dossier final directement. L'utilisateur choisira l'emplacement.
+        defaultPath: path.join(app.getPath('documents'), backupFolderNameWithTimestamp), // Suggère dans "Documents"
+        buttonLabel: 'Sauvegarder ici',
+        // Les propriétés comme 'openDirectory' ou 'createDirectory' ne sont pas utilisées ici
+        // car showSaveDialog est conçu pour retourner un chemin de fichier (que nous traitons comme un dossier).
     });
 
     if (dialogResult.canceled || !dialogResult.filePath) {
         return { success: false, message: 'Sauvegarde annulée par l\'utilisateur.' };
     }
 
-    const backupBaseFolder = dialogResult.filePath;
-    const backupFolderName = `Backup_${new Date().toISOString().replace(/:/g, '-').slice(0, 19)}`;
-    const backupSubFolder = path.join(backupBaseFolder, backupFolderName);
+    // dialogResult.filePath EST maintenant le chemin complet du dossier de sauvegarde à créer.
+    // Ex: C:\Users\dhlla\Documents\Backup_AvocatTool_2025-05-11T10-22-12
+    const backupTargetFolder = dialogResult.filePath;
 
     try {
-        await ensureDirExists(backupSubFolder);
+        // Créer ce dossier de sauvegarde cible
+        await ensureDirExists(backupTargetFolder);
         let allSuccessful = true;
         let errors = [];
 
@@ -196,7 +204,8 @@ ipcMain.handle('perform-backup', async (event, sourcePaths) => {
             }
 
             const destName = path.basename(srcPath);
-            const destPathInBackup = path.join(backupSubFolder, destName);
+            // Les éléments sont sauvegardés directement dans backupTargetFolder
+            const destPathInBackup = path.join(backupTargetFolder, destName);
 
             try {
                 if (!fssync.existsSync(srcPath)) {
@@ -226,9 +235,9 @@ ipcMain.handle('perform-backup', async (event, sourcePaths) => {
         }
 
         if (allSuccessful) {
-            return { success: true, message: `Sauvegarde complète réussie dans ${backupSubFolder}` };
+            return { success: true, message: `Sauvegarde complète réussie dans ${backupTargetFolder}` };
         } else {
-            return { success: false, message: `Sauvegarde terminée avec des erreurs dans ${backupSubFolder}. Détails: ${errors.join('; ')}` };
+            return { success: false, message: `Sauvegarde terminée avec des erreurs dans ${backupTargetFolder}. Détails: ${errors.join('; ')}` };
         }
 
     } catch (error) {
