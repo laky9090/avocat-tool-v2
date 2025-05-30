@@ -1,0 +1,114 @@
+     <!DOCTYPE html>
+     <html>
+     <head>
+         <title>TEST PAGE</title>
+         <style>
+             body {
+                 font-family: Arial;
+                 padding: 20px;
+                 background: #f0f0f0;
+             }
+             .test-box {
+                 background: red;
+                 color: white;
+                 padding: 20px;
+                 margin: 20px 0;
+                 text-align: center;
+                 font-size: 24px;
+                 border: 5px solid yellow;
+             }
+             table {
+                 width: 100%;
+                 border-collapse: collapse;
+                 background: white;
+             }
+             th, td {
+                 border: 2px solid #000;
+                 padding: 10px;
+                 text-align: left;
+             }
+             th {
+                 background: #007bff;
+                 color: white;
+             }
+             .test-row {
+                 background: linear-gradient(45deg, #28a745, #007bff);
+                 color: white;
+                 font-weight: bold;
+             }
+         </style>
+     </head>
+     <body>
+         <div class="test-box">
+             🚨 PAGE DE TEST - Si vous voyez ceci, les fichiers se chargent correctement! 🚨
+         </div>
+
+         <h1>Test du tableau des factures</h1>
+
+         <table>
+             <thead>
+                 <tr>
+                     <th>Sélection</th>
+                     <th>N° Facture</th>
+                     <th>Client</th>
+                     <th>Description</th>
+                     <th>Date</th>
+                     <th>Montant HT</th>
+                     <th>Montant TTC</th>
+                     <th>Statut</th>
+                     <th>Actions</th>
+                 </tr>
+             </thead>
+             <tbody>
+                 <tr class="test-row">
+                     <td>✓</td>
+                     <td><strong>TEST-001</strong></td>
+                     <td>CLIENT TEST</td>
+                     <td>Facture de test</td>
+                     <td>28/01/2025</td>
+                     <td>500.00 €</td>
+                     <td>600.00 €</td>
+                     <td>VISIBLE</td>
+                     <td>ACTIONS</td>
+                 </tr>
+                 <tr class="test-row">
+                     <td>✓</td>
+                     <td><strong>TEST-002</strong></td>
+                     <td>AUTRE CLIENT</td>
+                     <td>Deuxième test</td>
+                     <td>28/01/2025</td>
+                     <td>1000.00 €</td>
+                     <td>1200.00 €</td>
+                     <td>AFFICHÉ</td>
+                     <td>BOUTONS</td>
+                 </tr>
+             </tbody>
+         </table>
+
+         <script>
+             alert('✅ JavaScript fonctionne sur la page de test!');
+             console.log('✅ Test page loaded successfully');
+
+             // Test d'ajout de ligne dynamique
+             setTimeout(() => {
+                 const tbody = document.querySelector('tbody');
+                 const newRow = document.createElement('tr');
+                 newRow.style.background = 'orange';
+                 newRow.style.color = 'black';
+                 newRow.innerHTML = `
+                     <td>JS</td>
+                     <td><strong>JS-001</strong></td>
+                     <td>LIGNE AJOUTÉE</td>
+                     <td>Par JavaScript</td>
+                     <td>28/01/2025</td>
+                     <td>999.00 €</td>
+                     <td>1199.00 €</td>
+                     <td>DYNAMIQUE</td>
+                     <td>SCRIPT</td>
+                 `;
+                 tbody.appendChild(newRow);
+                 alert('✅ Ligne ajoutée par JavaScript!');
+             }, 2000);
+         </script>
+     </body>
+     </html>
